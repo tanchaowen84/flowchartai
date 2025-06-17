@@ -6,7 +6,17 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Bot, Edit, MessageCircle, Pencil, User, X } from 'lucide-react';
+import {
+  ArrowUp,
+  Bot,
+  Camera,
+  Edit,
+  MessageCircle,
+  Pencil,
+  Plus,
+  User,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 interface Message {
@@ -90,81 +100,105 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     >
       <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-medium">FlowChart AI</h2>
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <h2 className="text-base font-medium text-gray-900">
+              FlowChart AI
+            </h2>
           </div>
           <Button
             onClick={onToggle}
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Messages */}
-        <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+        <ScrollArea ref={scrollAreaRef} className="flex-1 px-4">
           <div className="space-y-4">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`${message.role === 'user' ? 'flex justify-end' : ''}`}
               >
-                <Card
-                  className={`max-w-[280px] p-3 ${
-                    message.role === 'user'
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
-                </Card>
+                {message.role === 'user' ? (
+                  <Card className="max-w-[280px] p-3 bg-gray-100 text-gray-900 border-gray-100">
+                    <p className="text-sm leading-relaxed">{message.content}</p>
+                  </Card>
+                ) : (
+                  <div className="max-w-full">
+                    <p className="text-sm leading-relaxed text-gray-900 font-medium mb-2">
+                      {message.content}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
             {isLoading && (
-              <div className="flex gap-3 justify-start">
-                <Card className="max-w-[280px] p-3 bg-gray-50 border-gray-200">
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
-                    <div
-                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.1s' }}
-                    />
-                    <div
-                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.2s' }}
-                    />
-                  </div>
-                </Card>
+              <div className="max-w-full">
+                <div className="flex items-center gap-1 py-2">
+                  <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
+                  <div
+                    className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.1s' }}
+                  />
+                  <div
+                    className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.2s' }}
+                  />
+                </div>
               </div>
             )}
           </div>
         </ScrollArea>
 
-        <Separator />
-
         {/* Input */}
-        <div className="p-4">
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask about your flowchart..."
-              className="flex-1 text-sm"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!input.trim() || isLoading}
-              variant="secondary"
-              size="icon"
-              className="h-10 w-10"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+        <div className="p-6">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200/50 p-3 mx-2">
+            <div className="flex items-center space-x-3">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Input
+                type="text"
+                placeholder="Ask another question..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+                className="flex-1 border-0 focus-visible:ring-0 shadow-none bg-transparent placeholder:text-gray-400 text-sm px-0"
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={handleSendMessage}
+                size="icon"
+                variant="ghost"
+                disabled={!input.trim() || isLoading}
+                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-30 flex-shrink-0"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
