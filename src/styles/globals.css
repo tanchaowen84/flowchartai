@@ -328,6 +328,10 @@ body {
   background-clip: text;
 }
 
+.excalidraw .sidebar-trigger {
+  display: none !important;
+}
+
 /*
  * 1. all the themes are copied from the shadcn-ui dashboard example
  * https://github.com/shadcn-ui/ui/blob/main/apps/v4/app/(examples)/dashboard/theme.css
