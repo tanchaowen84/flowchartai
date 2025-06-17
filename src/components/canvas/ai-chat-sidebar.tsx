@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Bot, MessageCircle, Send, User, X } from 'lucide-react';
+import { Bot, Edit, MessageCircle, Pencil, User, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 interface Message {
@@ -27,15 +27,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   isOpen,
   onToggle,
 }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content:
-        "Hello! I'm your AI assistant. I can help you create flowcharts, suggest improvements, or answer questions about your diagram.",
-      role: 'assistant',
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -113,8 +105,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              <h2 className="text-base font-medium">AI Assistant</h2>
+              <h2 className="text-base font-medium">FlowChart AI</h2>
             </div>
             <Button
               onClick={onToggle}
@@ -134,13 +125,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   key={message.id}
                   className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  {message.role === 'assistant' && (
-                    <Avatar className="h-8 w-8 mt-1">
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        <Bot className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
                   <Card
                     className={`max-w-[280px] p-3 ${
                       message.role === 'user'
@@ -161,11 +145,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               ))}
               {isLoading && (
                 <div className="flex gap-3 justify-start">
-                  <Avatar className="h-8 w-8 mt-1">
-                    <AvatarFallback className="bg-blue-100 text-blue-600">
-                      <Bot className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
                   <Card className="max-w-[280px] p-3 bg-gray-50 border-gray-200">
                     <div className="flex items-center gap-1">
                       <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
@@ -200,10 +179,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               <Button
                 onClick={handleSendMessage}
                 disabled={!input.trim() || isLoading}
+                variant="secondary"
                 size="icon"
                 className="h-10 w-10"
               >
-                <Send className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
               </Button>
             </div>
           </div>
