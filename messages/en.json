@@ -1,8 +1,8 @@
 {
   "Metadata": {
-    "name": "MkSaaS Demo",
-    "title": "MkSaaS - The Best AI SaaS Boilerplate",
-    "description": "MkSaaS is the best AI SaaS boilerplate. Make AI SaaS in days, simply and effortlessly"
+    "name": "FlowChart AI",
+    "title": "FlowChart AI - AI-Powered Flowchart Generator",
+    "description": "Create beautiful flowcharts with AI assistance. Draw, edit, and collaborate on your diagrams effortlessly."
   },
   "Common": {
     "login": "Log in",
@@ -647,10 +647,10 @@
     "title": "MkSaaS",
     "description": "Make AI SaaS in days, simply and effortlessly",
     "hero": {
-      "title": "Make AI SaaS in days, simply and effortlessly",
-      "description": "The is a demo website built with MkSaaS, a Next.js SaaS boilerplate to help you build your AI SaaS faster and better.",
-      "introduction": "Introducing MkSaaS Boilerplate",
-      "primary": "Get Started",
+      "title": "Create Beautiful Flowcharts with AI",
+      "description": "Transform your ideas into professional flowcharts instantly. Our AI-powered editor helps you design, edit, and collaborate on diagrams effortlessly.",
+      "introduction": "Introducing FlowChart AI",
+      "primary": "Start Creating",
       "secondary": "See Demo"
     },
     "logocloud": {
@@ -883,10 +883,10 @@
       }
     },
     "calltoaction": {
-      "title": "Start Building",
-      "description": "MkSaaS lets you make AI SaaS in days, simply and effortlessly",
-      "primaryButton": "Get Started",
-      "secondaryButton": "See Demo"
+      "title": "Ready to Create Amazing Flowcharts?",
+      "description": "Join thousands of users who are already creating professional diagrams with FlowChart AI",
+      "primaryButton": "Start Creating",
+      "secondaryButton": "Learn More"
     }
   },
   "AITextPage": {
@@ -908,5 +908,10 @@
     "title": "AI Audio",
     "description": "MkSaaS lets you make AI SaaS in days, simply and effortlessly",
     "content": "Working in progress"
+  },
+  "CanvasPage": {
+    "title": "Canvas",
+    "description": "Create beautiful flowcharts with AI assistance - draw, edit, and collaborate on your diagrams",
+    "subtitle": "AI-Powered Flowchart Editor"
   }
 }

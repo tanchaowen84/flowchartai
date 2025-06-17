@@ -1,4 +1,22 @@
-# MkSaaS
+# FlowChart AI
+
+Create beautiful flowcharts with AI assistance.
+
+An AI-powered flowchart generator built with Next.js, featuring Excalidraw canvas integration, AI assistance, and collaborative editing capabilities.
+
+## Recent Updates (Latest)
+
+### FlowChart AI Integration (2024-12-19)
+- ✅ Integrated Excalidraw canvas for flowchart creation
+- ✅ Created dedicated canvas page at `/canvas`
+- ✅ Updated hero section to redirect to canvas
+- ✅ Modified branding from MkSaaS to FlowChart AI
+- ✅ Added full-screen canvas layout
+- ✅ Prepared foundation for AI integration (coming soon)
+
+## Original MkSaaS Template
+
+This project is built on the MkSaaS template foundation.
 
 Make AI SaaS in a weekend.
 

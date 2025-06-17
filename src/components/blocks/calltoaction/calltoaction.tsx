@@ -16,7 +16,7 @@ export default function CallToActionSection() {
 
           <div className="mt-12 flex flex-wrap justify-center gap-4">
             <Button asChild size="lg">
-              <LocaleLink href="/">
+              <LocaleLink href="/canvas">
                 <span>{t('primaryButton')}</span>
               </LocaleLink>
             </Button>

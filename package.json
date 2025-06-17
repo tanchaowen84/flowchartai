@@ -29,6 +29,8 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@excalidraw/excalidraw": "^0.18.0",
+    "@excalidraw/mermaid-to-excalidraw": "^1.1.2",
     "@fumadocs/content-collections": "^1.1.8",
     "@hookform/resolvers": "^4.1.0",
     "@next/third-parties": "^15.3.0",
