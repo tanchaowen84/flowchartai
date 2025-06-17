@@ -12,6 +12,8 @@ An AI-powered flowchart generator built with Next.js, featuring Excalidraw canva
 - ✅ Updated hero section to redirect to canvas
 - ✅ Modified branding from MkSaaS to FlowChart AI
 - ✅ Added full-screen canvas layout
+- ✅ Implemented immersive canvas experience (no header/footer)
+- ✅ Optimized for pure drawing focus and user engagement
 - ✅ Prepared foundation for AI integration (coming soon)
 
 ## Original MkSaaS Template
