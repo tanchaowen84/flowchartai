@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac } from 'crypto';
 
 export function verifyCreemWebhookSignature(
   payload: string,
@@ -7,13 +7,13 @@ export function verifyCreemWebhookSignature(
 ): boolean {
   try {
     // Create HMAC SHA256 hash
-    const hmac = createHmac("sha256", secret);
-    const calculatedSignature = hmac.update(payload).digest("hex");
+    const hmac = createHmac('sha256', secret);
+    const calculatedSignature = hmac.update(payload).digest('hex');
 
     // Compare signatures using timing-safe comparison
     return timingSafeEqual(signature, calculatedSignature);
   } catch (error) {
-    console.error("Error verifying webhook signature:", error);
+    console.error('Error verifying webhook signature:', error);
     return false;
   }
 }
