@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp, integer, jsonb, index } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -87,4 +87,17 @@ export const creditsHistory = pgTable("credits_history", {
 	creemOrderId: text('creem_order_id'),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	metadata: jsonb('metadata').default('{}'),
+});
+
+export const flowcharts = pgTable("flowcharts", {
+	id: text("id").primaryKey(),
+	title: text('title').notNull().default('Untitled'),
+	content: text('content').notNull(), // Excalidraw serializeAsJSON result
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+	updatedAt: timestamp('updated_at').notNull().defaultNow(),
+	userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+}, (table) => {
+	return {
+		userUpdatedIdx: index('flowcharts_user_updated_idx').on(table.userId, table.updatedAt),
+	}
 });

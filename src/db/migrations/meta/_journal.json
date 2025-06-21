@@ -15,6 +15,20 @@
       "when": 1749884426688,
       "tag": "0001_safe_aaron_stack",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1750505363339,
+      "tag": "0002_zippy_oracle",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1750505412771,
+      "tag": "0003_spicy_nova",
+      "breakpoints": true
     }
   ]
 }

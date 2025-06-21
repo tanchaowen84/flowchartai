@@ -1,0 +1,1 @@
+CREATE INDEX "flowcharts_user_updated_idx" ON "flowcharts" USING btree ("user_id","updated_at");
