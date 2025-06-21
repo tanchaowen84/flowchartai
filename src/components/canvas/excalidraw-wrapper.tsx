@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AiChatSidebar from './ai-chat-sidebar';
+import ResizableDivider from './resizable-divider';
 
 interface ExcalidrawWrapperProps {
   className?: string;
@@ -20,6 +21,8 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({ className }) => {
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(400);
+  const [isResizing, setIsResizing] = useState(false);
   const router = useRouter();
   const currentUser = useCurrentUser();
 
@@ -31,13 +34,27 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({ className }) => {
     setIsSidebarOpen((prev) => !prev);
   };
 
+  const handleSidebarResize = (width: number) => {
+    setSidebarWidth(width);
+  };
+
+  const handleResizeStart = () => {
+    setIsResizing(true);
+  };
+
+  const handleResizeEnd = () => {
+    setIsResizing(false);
+  };
+
   return (
     <div className={`h-screen w-screen flex ${className || ''}`}>
       {/* Main Canvas Area */}
       <div
-        className="relative h-full transition-all duration-300 ease-in-out"
+        className={`relative h-full ${
+          isResizing ? '' : 'transition-all duration-300 ease-in-out'
+        }`}
         style={{
-          width: isSidebarOpen ? 'calc(100% - 400px)' : '100%',
+          width: isSidebarOpen ? `calc(100% - ${sidebarWidth}px)` : '100%',
         }}
       >
         {/* Top Right Controls */}
@@ -92,11 +109,29 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({ className }) => {
         </Excalidraw>
       </div>
 
+      {/* Resizable Divider - only show when sidebar is open */}
+      {isSidebarOpen && (
+        <div
+          className="fixed top-0 h-full z-50"
+          style={{ right: `${sidebarWidth - 1}px` }}
+        >
+          <ResizableDivider
+            onResize={handleSidebarResize}
+            onResizeStart={handleResizeStart}
+            onResizeEnd={handleResizeEnd}
+            defaultWidth={sidebarWidth}
+            minWidth={300}
+            maxWidth={600}
+          />
+        </div>
+      )}
+
       {/* AI Chat Sidebar */}
       <AiChatSidebar
         isOpen={isSidebarOpen}
         onToggle={toggleSidebar}
         excalidrawAPI={excalidrawAPI}
+        width={sidebarWidth}
       />
     </div>
   );

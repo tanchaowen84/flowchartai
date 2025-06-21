@@ -67,6 +67,7 @@ interface AiChatSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   excalidrawAPI?: ExcalidrawImperativeAPI | null;
+  width?: number;
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
@@ -74,6 +75,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   isOpen,
   onToggle,
   excalidrawAPI,
+  width = 400,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -708,10 +710,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full bg-white border-l border-gray-200 shadow-lg transition-transform duration-300 ease-in-out z-40 ${
+      className={`fixed top-0 right-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out z-40 ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
-      style={{ width: '400px' }}
+      style={{ width: `${width}px` }}
     >
       <div className="flex h-full flex-col">
         {/* Header */}
