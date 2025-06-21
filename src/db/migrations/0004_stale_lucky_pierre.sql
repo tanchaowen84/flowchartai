@@ -1,0 +1,1 @@
+ALTER TABLE "flowcharts" ADD COLUMN "thumbnail" text;

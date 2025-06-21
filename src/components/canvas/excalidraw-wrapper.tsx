@@ -30,10 +30,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [sidebarWidth, setSidebarWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const [currentFlowchartId, setCurrentFlowchartId] = useState(flowchartId);
 
   const router = useRouter();
   const currentUser = useCurrentUser();
-  const { flowchart, loading, error } = useFlowchart(flowchartId);
+  const { flowchart, loading, error } = useFlowchart(currentFlowchartId);
 
   const handleGoHome = () => {
     router.push('/');
@@ -55,42 +56,25 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     setIsResizing(false);
   };
 
-  // Load flowchart data into Excalidraw when available
+  const handleFlowchartIdChange = (newId: string) => {
+    setCurrentFlowchartId(newId);
+  };
+
+  // Track when data is loaded (now handled by initialData)
   useEffect(() => {
-    if (excalidrawAPI && flowchart && !initialDataLoaded) {
-      try {
-        const parsedContent = JSON.parse(flowchart.content);
-
-        // Prepare appState by excluding problematic properties
-        const { collaborators, ...safeAppState } = parsedContent.appState || {};
-
-        // Update the scene with loaded data
-        excalidrawAPI.updateScene({
-          elements: parsedContent.elements || [],
-          appState: {
-            ...safeAppState,
-            viewBackgroundColor: '#ffffff',
-            // Let Excalidraw initialize its own collaborators Map
-            collaborators: new Map(),
-          },
-        });
-
-        // Load files if they exist
-        if (parsedContent.files) {
-          // Note: File loading might need additional handling
-          // depending on how files are stored
-        }
-
-        setInitialDataLoaded(true);
-        console.log('Flowchart loaded successfully:', flowchart.title);
-      } catch (err) {
-        console.error('Error loading flowchart data:', err);
-      }
+    if (flowchart && excalidrawAPI) {
+      console.log('✅ Flowchart initialized via initialData:', flowchart.title);
+      setInitialDataLoaded(true);
     }
-  }, [excalidrawAPI, flowchart, initialDataLoaded]);
+  }, [excalidrawAPI, flowchart]);
+
+  // Reset initialDataLoaded when flowchartId changes
+  useEffect(() => {
+    setInitialDataLoaded(false);
+  }, [currentFlowchartId]);
 
   // Show loading state when fetching flowchart data
-  if (flowchartId && loading) {
+  if (currentFlowchartId && loading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -102,7 +86,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   }
 
   // Show error state if flowchart failed to load
-  if (flowchartId && error) {
+  if (currentFlowchartId && error) {
     return (
       <div className="h-screen w-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
@@ -136,7 +120,8 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           {currentUser && (
             <SaveButton
               excalidrawAPI={excalidrawAPI}
-              flowchartId={flowchartId}
+              flowchartId={currentFlowchartId}
+              onFlowchartIdChange={handleFlowchartIdChange}
             />
           )}
 
@@ -164,13 +149,41 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
         <Excalidraw
           excalidrawAPI={(api) => setExcalidrawAPI(api)}
-          initialData={{
-            appState: {
-              viewBackgroundColor: '#ffffff',
-              currentItemFontFamily: 1,
-              zenModeEnabled: false,
-            },
-          }}
+          initialData={(() => {
+            // If we have flowchart data, use it for initialization
+            if (flowchart && !loading) {
+              try {
+                const parsedContent = JSON.parse(flowchart.content);
+                const { collaborators, ...safeAppState } =
+                  parsedContent.appState || {};
+
+                console.log('🎨 Using flowchart data for initialData');
+                return {
+                  elements: parsedContent.elements || [],
+                  appState: {
+                    ...safeAppState,
+                    viewBackgroundColor: '#ffffff',
+                  },
+                  files: parsedContent.files || {},
+                };
+              } catch (err) {
+                console.error(
+                  '❌ Error parsing flowchart for initialData:',
+                  err
+                );
+              }
+            }
+
+            // Default empty state
+            console.log('🎨 Using default empty initialData');
+            return {
+              appState: {
+                viewBackgroundColor: '#ffffff',
+                currentItemFontFamily: 1,
+                zenModeEnabled: false,
+              },
+            };
+          })()}
           UIOptions={{
             canvasActions: {
               loadScene: false,

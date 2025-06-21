@@ -53,6 +53,7 @@ import { useState } from 'react';
 interface FlowchartCardProps {
   id: string;
   title: string;
+  thumbnail?: string | null;
   createdAt: Date;
   updatedAt: Date;
   onDelete: (id: string) => void;
@@ -62,6 +63,7 @@ interface FlowchartCardProps {
 export function FlowchartCard({
   id,
   title,
+  thumbnail,
   createdAt,
   updatedAt,
   onDelete,
@@ -141,13 +143,23 @@ export function FlowchartCard({
 
         <CardContent className="pb-3">
           <div
-            className="h-32 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center hover:border-primary/50 transition-colors"
+            className="h-32 rounded-lg border-2 border-dashed border-gray-200 overflow-hidden hover:border-primary/50 transition-colors cursor-pointer"
             onClick={handleEdit}
           >
-            <div className="text-center text-gray-500">
-              <div className="text-2xl mb-2">📊</div>
-              <div className="text-sm">Click to edit</div>
-            </div>
+            {thumbnail ? (
+              <img
+                src={thumbnail}
+                alt={`Preview of ${title}`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <div className="text-2xl mb-2">📊</div>
+                  <div className="text-sm">Click to edit</div>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
 

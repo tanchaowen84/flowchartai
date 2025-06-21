@@ -10,6 +10,7 @@ import { z } from 'zod';
 const createFlowchartSchema = z.object({
   title: z.string().optional().default('Untitled'),
   content: z.string().min(1, 'Content is required'),
+  thumbnail: z.string().optional(),
 });
 
 // GET /api/flowcharts - Get user's flowcharts
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
         id: flowcharts.id,
         title: flowcharts.title,
         content: flowcharts.content,
+        thumbnail: flowcharts.thumbnail,
         createdAt: flowcharts.createdAt,
         updatedAt: flowcharts.updatedAt,
       })
@@ -72,6 +74,7 @@ export async function POST(request: NextRequest) {
         id: flowchartId,
         title: validatedData.title,
         content: validatedData.content,
+        thumbnail: validatedData.thumbnail,
         userId: session.user.id,
       })
       .returning({ id: flowcharts.id });

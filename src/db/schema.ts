@@ -93,6 +93,7 @@ export const flowcharts = pgTable("flowcharts", {
 	id: text("id").primaryKey(),
 	title: text('title').notNull().default('Untitled'),
 	content: text('content').notNull(), // Excalidraw serializeAsJSON result
+	thumbnail: text('thumbnail'), // Base64 encoded thumbnail image
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at').notNull().defaultNow(),
 	userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),

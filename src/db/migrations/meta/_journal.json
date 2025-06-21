@@ -29,6 +29,13 @@
       "when": 1750505412771,
       "tag": "0003_spicy_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1750509633898,
+      "tag": "0004_stale_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }

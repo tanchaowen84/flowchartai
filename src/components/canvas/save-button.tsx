@@ -10,9 +10,14 @@ import { useState } from 'react';
 interface SaveButtonProps {
   excalidrawAPI: ExcalidrawImperativeAPI | null;
   flowchartId?: string;
+  onFlowchartIdChange?: (newId: string) => void;
 }
 
-export function SaveButton({ excalidrawAPI, flowchartId }: SaveButtonProps) {
+export function SaveButton({
+  excalidrawAPI,
+  flowchartId,
+  onFlowchartIdChange,
+}: SaveButtonProps) {
   const router = useRouter();
   const { saveFlowchart, saving, lastSaved } = useFlowchartSave(
     excalidrawAPI,
@@ -31,10 +36,17 @@ export function SaveButton({ excalidrawAPI, flowchartId }: SaveButtonProps) {
       setErrorMessage('');
 
       // If this was a new flowchart (no existing flowchartId) and we got a new ID,
-      // redirect to the new URL
+      // update the URL without reloading the page
       if (!flowchartId && result.flowchartId) {
         setTimeout(() => {
-          router.push(`/canvas/${result.flowchartId}`);
+          // Update URL without page reload using History API
+          const newUrl = `/canvas/${result.flowchartId}`;
+          window.history.replaceState(null, '', newUrl);
+          // Notify parent component about the flowchart ID change
+          if (onFlowchartIdChange && result.flowchartId) {
+            onFlowchartIdChange(result.flowchartId);
+          }
+          setSaveStatus('idle');
         }, 1000); // Wait 1 second to show the success state
       } else {
         // Reset status after 2 seconds for existing flowcharts

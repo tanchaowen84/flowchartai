@@ -1,3 +1,4 @@
+import { generateThumbnail } from '@/lib/excalidraw-thumbnail';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { useCallback, useRef, useState } from 'react';
 
@@ -35,7 +36,14 @@ export const useFlowchartSave = (
         const rawAppState = excalidrawAPI.getAppState();
         const files = excalidrawAPI.getFiles();
 
+        console.log('🔄 Saving flowchart...', {
+          elementsCount: elements.length,
+          flowchartId,
+          title,
+        });
+
         // Filter out runtime properties that shouldn't be saved
+        // Keep a clean copy of appState without runtime-only properties
         const { collaborators, ...appState } = rawAppState;
 
         // Create the content object
@@ -48,12 +56,39 @@ export const useFlowchartSave = (
           files,
         });
 
+        // TODO: 临时禁用缩略图生成，先确保基本保存功能正常
+        // Generate thumbnail if there are elements to draw
+        // let thumbnail: string | null = null;
+        // if (elements.length > 0) {
+        //   try {
+        //     thumbnail = await generateThumbnail(
+        //       { elements, appState },
+        //       400,
+        //       300
+        //     );
+        //   } catch (error) {
+        //     console.warn('Failed to generate thumbnail:', error);
+        //     // Continue without thumbnail if generation fails
+        //   }
+        // }
+
         const requestBody: any = { content };
         if (title) {
           requestBody.title = title;
         }
+        // if (thumbnail) {
+        //   requestBody.thumbnail = thumbnail;
+        // }
 
         let response: Response;
+
+        console.log('📤 Sending request...', {
+          url: flowchartId
+            ? `/api/flowcharts/${flowchartId}`
+            : '/api/flowcharts',
+          method: flowchartId ? 'PUT' : 'POST',
+          contentLength: content.length,
+        });
 
         if (flowchartId) {
           // Update existing flowchart
@@ -77,10 +112,16 @@ export const useFlowchartSave = (
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.error('❌ Save failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData,
+          });
           throw new Error(errorData.error || 'Failed to save flowchart');
         }
 
         const result = await response.json();
+        console.log('✅ Save successful:', result);
         setLastSaved(new Date());
 
         // Return the flowchart ID for potential URL update

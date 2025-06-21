@@ -4,6 +4,7 @@ interface Flowchart {
   id: string;
   title: string;
   content: string;
+  thumbnail?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

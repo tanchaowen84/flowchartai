@@ -227,6 +227,7 @@ export function FlowchartsDashboard() {
               key={flowchart.id}
               id={flowchart.id}
               title={flowchart.title}
+              thumbnail={flowchart.thumbnail}
               createdAt={flowchart.createdAt}
               updatedAt={flowchart.updatedAt}
               onDelete={handleDelete}

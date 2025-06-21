@@ -10,6 +10,7 @@ import { z } from 'zod';
 const updateFlowchartSchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
+  thumbnail: z.string().optional(),
 });
 
 // GET /api/flowcharts/[id] - Get specific flowchart
@@ -46,6 +47,7 @@ export async function GET(
       id: flowchart.id,
       title: flowchart.title,
       content: flowchart.content,
+      thumbnail: flowchart.thumbnail,
       createdAt: flowchart.createdAt,
       updatedAt: flowchart.updatedAt,
     });
@@ -100,6 +102,9 @@ export async function PUT(
     }
     if (validatedData.content !== undefined) {
       updateData.content = validatedData.content;
+    }
+    if (validatedData.thumbnail !== undefined) {
+      updateData.thumbnail = validatedData.thumbnail;
     }
     updateData.updatedAt = new Date();
 
