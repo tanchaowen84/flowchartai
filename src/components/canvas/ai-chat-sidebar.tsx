@@ -1,5 +1,6 @@
 'use client';
 
+import MarkdownRenderer from '@/components/shared/markdown-renderer';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -661,25 +662,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   };
 
   const renderFormattedText = (text: string) => {
-    // Split text by markdown patterns and render safely
-    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/);
-
-    return parts.map((part, index) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index}>{part.slice(2, -2)}</strong>;
-      }
-      if (part.startsWith('*') && part.endsWith('*')) {
-        return <em key={index}>{part.slice(1, -1)}</em>;
-      }
-      if (part.startsWith('`') && part.endsWith('`')) {
-        return (
-          <code key={index} className="bg-gray-100 px-1 py-0.5 rounded text-xs">
-            {part.slice(1, -1)}
-          </code>
-        );
-      }
-      return part;
-    });
+    return <MarkdownRenderer content={text} />;
   };
 
   const renderMessageContent = (message: Message) => {
@@ -697,7 +680,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     return (
       <div className="space-y-2">
-        <div className="text-sm leading-relaxed">
+        <div className="leading-relaxed">
           {typeof message.content === 'string'
             ? renderFormattedText(message.content)
             : message.content.map((content, index) => (
@@ -839,7 +822,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               {/* Current streaming message */}
               {isLoading && currentAssistantMessage && (
                 <div className="max-w-full">
-                  <div className="text-sm leading-relaxed">
+                  <div className="leading-relaxed">
                     {renderFormattedText(currentAssistantMessage)}
                   </div>
                   <div className="flex items-center gap-1 mt-1">
