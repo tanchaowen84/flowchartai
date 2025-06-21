@@ -375,12 +375,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 flowchartMode = data.args.mode || 'replace';
                 isFlowchartGenerated = true;
 
-                // Add a special message indicating flowchart generation
+                // Add a simple message indicating flowchart generation (without showing code)
                 const modeText =
                   flowchartMode === 'extend'
-                    ? 'Extending flowchart...'
-                    : 'Generating flowchart...';
-                accumulatedContent += `\n\n🎨 **${modeText}**\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
+                    ? '正在扩展流程图...'
+                    : '正在生成流程图...';
+                accumulatedContent += `\n\n🎨 ${modeText}`;
                 setCurrentAssistantMessage(accumulatedContent);
               } else if (data.toolName === 'get_canvas_state') {
                 // Handle canvas state request - get state from frontend
@@ -539,18 +539,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         <div className="text-sm leading-relaxed">
           {renderFormattedText(message.content)}
         </div>
-        {message.isFlowchart && message.mermaidCode && (
-          <Button
-            onClick={() => addFlowchartToCanvas(message.mermaidCode!)}
-            size="sm"
-            variant="outline"
-            className="mt-2 h-7 text-xs"
-            disabled={!excalidrawAPI}
-          >
-            <Sparkles className="h-3 w-3 mr-1" />
-            Add to Canvas
-          </Button>
-        )}
+        {/* Flowchart is automatically added to canvas, no need for manual button */}
       </div>
     );
   };
