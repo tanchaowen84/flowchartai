@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
 import {
@@ -20,7 +21,6 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import {
   AlertCircle,
   ArrowUp,
-  Bot,
   Camera,
   Edit,
   MessageCircle,
@@ -61,6 +61,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -77,9 +78,34 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
+  // Auto-resize textarea based on content with proper line wrapping
+  const adjustTextareaHeight = () => {
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto';
+      // Calculate new height based on content
+      const minHeight = 32;
+      const maxHeight = 120;
+      const scrollHeight = textarea.scrollHeight;
+      const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
+      textarea.style.height = `${newHeight}px`;
+    }
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, currentAssistantMessage]);
+
+  // Initialize textarea height on mount and when input changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input]);
+
+  // Auto-adjust textarea height when input changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input]);
 
   // Clean up abort controller on unmount
   useEffect(() => {
@@ -378,13 +404,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 // Add a simple message indicating flowchart generation (without showing code)
                 const modeText =
                   flowchartMode === 'extend'
-                    ? '正在扩展流程图...'
-                    : '正在生成流程图...';
+                    ? 'Extending flowchart...'
+                    : 'Generating flowchart...';
                 accumulatedContent += `\n\n🎨 ${modeText}`;
                 setCurrentAssistantMessage(accumulatedContent);
               } else if (data.toolName === 'get_canvas_state') {
                 // Handle canvas state request - get state from frontend
-                accumulatedContent += '\n\n🔍 **Analyzing current canvas...**';
+                accumulatedContent += '\n\n🔍 Analyzing current canvas...';
                 setCurrentAssistantMessage(accumulatedContent);
 
                 // 收集工具调用，稍后处理
@@ -484,7 +510,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -497,6 +523,25 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       setIsLoading(false);
       setCurrentAssistantMessage('');
     }
+  };
+
+  const handleNewConversation = () => {
+    // 如果正在加载中，先停止当前对话
+    if (isLoading) {
+      handleStopGeneration();
+    }
+
+    // 清空对话历史
+    setMessages([]);
+    setCurrentAssistantMessage('');
+    setInput('');
+
+    // 显示提示信息
+    toast({
+      title: 'New conversation created',
+      description:
+        'Chat history cleared. You can start a fresh AI conversation.',
+    });
   };
 
   const renderFormattedText = (text: string) => {
@@ -556,9 +601,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Button
+              onClick={handleNewConversation}
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={isLoading}
+              title="New Conversation"
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -577,10 +625,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               <Button
                 onClick={handleStopGeneration}
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                size="sm"
+                className="h-8 px-3 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-colors"
               >
-                <X className="h-3 w-3" />
+                <span className="text-xs">Stop</span>
               </Button>
             )}
             <Button
@@ -600,7 +648,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             <div className="space-y-4 px-4 pb-4 min-h-0">
               {messages.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">Ask me to create a flowchart!</p>
                   <p className="text-xs mt-1 opacity-75">
                     I can help you visualize processes, workflows, and ideas.
@@ -626,11 +673,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                     </Card>
                   ) : (
                     <div className="max-w-full">
-                      <div className="flex items-start gap-2 mb-2">
-                        <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
-                        <div className="flex-1">
-                          {renderMessageContent(message)}
-                        </div>
+                      <div className="flex-1">
+                        {renderMessageContent(message)}
                       </div>
                     </div>
                   )}
@@ -640,16 +684,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               {/* Current streaming message */}
               {isLoading && currentAssistantMessage && (
                 <div className="max-w-full">
-                  <div className="flex items-start gap-2 mb-2">
-                    <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-sm leading-relaxed">
-                        {renderFormattedText(currentAssistantMessage)}
-                      </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <div className="h-1 w-1 bg-blue-500 rounded-full animate-pulse" />
-                      </div>
-                    </div>
+                  <div className="text-sm leading-relaxed">
+                    {renderFormattedText(currentAssistantMessage)}
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <div className="h-1 w-1 bg-blue-500 rounded-full animate-pulse" />
                   </div>
                 </div>
               )}
@@ -657,19 +696,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               {/* Loading indicator when no current message */}
               {isLoading && !currentAssistantMessage && (
                 <div className="max-w-full">
-                  <div className="flex items-start gap-2">
-                    <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
-                    <div className="flex items-center gap-1 py-2">
-                      <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
-                      <div
-                        className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                        style={{ animationDelay: '0.1s' }}
-                      />
-                      <div
-                        className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                        style={{ animationDelay: '0.2s' }}
-                      />
-                    </div>
+                  <div className="flex items-center gap-1 py-2">
+                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
+                    <div
+                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.1s' }}
+                    />
+                    <div
+                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.2s' }}
+                    />
                   </div>
                 </div>
               )}
@@ -680,27 +716,38 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         {/* Input */}
         <div className="p-6">
           <div className="bg-white rounded-xl shadow-lg border border-gray-200/50 p-3 mx-2">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-end space-x-3">
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0"
+                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0 mb-1"
               >
                 <Plus className="h-4 w-4" />
               </Button>
-              <Input
-                type="text"
-                placeholder="Describe the flowchart you want to create..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-                className="flex-1 border-0 focus-visible:ring-0 shadow-none bg-transparent placeholder:text-gray-400 text-sm px-0"
-              />
+              <div className="flex-1">
+                <Textarea
+                  ref={textareaRef}
+                  placeholder="Describe the flowchart you want to create..."
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    // Adjust height after state update
+                    setTimeout(() => adjustTextareaHeight(), 0);
+                  }}
+                  onKeyDown={handleKeyPress}
+                  disabled={isLoading}
+                  className="min-h-[32px] max-h-[120px] resize-none border-0 focus-visible:ring-0 shadow-none bg-transparent placeholder:text-gray-400 text-sm px-0 py-1 leading-5 overflow-y-auto"
+                  style={{
+                    height: '32px',
+                    wordWrap: 'break-word',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                />
+              </div>
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0"
+                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0 mb-1"
               >
                 <Camera className="h-4 w-4" />
               </Button>
@@ -709,7 +756,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 size="icon"
                 variant="ghost"
                 disabled={!input.trim() || isLoading}
-                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-30 flex-shrink-0"
+                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-30 flex-shrink-0 mb-1"
               >
                 <ArrowUp className="h-4 w-4" />
               </Button>
