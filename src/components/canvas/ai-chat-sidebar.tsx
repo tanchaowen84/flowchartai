@@ -7,7 +7,12 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-import { convertMermaidToExcalidraw } from '@/lib/mermaid-converter';
+import {
+  convertMermaidToExcalidraw,
+  countAiGeneratedElements,
+  removeAiGeneratedElements,
+} from '@/lib/mermaid-converter';
+import { CaptureUpdateAction } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import {
   AlertCircle,
@@ -187,25 +192,37 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         throw new Error('No elements generated from flowchart');
       }
 
-      // Get current elements and add new ones
-      const currentElements = excalidrawAPI.getSceneElements();
-      const newElements = [...currentElements, ...result.elements];
+      // Get current elements and remove any previously AI-generated ones
+      const currentElements = [...excalidrawAPI.getSceneElements()];
+      const aiElementsCount = countAiGeneratedElements(currentElements);
+      const elementsWithoutAi = removeAiGeneratedElements(currentElements);
 
-      // Update the scene with new elements
+      // Add new AI-generated elements
+      const newElements = [...elementsWithoutAi, ...result.elements];
+
+      // Update the scene with new elements (capture for undo/redo)
       excalidrawAPI.updateScene({
         elements: newElements,
+        captureUpdate: CaptureUpdateAction.IMMEDIATELY,
       });
 
-      // Zoom to fit all elements
+      // Zoom to fit the new flowchart elements
       excalidrawAPI.scrollToContent(result.elements, {
         fitToContent: true,
         animate: true,
       });
 
+      // Show appropriate toast message
+      const toastTitle =
+        aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
+      const toastDescription =
+        aiElementsCount > 0
+          ? 'Previous AI flowchart replaced with updated version.'
+          : 'Your AI-generated flowchart has been added to the canvas.';
+
       toast({
-        title: 'Flowchart added!',
-        description:
-          'Your AI-generated flowchart has been added to the canvas.',
+        title: toastTitle,
+        description: toastDescription,
       });
     } catch (error) {
       console.error('Error adding flowchart to canvas:', error);

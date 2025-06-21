@@ -116,9 +116,19 @@ export async function convertMermaidToExcalidraw(
       regenerateIds: true, // Generate new IDs for elements
     });
 
+    // Mark all elements as AI-generated for easier management
+    const markedElements = excalidrawElements.map((element) => ({
+      ...element,
+      customData: {
+        ...element.customData,
+        aiGenerated: true,
+        generatedAt: Date.now(),
+      },
+    }));
+
     return {
       success: true,
-      elements: excalidrawElements,
+      elements: markedElements,
       files: files || {},
     };
   } catch (error) {
@@ -217,6 +227,35 @@ export function getMermaidDiagramType(syntax: string): string {
   }
 
   return 'unknown';
+}
+
+/**
+ * Removes AI-generated elements from the canvas
+ *
+ * @param elements - Current canvas elements
+ * @returns Filtered elements with AI-generated ones removed
+ */
+export function removeAiGeneratedElements(
+  elements: ExcalidrawElement[]
+): ExcalidrawElement[] {
+  return elements.filter((element) => {
+    // Check if element has AI-generated marker
+    return !element.customData?.aiGenerated;
+  });
+}
+
+/**
+ * Counts AI-generated elements in the canvas
+ *
+ * @param elements - Current canvas elements
+ * @returns Number of AI-generated elements
+ */
+export function countAiGeneratedElements(
+  elements: ExcalidrawElement[]
+): number {
+  return elements.filter((element) => {
+    return element.customData?.aiGenerated;
+  }).length;
 }
 
 /**

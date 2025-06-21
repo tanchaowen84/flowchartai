@@ -78,9 +78,30 @@ import { parseMermaidToExcalidraw } from '@excalidraw/mermaid-to-excalidraw';
 
 export async function convertMermaidToExcalidraw(mermaidCode: string) {
   const { elements, files } = await parseMermaidToExcalidraw(mermaidCode);
-  return convertToExcalidrawElements(elements);
+  const markedElements = elements.map(element => ({
+    ...element,
+    customData: { aiGenerated: true, generatedAt: Date.now() }
+  }));
+  return convertToExcalidrawElements(markedElements);
 }
+
+// 增量更新支持函数
+export function removeAiGeneratedElements(elements: ExcalidrawElement[]) {
+  return elements.filter(element => !element.customData?.aiGenerated);
+}
+
+// 撤销/重做支持
+import { CaptureUpdateAction } from '@excalidraw/excalidraw';
+excalidrawAPI.updateScene({
+  elements: newElements,
+  captureUpdate: CaptureUpdateAction.IMMEDIATELY, // 确保操作被记录到撤销历史
+});
 ```
+
+**增量更新机制**:
+- 所有AI生成的元素都标记 `customData.aiGenerated = true`
+- 生成新流程图前自动删除之前的AI生成元素
+- 保留用户手动绘制的元素，实现精确替换
 
 ### 3. AI 聊天组件升级
 
@@ -182,10 +203,11 @@ OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 - [✅] 配置环境变量和测试
 
 ### 第二阶段：优化体验 (1天)
-- [ ] 添加加载状态和错误处理
-- [ ] 优化系统提示词
-- [ ] 实现画布状态智能发送
-- [ ] 添加撤销/重做支持
+- [✅] 添加加载状态和错误处理
+- [✅] 优化系统提示词
+- [✅] 实现画布状态智能发送
+- [✅] 实现增量更新功能（替换而非叠加流程图）
+- [✅] 修复撤销/重做支持（使用CaptureUpdateAction.IMMEDIATELY）
 
 ### 第三阶段：高级功能 (可选)
 - [ ] 支持画布截图发送给 AI
@@ -258,8 +280,38 @@ const shouldChat = [
 3. API 变更需要更新相关文档
 4. 提交前运行 `pnpm lint` 和 `pnpm build`
 
+## 🔄 撤销/重做功能修复
+
+### 问题描述
+用户反馈AI生成流程图后无法使用Excalidraw内置的撤销功能，每次AI更新都会重置撤销历史。
+
+### 根本原因
+使用 `excalidrawAPI.updateScene()` 时没有设置 `captureUpdate` 参数，导致操作未被记录到撤销历史中。
+
+### 解决方案
+```typescript
+import { CaptureUpdateAction } from '@excalidraw/excalidraw';
+
+excalidrawAPI.updateScene({
+  elements: newElements,
+  captureUpdate: CaptureUpdateAction.IMMEDIATELY, // 关键修复
+});
+```
+
+### 技术细节
+- `CaptureUpdateAction.IMMEDIATELY`: 立即将操作记录到撤销历史
+- `CaptureUpdateAction.EVENTUALLY`: 延迟记录，适用于多步骤操作
+- `CaptureUpdateAction.NEVER`: 永不记录，适用于远程更新或初始化
+
+### 用户体验改进
+- ✅ AI生成流程图 → 可撤销
+- ✅ AI修改流程图 → 可撤销到之前版本
+- ✅ 手动编辑元素 → 可撤销
+- ✅ 所有操作在同一个线性撤销历史中
+- ✅ 利用Excalidraw原生撤销功能，无需自定义版本管理
+
 ---
 
 **最后更新**: 2024-12-19
-**文档版本**: v1.0
+**文档版本**: v1.1
 **负责人**: 开发团队 
