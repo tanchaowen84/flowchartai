@@ -10,6 +10,8 @@ import { toast } from '@/hooks/use-toast';
 import {
   convertMermaidToExcalidraw,
   countAiGeneratedElements,
+  extractExistingMermaidCode,
+  hasExistingAiFlowchart,
   removeAiGeneratedElements,
 } from '@/lib/mermaid-converter';
 import { CaptureUpdateAction } from '@excalidraw/excalidraw';
@@ -160,6 +162,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             height: appState.height,
           },
         },
+
+        // AI流程图上下文信息
+        existingMermaid: extractExistingMermaidCode([...elements]),
+        hasAiFlowchart: hasExistingAiFlowchart([...elements]),
       };
 
       return canvasState;
@@ -169,7 +175,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
-  const addFlowchartToCanvas = async (mermaidCode: string) => {
+  const addFlowchartToCanvas = async (
+    mermaidCode: string,
+    mode: 'replace' | 'extend' = 'replace'
+  ) => {
     if (!excalidrawAPI) {
       toast({
         title: 'Canvas not ready',
@@ -192,13 +201,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         throw new Error('No elements generated from flowchart');
       }
 
-      // Get current elements and remove any previously AI-generated ones
+      // Get current elements
       const currentElements = [...excalidrawAPI.getSceneElements()];
       const aiElementsCount = countAiGeneratedElements(currentElements);
-      const elementsWithoutAi = removeAiGeneratedElements(currentElements);
 
-      // Add new AI-generated elements
-      const newElements = [...elementsWithoutAi, ...result.elements];
+      let newElements: any[];
+
+      if (mode === 'replace') {
+        // Replace mode: remove existing AI elements and add new ones
+        const elementsWithoutAi = removeAiGeneratedElements(currentElements);
+        newElements = [...elementsWithoutAi, ...result.elements];
+      } else {
+        // Extend mode: keep all existing elements and add new ones
+        newElements = [...currentElements, ...result.elements];
+      }
 
       // Update the scene with new elements (capture for undo/redo)
       excalidrawAPI.updateScene({
@@ -212,13 +228,22 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         animate: true,
       });
 
-      // Show appropriate toast message
-      const toastTitle =
-        aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
-      const toastDescription =
-        aiElementsCount > 0
-          ? 'Previous AI flowchart replaced with updated version.'
-          : 'Your AI-generated flowchart has been added to the canvas.';
+      // Show appropriate toast message based on mode and context
+      let toastTitle: string;
+      let toastDescription: string;
+
+      if (mode === 'extend') {
+        toastTitle = 'Flowchart extended!';
+        toastDescription =
+          'New elements have been added to your existing flowchart.';
+      } else {
+        toastTitle =
+          aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
+        toastDescription =
+          aiElementsCount > 0
+            ? 'Previous AI flowchart replaced with updated version.'
+            : 'Your AI-generated flowchart has been added to the canvas.';
+      }
 
       toast({
         title: toastTitle,
@@ -302,6 +327,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       let accumulatedContent = '';
       let isFlowchartGenerated = false;
       let mermaidCode = '';
+      let flowchartMode: 'replace' | 'extend' = 'replace';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -322,10 +348,15 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 // Handle flowchart generation
                 if (data.toolName === 'generate_flowchart') {
                   mermaidCode = data.args.mermaid_code;
+                  flowchartMode = data.args.mode || 'replace';
                   isFlowchartGenerated = true;
 
                   // Add a special message indicating flowchart generation
-                  accumulatedContent += `\n\n🎨 **Generating flowchart...**\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
+                  const modeText =
+                    flowchartMode === 'extend'
+                      ? 'Extending flowchart...'
+                      : 'Generating flowchart...';
+                  accumulatedContent += `\n\n🎨 **${modeText}**\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
                   setCurrentAssistantMessage(accumulatedContent);
                 }
               } else if (data.type === 'tool-result') {
@@ -361,7 +392,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       // If a flowchart was generated, add it to the canvas
       if (isFlowchartGenerated && mermaidCode) {
-        await addFlowchartToCanvas(mermaidCode);
+        await addFlowchartToCanvas(mermaidCode, flowchartMode);
       }
     } catch (error) {
       console.error('Error sending message:', error);

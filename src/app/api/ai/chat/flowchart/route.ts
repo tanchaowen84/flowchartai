@@ -23,23 +23,27 @@ const flowchartTool = {
           type: 'string',
           description: 'Valid Mermaid flowchart code',
         },
-        action: {
+        mode: {
           type: 'string',
-          enum: ['create', 'update'],
-          description: 'Whether to create new or update existing flowchart',
+          enum: ['replace', 'extend'],
+          description:
+            'Whether to replace existing flowchart completely or extend/modify it based on existing content',
         },
         description: {
           type: 'string',
           description: 'Brief description of the flowchart',
         },
       },
-      required: ['mermaid_code', 'action', 'description'],
+      required: ['mermaid_code', 'mode', 'description'],
     },
   },
 };
 
-// 系统提示词
-const systemPrompt = `You are FlowChart AI, an expert at creating flowcharts using Mermaid syntax.
+// 动态生成系统提示词的函数
+function generateSystemPrompt(canvasState: any) {
+  const hasExistingFlowchart = canvasState?.existingMermaid;
+
+  let prompt = `You are FlowChart AI, an expert at creating flowcharts using Mermaid syntax.
 
 RULES:
 - If user asks to create, generate, draw, make, design, or modify a flowchart/diagram → use generate_flowchart tool
@@ -49,17 +53,48 @@ RULES:
 - Use appropriate Mermaid diagram types (flowchart, graph, sequence, etc.)
 - Use Chinese text in flowchart nodes when user communicates in Chinese
 
-EXAMPLES that should trigger generate_flowchart:
-- "Draw a login process"
-- "Generate a payment workflow"
-- "Make a user onboarding flowchart"
-- "Update the flowchart to add error handling"
+MODE SELECTION:
+- Use "replace" mode when user wants to create a completely new flowchart or start over
+- Use "extend" mode when user wants to modify, add to, or improve existing flowchart
 
-EXAMPLES that should NOT trigger generate_flowchart:
-- "What is a flowchart?"
-- "How do I use this tool?"
-- "The colors look good"
-- "Can you explain this step?"
+REPLACE MODE triggers (use mode: "replace"):
+- "Draw a new flowchart..."
+- "Create a fresh diagram..."
+- "Start over with..."
+- "Replace this with..."
+
+EXTEND MODE triggers (use mode: "extend"):
+- "Add to this flowchart..."
+- "Modify the diagram to include..."
+- "Update the flowchart with..."
+- "Improve this by adding..."`;
+
+  if (hasExistingFlowchart) {
+    prompt += `
+
+CURRENT CANVAS STATE:
+There is an existing flowchart on the canvas:
+\`\`\`mermaid
+${canvasState.existingMermaid}
+\`\`\`
+
+When using "extend" mode:
+- Base your modifications on the existing flowchart above
+- Keep the original structure and logic intact
+- Add new nodes/connections as requested
+- Generate a complete updated version that includes both old and new content
+
+When using "replace" mode:
+- Ignore the existing flowchart
+- Create a completely new diagram based on user's request`;
+  } else {
+    prompt += `
+
+CURRENT CANVAS STATE:
+The canvas is currently empty. All requests will use "replace" mode to create new flowcharts.`;
+  }
+
+  prompt += `
 
 When generating Mermaid code:
 - Use 'flowchart TD' for top-down flowcharts
@@ -67,6 +102,9 @@ When generating Mermaid code:
 - Include decision points with diamond shapes {}
 - Use appropriate arrow labels for conditions
 - Keep the structure logical and easy to follow`;
+
+  return prompt;
+}
 
 export async function POST(req: Request) {
   try {
@@ -85,6 +123,9 @@ export async function POST(req: Request) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    // 生成动态系统提示词
+    const systemPrompt = generateSystemPrompt(canvasState);
 
     // 构建完整的消息数组
     const fullMessages = [

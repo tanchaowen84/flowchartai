@@ -208,6 +208,7 @@ OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 - [✅] 实现画布状态智能发送
 - [✅] 实现增量更新功能（替换而非叠加流程图）
 - [✅] 修复撤销/重做支持（使用CaptureUpdateAction.IMMEDIATELY）
+- [✅] 实现扩展/替换双模式功能（智能意图检测）
 
 ### 第三阶段：高级功能 (可选)
 - [ ] 支持画布截图发送给 AI
@@ -309,6 +310,118 @@ excalidrawAPI.updateScene({
 - ✅ 手动编辑元素 → 可撤销
 - ✅ 所有操作在同一个线性撤销历史中
 - ✅ 利用Excalidraw原生撤销功能，无需自定义版本管理
+
+## 🔀 扩展/替换模式功能
+
+### 功能概述
+实现AI流程图的两种更新模式：
+- **替换模式 (Replace)**: 完全替换现有AI生成的流程图
+- **扩展模式 (Extend)**: 在现有流程图基础上进行扩展和修改
+
+### 实现原理
+
+**元素标记系统**：
+```typescript
+// 保存原始Mermaid代码和会话ID
+const markedElements = excalidrawElements.map((element) => ({
+  ...element,
+  customData: {
+    aiGenerated: true,
+    generatedAt: Date.now(),
+    originalMermaid: mermaidSyntax, // 保存原始代码
+    sessionId: `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+  },
+}));
+```
+
+**智能意图检测**：
+```typescript
+// AI根据用户输入自动判断模式
+const flowchartTool = {
+  function: {
+    parameters: {
+      mode: {
+        type: 'string',
+        enum: ['replace', 'extend'],
+        description: 'Whether to replace existing flowchart completely or extend/modify it'
+      }
+    }
+  }
+};
+```
+
+**上下文传递**：
+```typescript
+// 将现有Mermaid代码作为上下文发送给AI
+const canvasState = {
+  existingMermaid: extractExistingMermaidCode(elements),
+  hasAiFlowchart: hasExistingAiFlowchart(elements),
+};
+```
+
+### 模式判断逻辑
+
+**替换模式触发词**：
+- "重新画"、"替换"、"删除原来的"
+- "Draw a new flowchart"、"Create a fresh diagram"
+- "Start over with"、"Replace this with"
+
+**扩展模式触发词**：
+- "添加"、"增加"、"在此基础上"、"扩展"
+- "Add to this flowchart"、"Modify the diagram"
+- "Update the flowchart with"、"Improve this by adding"
+
+### 技术实现
+
+**工具函数**：
+```typescript
+// 提取现有Mermaid代码
+export function extractExistingMermaidCode(elements: ExcalidrawElement[]): string | null
+
+// 检查是否有AI生成的流程图
+export function hasExistingAiFlowchart(elements: ExcalidrawElement[]): boolean
+
+// 双模式画布更新
+const addFlowchartToCanvas = async (mermaidCode: string, mode: 'replace' | 'extend' = 'replace')
+```
+
+**处理逻辑**：
+```typescript
+if (mode === 'replace') {
+  // 删除现有AI元素，添加新元素
+  const elementsWithoutAi = removeAiGeneratedElements(currentElements);
+  newElements = [...elementsWithoutAi, ...result.elements];
+} else {
+  // 保留所有元素，添加新元素
+  newElements = [...currentElements, ...result.elements];
+}
+```
+
+### 用户体验优化
+
+**智能提示消息**：
+- 替换模式: "Flowchart updated!" / "Flowchart added!"
+- 扩展模式: "Flowchart extended!"
+
+**可视化反馈**：
+- 扩展模式: "🎨 **Extending flowchart...**"
+- 替换模式: "🎨 **Generating flowchart...**"
+
+**撤销支持**：
+- 两种模式都支持Excalidraw原生撤销功能
+- 用户可以轻松回退到任何历史状态
+
+### 应用场景
+
+**替换模式适用于**：
+- 完全重新设计流程图
+- 改变流程图类型或结构
+- 从头开始创建新图表
+
+**扩展模式适用于**：
+- 在现有流程中添加新步骤
+- 增加错误处理分支
+- 优化或补充现有流程
 
 ---
 

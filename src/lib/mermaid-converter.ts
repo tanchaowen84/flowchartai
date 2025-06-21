@@ -123,6 +123,8 @@ export async function convertMermaidToExcalidraw(
         ...element.customData,
         aiGenerated: true,
         generatedAt: Date.now(),
+        originalMermaid: mermaidSyntax, // 保存原始Mermaid代码用于扩展
+        sessionId: `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 标记同一次生成的元素组
       },
     }));
 
@@ -256,6 +258,43 @@ export function countAiGeneratedElements(
   return elements.filter((element) => {
     return element.customData?.aiGenerated;
   }).length;
+}
+
+/**
+ * Extracts the most recent AI-generated Mermaid code from canvas elements
+ *
+ * @param elements - Current canvas elements
+ * @returns The most recent Mermaid code or null if none found
+ */
+export function extractExistingMermaidCode(
+  elements: ExcalidrawElement[]
+): string | null {
+  const aiElements = elements.filter(
+    (element) =>
+      element.customData?.aiGenerated && element.customData?.originalMermaid
+  );
+
+  if (aiElements.length === 0) {
+    return null;
+  }
+
+  // Get the most recent AI-generated element by timestamp
+  const latestElement = aiElements.sort(
+    (a, b) =>
+      (b.customData?.generatedAt || 0) - (a.customData?.generatedAt || 0)
+  )[0];
+
+  return latestElement.customData?.originalMermaid || null;
+}
+
+/**
+ * Checks if canvas has any AI-generated flowchart elements
+ *
+ * @param elements - Current canvas elements
+ * @returns True if AI-generated elements exist
+ */
+export function hasExistingAiFlowchart(elements: ExcalidrawElement[]): boolean {
+  return elements.some((element) => element.customData?.aiGenerated);
 }
 
 /**
