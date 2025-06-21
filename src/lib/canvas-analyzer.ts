@@ -8,8 +8,6 @@ export interface CanvasAnalysis {
   spatialLayout: SpatialLayout;
   connections: Connection[];
   textContent: TextContent[];
-  aiGeneratedElements: ElementInfo[];
-  userAddedElements: ElementInfo[];
   canvasDescription: string;
 }
 
@@ -68,8 +66,6 @@ export function analyzeCanvasElements(
   const spatialLayout = analyzeSpatialLayout(elements);
   const connections = analyzeConnections(elements);
   const textContent = extractAllTextContent(elements);
-  const aiGeneratedElements = extractAiGeneratedElements(elements);
-  const userAddedElements = extractUserAddedElements(elements);
 
   const canvasDescription = generateCanvasDescription({
     totalElements: elements.length,
@@ -77,8 +73,6 @@ export function analyzeCanvasElements(
     spatialLayout,
     connections,
     textContent,
-    aiGeneratedElements,
-    userAddedElements,
     canvasDescription: '', // Will be filled by generateCanvasDescription
   });
 
@@ -88,8 +82,6 @@ export function analyzeCanvasElements(
     spatialLayout,
     connections,
     textContent,
-    aiGeneratedElements,
-    userAddedElements,
     canvasDescription,
   };
 }
@@ -350,50 +342,6 @@ function extractElementText(element: ExcalidrawElement): string | null {
 }
 
 /**
- * 提取AI生成的元素
- */
-function extractAiGeneratedElements(
-  elements: ExcalidrawElement[]
-): ElementInfo[] {
-  return elements
-    .filter((el) => !el.isDeleted && el.customData?.aiGenerated)
-    .map((el) => convertToElementInfo(el));
-}
-
-/**
- * 提取用户添加的元素
- */
-function extractUserAddedElements(
-  elements: ExcalidrawElement[]
-): ElementInfo[] {
-  return elements
-    .filter((el) => !el.isDeleted && !el.customData?.aiGenerated)
-    .map((el) => convertToElementInfo(el));
-}
-
-/**
- * 转换为ElementInfo格式
- */
-function convertToElementInfo(element: ExcalidrawElement): ElementInfo {
-  return {
-    id: element.id,
-    type: element.type,
-    position: { x: element.x, y: element.y },
-    size: {
-      width: element.width || 0,
-      height: element.height || 0,
-    },
-    text: extractElementText(element) || undefined,
-    style: {
-      strokeColor: 'strokeColor' in element ? element.strokeColor : undefined,
-      backgroundColor:
-        'backgroundColor' in element ? element.backgroundColor : undefined,
-      strokeWidth: 'strokeWidth' in element ? element.strokeWidth : undefined,
-    },
-  };
-}
-
-/**
  * 生成画布的自然语言描述
  */
 function generateCanvasDescription(analysis: CanvasAnalysis): string {
@@ -413,18 +361,6 @@ function generateCanvasDescription(analysis: CanvasAnalysis): string {
     .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
     .join(', ');
   parts.push(`Element types: ${typeDescriptions}.`);
-
-  // AI vs 用户元素
-  if (analysis.aiGeneratedElements.length > 0) {
-    parts.push(
-      `${analysis.aiGeneratedElements.length} elements were AI-generated.`
-    );
-  }
-  if (analysis.userAddedElements.length > 0) {
-    parts.push(
-      `${analysis.userAddedElements.length} elements were manually added by the user.`
-    );
-  }
 
   // 文本内容
   if (analysis.textContent.length > 0) {

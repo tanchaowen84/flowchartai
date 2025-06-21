@@ -55,11 +55,9 @@ const canvasAnalysisTool = {
   },
 };
 
-// 动态生成系统提示词的函数
-function generateSystemPrompt(canvasState: any) {
-  const hasExistingFlowchart = canvasState?.existingMermaid;
-
-  let prompt = `You are FlowChart AI, an expert at creating flowcharts using Mermaid syntax.
+// 简化的系统提示词，不再依赖预传递的画布状态
+function generateSystemPrompt() {
+  return `You are FlowChart AI, an expert at creating flowcharts using Mermaid syntax.
 
 AVAILABLE TOOLS:
 - generate_flowchart: Create or update flowcharts using Mermaid syntax
@@ -90,34 +88,13 @@ EXTEND MODE triggers (use mode: "extend"):
 - "Add to this flowchart..."
 - "Modify the diagram to include..."
 - "Update the flowchart with..."
-- "Improve this by adding..."`;
+- "Improve this by adding..."
 
-  if (hasExistingFlowchart) {
-    prompt += `
-
-CURRENT CANVAS STATE:
-There is an existing flowchart on the canvas:
-\`\`\`mermaid
-${canvasState.existingMermaid}
-\`\`\`
-
-When using "extend" mode:
-- Base your modifications on the existing flowchart above
-- Keep the original structure and logic intact
-- Add new nodes/connections as requested
-- Generate a complete updated version that includes both old and new content
-
-When using "replace" mode:
-- Ignore the existing flowchart
-- Create a completely new diagram based on user's request`;
-  } else {
-    prompt += `
-
-CURRENT CANVAS STATE:
-The canvas is currently empty. All requests will use "replace" mode to create new flowcharts.`;
-  }
-
-  prompt += `
+WORKFLOW:
+1. If user wants flowchart generation/modification and you need to understand existing content → call get_canvas_state first
+2. Based on canvas state, decide whether to use "replace" or "extend" mode
+3. Generate appropriate Mermaid code with generate_flowchart tool
+4. Provide helpful explanation to user
 
 When generating Mermaid code:
 - Use 'flowchart TD' for top-down flowcharts
@@ -125,8 +102,6 @@ When generating Mermaid code:
 - Include decision points with diamond shapes {}
 - Use appropriate arrow labels for conditions
 - Keep the structure logical and easy to follow`;
-
-  return prompt;
 }
 
 // 工具调用完成后继续对话的函数
@@ -194,7 +169,7 @@ async function continueConversationAfterToolCalls(
 
 export async function POST(req: Request) {
   try {
-    const { messages, canvasState } = await req.json();
+    const { messages } = await req.json();
 
     // 验证请求数据
     if (!messages || !Array.isArray(messages)) {
@@ -210,8 +185,8 @@ export async function POST(req: Request) {
       });
     }
 
-    // 生成动态系统提示词
-    const systemPrompt = generateSystemPrompt(canvasState);
+    // 生成系统提示词
+    const systemPrompt = generateSystemPrompt();
 
     // 构建完整的消息数组
     const fullMessages = [
@@ -307,11 +282,7 @@ export async function POST(req: Request) {
                   }
                 } else if (toolCall.function.name === 'get_canvas_state') {
                   try {
-                    // 分析画布状态
-                    const canvasDescription = canvasState?.elements
-                      ? generateAICanvasDescription(canvasState.elements)
-                      : 'The canvas is currently empty with no elements.';
-
+                    // 对于画布状态请求，我们发送一个特殊的响应让前端处理
                     const data = JSON.stringify({
                       type: 'tool-call',
                       toolCallId: toolCall.id,
@@ -320,25 +291,23 @@ export async function POST(req: Request) {
                     });
                     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
 
-                    // 收集工具结果，稍后让AI继续对话
-                    toolResults.push({
-                      tool_call_id: toolCall.id,
-                      role: 'tool',
-                      content: canvasDescription,
-                    });
+                    // 这里不添加工具结果，因为需要前端提供画布状态
+                    // 前端会处理这个工具调用并重新发送请求
                   } catch (error) {
-                    console.error('Error analyzing canvas state:', error);
+                    console.error(
+                      'Error handling canvas state request:',
+                      error
+                    );
                     toolResults.push({
                       tool_call_id: toolCall.id,
                       role: 'tool',
-                      content:
-                        'Error analyzing canvas state. The canvas appears to be empty or inaccessible.',
+                      content: 'Error requesting canvas state.',
                     });
                   }
                 }
               }
 
-              // 如果有工具调用结果，继续对话
+              // 如果有工具调用结果（非画布状态请求），继续对话
               if (toolResults.length > 0) {
                 await continueConversationAfterToolCalls(
                   fullMessages,

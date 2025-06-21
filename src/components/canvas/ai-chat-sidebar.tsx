@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
+import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
 import {
   convertMermaidToExcalidraw,
   countAiGeneratedElements,
@@ -280,128 +281,19 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
 
-    // 获取画布状态并记录调试信息
-    const canvasState = excalidrawAPI ? getCanvasState() : null;
-    if (canvasState) {
-      console.log('Canvas state being sent to AI:', {
-        elementsCount: canvasState.elements.length,
-        hasImages: canvasState.metadata.hasImages,
-        theme: canvasState.appState.theme,
-        zoom: canvasState.appState.zoom,
-      });
-    }
-
     try {
-      const response = await fetch('/api/ai/chat/flowchart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      await processAIConversation([
+        // 发送完整的对话历史以提供上下文
+        ...messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        // 添加当前用户消息
+        {
+          role: 'user',
+          content: userMessage.content,
         },
-        body: JSON.stringify({
-          messages: [
-            // 发送完整的对话历史以提供上下文
-            ...messages.map((msg) => ({
-              role: msg.role,
-              content: msg.content,
-            })),
-            // 添加当前用户消息
-            {
-              role: 'user',
-              content: userMessage.content,
-            },
-          ],
-          canvasState: canvasState,
-        }),
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      let accumulatedContent = '';
-      let isFlowchartGenerated = false;
-      let mermaidCode = '';
-      let flowchartMode: 'replace' | 'extend' = 'replace';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-
-              if (data.type === 'text' || data.type === 'content') {
-                accumulatedContent += data.content;
-                setCurrentAssistantMessage(accumulatedContent);
-              } else if (data.type === 'tool-call') {
-                // Handle flowchart generation
-                if (data.toolName === 'generate_flowchart') {
-                  mermaidCode = data.args.mermaid_code;
-                  flowchartMode = data.args.mode || 'replace';
-                  isFlowchartGenerated = true;
-
-                  // Add a special message indicating flowchart generation
-                  const modeText =
-                    flowchartMode === 'extend'
-                      ? 'Extending flowchart...'
-                      : 'Generating flowchart...';
-                  accumulatedContent += `\n\n🎨 **${modeText}**\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
-                  setCurrentAssistantMessage(accumulatedContent);
-                } else if (data.toolName === 'get_canvas_state') {
-                  // Handle canvas state analysis
-                  accumulatedContent +=
-                    '\n\n🔍 **Analyzing current canvas...**';
-                  setCurrentAssistantMessage(accumulatedContent);
-                }
-              } else if (data.type === 'tool-result') {
-                // Tool execution result - could add success feedback here
-                console.log('Tool result:', data.result);
-              } else if (data.type === 'finish') {
-                // Final complete message - only set if we don't have accumulated content
-                if (!accumulatedContent.trim()) {
-                  accumulatedContent = data.content;
-                  setCurrentAssistantMessage(accumulatedContent);
-                }
-                // If we already have content, just keep the accumulated content
-              } else if (data.type === 'done' || data === '[DONE]') {
-                break;
-              }
-            } catch (e) {
-              // Skip invalid JSON lines
-              console.warn('Failed to parse SSE data:', line);
-            }
-          }
-        }
-      }
-
-      // Create final assistant message
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: accumulatedContent,
-        role: 'assistant',
-        timestamp: new Date(),
-        isFlowchart: isFlowchartGenerated,
-        mermaidCode: isFlowchartGenerated ? mermaidCode : undefined,
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-      setCurrentAssistantMessage('');
-
-      // If a flowchart was generated, add it to the canvas
-      if (isFlowchartGenerated && mermaidCode) {
-        await addFlowchartToCanvas(mermaidCode, flowchartMode);
-      }
+      ]);
     } catch (error) {
       console.error('Error sending message:', error);
 
@@ -430,6 +322,165 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
+    }
+  };
+
+  // 处理AI对话的核心函数，支持工具调用的递归处理
+  const processAIConversation = async (conversationMessages: any[]) => {
+    const response = await fetch('/api/ai/chat/flowchart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: conversationMessages,
+      }),
+      signal: abortControllerRef.current?.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    let accumulatedContent = '';
+    let isFlowchartGenerated = false;
+    let mermaidCode = '';
+    let flowchartMode: 'replace' | 'extend' = 'replace';
+    let pendingToolCalls: any[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = new TextDecoder().decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+
+            if (data.type === 'text' || data.type === 'content') {
+              accumulatedContent += data.content;
+              setCurrentAssistantMessage(accumulatedContent);
+            } else if (data.type === 'tool-call') {
+              // Handle different tool calls
+              if (data.toolName === 'generate_flowchart') {
+                mermaidCode = data.args.mermaid_code;
+                flowchartMode = data.args.mode || 'replace';
+                isFlowchartGenerated = true;
+
+                // Add a special message indicating flowchart generation
+                const modeText =
+                  flowchartMode === 'extend'
+                    ? 'Extending flowchart...'
+                    : 'Generating flowchart...';
+                accumulatedContent += `\n\n🎨 **${modeText}**\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
+                setCurrentAssistantMessage(accumulatedContent);
+              } else if (data.toolName === 'get_canvas_state') {
+                // Handle canvas state request - get state from frontend
+                accumulatedContent += '\n\n🔍 **Analyzing current canvas...**';
+                setCurrentAssistantMessage(accumulatedContent);
+
+                // 收集工具调用，稍后处理
+                pendingToolCalls.push({
+                  toolCallId: data.toolCallId,
+                  toolName: data.toolName,
+                  args: data.args,
+                });
+              }
+            } else if (data.type === 'tool-result') {
+              // Tool execution result
+              console.log('Tool result:', data.result);
+            } else if (data.type === 'finish') {
+              // Final complete message
+              if (!accumulatedContent.trim()) {
+                accumulatedContent = data.content;
+                setCurrentAssistantMessage(accumulatedContent);
+              }
+            } else if (data.type === 'done' || data === '[DONE]') {
+              break;
+            } else if (data.type === 'tool-calls-needed') {
+              // AI需要工具调用，我们需要处理这些调用然后继续对话
+              pendingToolCalls = data.toolCalls || [];
+            }
+          } catch (e) {
+            // Skip invalid JSON lines
+            console.warn('Failed to parse SSE data:', line);
+          }
+        }
+      }
+    }
+
+    // 处理待处理的工具调用
+    if (pendingToolCalls.length > 0) {
+      const toolResults = await Promise.all(
+        pendingToolCalls.map(async (toolCall) => {
+          if (toolCall.toolName === 'get_canvas_state') {
+            // 获取画布状态
+            const canvasState = excalidrawAPI ? getCanvasState() : null;
+            const canvasDescription = canvasState?.elements
+              ? generateAICanvasDescription(canvasState.elements)
+              : 'The canvas is currently empty with no elements.';
+
+            return {
+              tool_call_id: toolCall.toolCallId,
+              role: 'tool',
+              content: canvasDescription,
+            };
+          }
+          return null;
+        })
+      );
+
+      // 过滤掉null结果
+      const validToolResults = toolResults.filter((result) => result !== null);
+
+      if (validToolResults.length > 0) {
+        // 构建包含工具调用结果的新消息历史，然后递归调用
+        const updatedMessages = [
+          ...conversationMessages,
+          {
+            role: 'assistant',
+            content: accumulatedContent,
+            tool_calls: pendingToolCalls.map((tc) => ({
+              id: tc.toolCallId,
+              type: 'function',
+              function: {
+                name: tc.toolName,
+                arguments: JSON.stringify(tc.args),
+              },
+            })),
+          },
+          ...validToolResults,
+        ];
+
+        // 递归处理，继续对话
+        return await processAIConversation(updatedMessages);
+      }
+    }
+
+    // Create final assistant message
+    const aiMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      content: accumulatedContent,
+      role: 'assistant',
+      timestamp: new Date(),
+      isFlowchart: isFlowchartGenerated,
+      mermaidCode: isFlowchartGenerated ? mermaidCode : undefined,
+    };
+
+    setMessages((prev) => [...prev, aiMessage]);
+    setCurrentAssistantMessage('');
+
+    // If a flowchart was generated, add it to the canvas
+    if (isFlowchartGenerated && mermaidCode) {
+      await addFlowchartToCanvas(mermaidCode, flowchartMode);
     }
   };
 
