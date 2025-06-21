@@ -1,6 +1,9 @@
 'use client';
 
+import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
+import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
 import MarkdownRenderer from '@/components/shared/markdown-renderer';
+import { PricingModal } from '@/components/shared/pricing-modal';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,6 +11,9 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { useAIUsageLimit } from '@/hooks/use-ai-usage-limit';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { useGuestAIUsage } from '@/hooks/use-guest-ai-usage';
 import { toast } from '@/hooks/use-toast';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
 import {
@@ -83,10 +89,17 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const currentUser = useCurrentUser();
+  const { usageData, checkUsageLimit, refreshUsageData } = useAIUsageLimit();
+  const { canUseAI: canGuestUseAI, markAsUsed: markGuestAsUsed } =
+    useGuestAIUsage();
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -365,6 +378,22 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const handleSendMessage = async () => {
     if ((!input.trim() && selectedImages.length === 0) || isLoading) return;
 
+    // Check AI usage limit based on user type
+    if (currentUser) {
+      // Logged in user - check subscription limits
+      const canUseAI = await checkUsageLimit();
+      if (!canUseAI) {
+        setShowUsageLimitCard(true);
+        return;
+      }
+    } else {
+      // Guest user - check guest limits
+      if (!canGuestUseAI) {
+        setShowPricingModal(true);
+        return;
+      }
+    }
+
     // Prepare message content
     let messageContent: string | MessageContent[];
     let messageImages: { file: File; thumbnail: string; base64: string }[] = [];
@@ -439,6 +468,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           content: userMessage.content,
         },
       ]);
+
+      // Mark guest usage after successful AI response
+      if (!currentUser) {
+        markGuestAsUsed();
+      }
     } catch (error) {
       console.error('Error sending message:', error);
 
@@ -761,6 +795,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           </div>
         </div>
 
+        {/* Guest Usage Indicator */}
+        {!currentUser && (
+          <div className="px-4 pb-4">
+            <GuestUsageIndicator />
+          </div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-hidden relative">
           <ScrollArea ref={scrollAreaRef} className="h-full w-full">
@@ -949,6 +990,43 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           </div>
         </div>
       </div>
+
+      {/* AI Usage Limit Card */}
+      {showUsageLimitCard && usageData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowUsageLimitCard(false)}
+              className="absolute -top-2 -right-2 z-10 bg-white shadow-md hover:bg-gray-50"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <AIUsageLimitCard
+              usedCount={usageData.usedCount}
+              totalLimit={usageData.totalLimit}
+              onUpgrade={() => {
+                setShowUsageLimitCard(false);
+                setShowPricingModal(true);
+              }}
+              onLearnMore={() => {
+                setShowUsageLimitCard(false);
+                setShowPricingModal(true);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Pricing Modal */}
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => {
+          setShowPricingModal(false);
+          refreshUsageData(); // Refresh usage data when modal closes
+        }}
+      />
     </div>
   );
 };

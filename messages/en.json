@@ -57,43 +57,43 @@
   "PricePlans": {
     "free": {
       "name": "Free",
-      "description": "Basic features for personal use",
+      "description": "Perfect for getting started with AI flowcharts",
       "features": {
-        "feature-1": "Up to 3 projects",
-        "feature-2": "1 GB storage",
-        "feature-3": "Basic analytics",
+        "feature-1": "5 AI requests per month",
+        "feature-2": "Basic flowchart templates",
+        "feature-3": "Export to PNG/SVG",
         "feature-4": "Community support"
       },
       "limits": {
-        "limit-1": "Custom domains",
-        "limit-2": "Custom branding",
-        "limit-3": "Lifetime updates"
+        "limit-1": "Limited AI usage",
+        "limit-2": "Basic templates only",
+        "limit-3": "Standard support"
       }
     },
     "pro": {
       "name": "Pro",
-      "description": "Advanced features for professionals",
+      "description": "Unlimited AI power for professionals",
       "features": {
-        "feature-1": "Unlimited projects",
-        "feature-2": "10 GB storage",
-        "feature-3": "Advanced analytics",
-        "feature-4": "Priority support",
-        "feature-5": "Custom domains"
+        "feature-1": "500 AI requests per month",
+        "feature-2": "Priority AI processing",
+        "feature-3": "Advanced flowchart templates",
+        "feature-4": "Real-time collaboration",
+        "feature-5": "Priority support"
       },
       "limits": {
-        "limit-1": "Custom branding",
-        "limit-2": "Lifetime updates"
+        "limit-1": "Advanced integrations",
+        "limit-2": "Custom branding"
       }
     },
     "lifetime": {
       "name": "Lifetime",
-      "description": "Premium features with one-time payment",
+      "description": "One-time payment for unlimited access",
       "features": {
-        "feature-1": "All Pro features",
-        "feature-2": "100 GB storage",
-        "feature-3": "Dedicated support",
-        "feature-4": "Enterprise-grade security",
-        "feature-5": "Advanced integrations",
+        "feature-1": "Unlimited AI requests",
+        "feature-2": "All Pro features included",
+        "feature-3": "Advanced AI models",
+        "feature-4": "Custom integrations",
+        "feature-5": "White-label solution",
         "feature-6": "Custom branding",
         "feature-7": "Lifetime updates"
       }

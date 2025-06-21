@@ -1,11 +1,17 @@
 'use client';
 
+import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
+import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
+import { PricingModal } from '@/components/shared/pricing-modal';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAIUsageLimit } from '@/hooks/use-ai-usage-limit';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowcharts } from '@/hooks/use-flowcharts';
+import { useGuestAIUsage } from '@/hooks/use-guest-ai-usage';
 import {
   AlertCircle,
   Grid3X3,
@@ -13,6 +19,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  X,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -25,6 +32,7 @@ type ViewMode = 'grid' | 'list';
 
 export function FlowchartsDashboard() {
   const router = useRouter();
+  const currentUser = useCurrentUser();
   const {
     flowcharts,
     loading,
@@ -37,6 +45,11 @@ export function FlowchartsDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+
+  const { usageData, checkUsageLimit, refreshUsageData } = useAIUsageLimit();
+  const { canUseAI: canGuestUseAI } = useGuestAIUsage();
 
   // Filter and sort flowcharts
   const filteredAndSortedFlowcharts = useMemo(() => {
@@ -62,7 +75,23 @@ export function FlowchartsDashboard() {
     return filtered;
   }, [flowcharts, searchQuery, sortBy]);
 
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
+    // Check AI usage limit based on user type
+    if (currentUser) {
+      // Logged in user - check subscription limits
+      const canUseAI = await checkUsageLimit();
+      if (!canUseAI) {
+        setShowUsageLimitCard(true);
+        return;
+      }
+    } else {
+      // Guest user - check guest limits
+      if (!canGuestUseAI) {
+        setShowPricingModal(true);
+        return;
+      }
+    }
+
     router.push('/canvas');
   };
 
@@ -147,6 +176,9 @@ export function FlowchartsDashboard() {
           New Flowchart
         </Button>
       </div>
+
+      {/* Guest Usage Indicator */}
+      {!currentUser && <GuestUsageIndicator />}
 
       {/* Controls */}
       {totalFlowcharts > 0 && (
@@ -234,6 +266,43 @@ export function FlowchartsDashboard() {
           ))}
         </div>
       )}
+
+      {/* AI Usage Limit Card */}
+      {showUsageLimitCard && usageData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowUsageLimitCard(false)}
+              className="absolute -top-2 -right-2 z-10 bg-white shadow-md hover:bg-gray-50"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <AIUsageLimitCard
+              usedCount={usageData.usedCount}
+              totalLimit={usageData.totalLimit}
+              onUpgrade={() => {
+                setShowUsageLimitCard(false);
+                setShowPricingModal(true);
+              }}
+              onLearnMore={() => {
+                setShowUsageLimitCard(false);
+                setShowPricingModal(true);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Pricing Modal */}
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => {
+          setShowPricingModal(false);
+          refreshUsageData(); // Refresh usage data when modal closes
+        }}
+      />
     </div>
   );
 }

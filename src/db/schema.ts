@@ -119,3 +119,16 @@ export const aiUsage = pgTable("ai_usage", {
 		userTypeIdx: index('ai_usage_user_type_idx').on(table.userId, table.type),
 	}
 });
+
+export const guestUsage = pgTable("guest_usage", {
+	id: text("id").primaryKey(),
+	ipHash: text('ip_hash').notNull(), // SHA256 hash of IP address
+	type: text('type').notNull(), // 'flowchart_generation', etc.
+	userAgent: text('user_agent'), // Browser fingerprint for additional validation
+	success: boolean('success').notNull().default(true),
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => {
+	return {
+		ipHashDateIdx: index('guest_usage_ip_date_idx').on(table.ipHash, table.createdAt),
+	}
+});

@@ -43,6 +43,13 @@
       "when": 1750515980104,
       "tag": "0005_ambitious_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1750524348423,
+      "tag": "0006_dusty_vampiro",
+      "breakpoints": true
     }
   ]
 }
