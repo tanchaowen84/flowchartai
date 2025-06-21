@@ -5,26 +5,35 @@ import '@excalidraw/excalidraw/index.css';
 import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { useFlowchart } from '@/hooks/use-flowchart';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
-import { User } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AiChatSidebar from './ai-chat-sidebar';
 import ResizableDivider from './resizable-divider';
+import { SaveButton } from './save-button';
 
 interface ExcalidrawWrapperProps {
   className?: string;
+  flowchartId?: string;
 }
 
-const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({ className }) => {
+const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
+  className,
+  flowchartId,
+}) => {
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+
   const router = useRouter();
   const currentUser = useCurrentUser();
+  const { flowchart, loading, error } = useFlowchart(flowchartId);
 
   const handleGoHome = () => {
     router.push('/');
@@ -46,6 +55,70 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({ className }) => {
     setIsResizing(false);
   };
 
+  // Load flowchart data into Excalidraw when available
+  useEffect(() => {
+    if (excalidrawAPI && flowchart && !initialDataLoaded) {
+      try {
+        const parsedContent = JSON.parse(flowchart.content);
+
+        // Prepare appState by excluding problematic properties
+        const { collaborators, ...safeAppState } = parsedContent.appState || {};
+
+        // Update the scene with loaded data
+        excalidrawAPI.updateScene({
+          elements: parsedContent.elements || [],
+          appState: {
+            ...safeAppState,
+            viewBackgroundColor: '#ffffff',
+            // Let Excalidraw initialize its own collaborators Map
+            collaborators: new Map(),
+          },
+        });
+
+        // Load files if they exist
+        if (parsedContent.files) {
+          // Note: File loading might need additional handling
+          // depending on how files are stored
+        }
+
+        setInitialDataLoaded(true);
+        console.log('Flowchart loaded successfully:', flowchart.title);
+      } catch (err) {
+        console.error('Error loading flowchart data:', err);
+      }
+    }
+  }, [excalidrawAPI, flowchart, initialDataLoaded]);
+
+  // Show loading state when fetching flowchart data
+  if (flowchartId && loading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p className="text-lg text-gray-600">Loading flowchart...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if flowchart failed to load
+  if (flowchartId && error) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <div className="text-red-500 text-6xl">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Failed to Load Flowchart
+          </h2>
+          <p className="text-gray-600">{error}</p>
+          <Button onClick={() => router.push('/dashboard')} variant="outline">
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`h-screen w-screen flex ${className || ''}`}>
       {/* Main Canvas Area */}
@@ -59,7 +132,15 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({ className }) => {
       >
         {/* Top Right Controls */}
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-          {/* Moved UserButton/Sign In button before Create button */}
+          {/* Save Button - only show for logged in users */}
+          {currentUser && (
+            <SaveButton
+              excalidrawAPI={excalidrawAPI}
+              flowchartId={flowchartId}
+            />
+          )}
+
+          {/* User Button/Sign In button */}
           {currentUser ? (
             <UserButton user={currentUser} />
           ) : (
