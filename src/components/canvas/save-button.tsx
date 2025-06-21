@@ -99,13 +99,6 @@ export function SaveButton({
         {getText()}
       </Button>
 
-      {/* Show last saved time when idle */}
-      {saveStatus === 'idle' && lastSaved && (
-        <span className="text-xs text-muted-foreground mt-1">
-          Last saved: {lastSaved.toLocaleTimeString()}
-        </span>
-      )}
-
       {/* Show error message */}
       {saveStatus === 'error' && errorMessage && (
         <span
