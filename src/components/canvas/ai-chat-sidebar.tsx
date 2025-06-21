@@ -6,7 +6,11 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { toast } from '@/hooks/use-toast';
+import { convertMermaidToExcalidraw } from '@/lib/mermaid-converter';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import {
+  AlertCircle,
   ArrowUp,
   Bot,
   Camera,
@@ -14,6 +18,7 @@ import {
   MessageCircle,
   Pencil,
   Plus,
+  Sparkles,
   User,
   X,
 } from 'lucide-react';
@@ -24,23 +29,30 @@ interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
+  isFlowchart?: boolean;
+  mermaidCode?: string;
+  error?: string;
 }
 
 interface AiChatSidebarProps {
   className?: string;
   isOpen: boolean;
   onToggle: () => void;
+  excalidrawAPI?: ExcalidrawImperativeAPI | null;
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   className,
   isOpen,
   onToggle,
+  excalidrawAPI,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -55,7 +67,72 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, currentAssistantMessage]);
+
+  // Clean up abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const addFlowchartToCanvas = async (mermaidCode: string) => {
+    if (!excalidrawAPI) {
+      toast({
+        title: 'Canvas not ready',
+        description:
+          'Please wait for the canvas to load before generating flowcharts.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // Convert Mermaid to Excalidraw elements
+      const result = await convertMermaidToExcalidraw(mermaidCode);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to convert flowchart');
+      }
+
+      if (!result.elements) {
+        throw new Error('No elements generated from flowchart');
+      }
+
+      // Get current elements and add new ones
+      const currentElements = excalidrawAPI.getSceneElements();
+      const newElements = [...currentElements, ...result.elements];
+
+      // Update the scene with new elements
+      excalidrawAPI.updateScene({
+        elements: newElements,
+      });
+
+      // Zoom to fit all elements
+      excalidrawAPI.scrollToContent(result.elements, {
+        fitToContent: true,
+        animate: true,
+      });
+
+      toast({
+        title: 'Flowchart added!',
+        description:
+          'Your AI-generated flowchart has been added to the canvas.',
+      });
+    } catch (error) {
+      console.error('Error adding flowchart to canvas:', error);
+      toast({
+        title: 'Failed to add flowchart',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -70,18 +147,137 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setCurrentAssistantMessage('');
 
-    // Simulate AI response (replace with actual AI integration later)
-    setTimeout(() => {
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch('/api/ai/chat/flowchart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            // 发送完整的对话历史以提供上下文
+            ...messages.map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+            })),
+            // 添加当前用户消息
+            {
+              role: 'user',
+              content: userMessage.content,
+            },
+          ],
+          canvasState: null, // TODO: 将来可以传递当前画布状态
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      let accumulatedContent = '';
+      let isFlowchartGenerated = false;
+      let mermaidCode = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'text' || data.type === 'content') {
+                accumulatedContent += data.content;
+                setCurrentAssistantMessage(accumulatedContent);
+              } else if (data.type === 'tool-call') {
+                // Handle flowchart generation
+                if (data.toolName === 'generate_flowchart') {
+                  mermaidCode = data.args.mermaid_code;
+                  isFlowchartGenerated = true;
+
+                  // Add a special message indicating flowchart generation
+                  accumulatedContent += `\n\n🎨 **Generating flowchart...**\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
+                  setCurrentAssistantMessage(accumulatedContent);
+                }
+              } else if (data.type === 'tool-result') {
+                // Tool execution result - could add success feedback here
+                console.log('Tool result:', data.result);
+              } else if (data.type === 'finish') {
+                // Final complete message - use this as the final content
+                accumulatedContent = data.content;
+                setCurrentAssistantMessage(accumulatedContent);
+              } else if (data.type === 'done' || data === '[DONE]') {
+                break;
+              }
+            } catch (e) {
+              // Skip invalid JSON lines
+              console.warn('Failed to parse SSE data:', line);
+            }
+          }
+        }
+      }
+
+      // Create final assistant message
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `I understand you want to ${input.toLowerCase()}. Here are some suggestions for your flowchart...`,
+        content: accumulatedContent,
         role: 'assistant',
         timestamp: new Date(),
+        isFlowchart: isFlowchartGenerated,
+        mermaidCode: isFlowchartGenerated ? mermaidCode : undefined,
       };
+
       setMessages((prev) => [...prev, aiMessage]);
+      setCurrentAssistantMessage('');
+
+      // If a flowchart was generated, add it to the canvas
+      if (isFlowchartGenerated && mermaidCode) {
+        await addFlowchartToCanvas(mermaidCode);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Request was cancelled, don't show error
+        return;
+      }
+
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        content:
+          'Sorry, I encountered an error while processing your request. Please try again.',
+        role: 'assistant',
+        timestamp: new Date(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+      setCurrentAssistantMessage('');
+
+      toast({
+        title: 'Error',
+        description: 'Failed to process your message. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+      abortControllerRef.current = null;
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -89,6 +285,70 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsLoading(false);
+      setCurrentAssistantMessage('');
+    }
+  };
+
+  const renderFormattedText = (text: string) => {
+    // Split text by markdown patterns and render safely
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('*') && part.endsWith('*')) {
+        return <em key={index}>{part.slice(1, -1)}</em>;
+      }
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code key={index} className="bg-gray-100 px-1 py-0.5 rounded text-xs">
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+      return part;
+    });
+  };
+
+  const renderMessageContent = (message: Message) => {
+    if (message.error) {
+      return (
+        <div className="flex items-start gap-2 text-red-600">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Error occurred</p>
+            <p className="text-xs opacity-75">{message.error}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        <div className="text-sm leading-relaxed">
+          {renderFormattedText(message.content)}
+        </div>
+        {message.isFlowchart && message.mermaidCode && (
+          <Button
+            onClick={() => addFlowchartToCanvas(message.mermaidCode!)}
+            size="sm"
+            variant="outline"
+            className="mt-2 h-7 text-xs"
+            disabled={!excalidrawAPI}
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            Add to Canvas
+          </Button>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -112,20 +372,48 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             <h2 className="text-base font-medium text-gray-900">
               FlowChart AI
             </h2>
+            {isLoading && (
+              <div className="flex items-center gap-1">
+                <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
+                <span className="text-xs text-gray-500">Thinking...</span>
+              </div>
+            )}
           </div>
-          <Button
-            onClick={onToggle}
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {isLoading && (
+              <Button
+                onClick={handleStopGeneration}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+            <Button
+              onClick={onToggle}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
         <ScrollArea ref={scrollAreaRef} className="flex-1 px-4">
           <div className="space-y-4">
+            {messages.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Ask me to create a flowchart!</p>
+                <p className="text-xs mt-1 opacity-75">
+                  I can help you visualize processes, workflows, and ideas.
+                </p>
+              </div>
+            )}
+
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -137,25 +425,50 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   </Card>
                 ) : (
                   <div className="max-w-full">
-                    <p className="text-sm leading-relaxed text-gray-900 font-medium mb-2">
-                      {message.content}
-                    </p>
+                    <div className="flex items-start gap-2 mb-2">
+                      <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
+                      <div className="flex-1">
+                        {renderMessageContent(message)}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             ))}
-            {isLoading && (
+
+            {/* Current streaming message */}
+            {isLoading && currentAssistantMessage && (
               <div className="max-w-full">
-                <div className="flex items-center gap-1 py-2">
-                  <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
-                  <div
-                    className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                    style={{ animationDelay: '0.1s' }}
-                  />
-                  <div
-                    className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                    style={{ animationDelay: '0.2s' }}
-                  />
+                <div className="flex items-start gap-2 mb-2">
+                  <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="text-sm leading-relaxed">
+                      {renderFormattedText(currentAssistantMessage)}
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <div className="h-1 w-1 bg-blue-500 rounded-full animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Loading indicator when no current message */}
+            {isLoading && !currentAssistantMessage && (
+              <div className="max-w-full">
+                <div className="flex items-start gap-2">
+                  <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
+                  <div className="flex items-center gap-1 py-2">
+                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
+                    <div
+                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.1s' }}
+                    />
+                    <div
+                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: '0.2s' }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -175,7 +488,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               </Button>
               <Input
                 type="text"
-                placeholder="Ask another question..."
+                placeholder="Describe the flowchart you want to create..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}

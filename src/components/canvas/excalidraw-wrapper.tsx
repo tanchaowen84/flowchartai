@@ -93,7 +93,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({ className }) => {
       </div>
 
       {/* AI Chat Sidebar */}
-      <AiChatSidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
+      <AiChatSidebar
+        isOpen={isSidebarOpen}
+        onToggle={toggleSidebar}
+        excalidrawAPI={excalidrawAPI}
+      />
     </div>
   );
 };
