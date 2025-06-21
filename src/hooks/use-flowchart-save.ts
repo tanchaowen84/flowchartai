@@ -66,7 +66,7 @@ export const useFlowchartSave = (
               { elements, appState },
               300, // maxWidth
               200, // maxHeight
-              0.6 // quality (60% for smaller file size)
+              0.9 // quality (90% for smaller file size)
             );
           } catch (error) {
             console.warn('⚠️ Failed to generate thumbnail:', error);
