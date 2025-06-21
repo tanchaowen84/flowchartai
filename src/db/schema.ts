@@ -102,3 +102,20 @@ export const flowcharts = pgTable("flowcharts", {
 		userUpdatedIdx: index('flowcharts_user_updated_idx').on(table.userId, table.updatedAt),
 	}
 });
+
+export const aiUsage = pgTable("ai_usage", {
+	id: text("id").primaryKey(),
+	userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+	type: text('type').notNull(), // 'flowchart_generation', 'canvas_analysis', etc.
+	tokensUsed: integer('tokens_used').default(0),
+	model: text('model'), // e.g. 'google/gemini-2.5-flash-preview-05-20'
+	success: boolean('success').notNull().default(true),
+	errorMessage: text('error_message'),
+	metadata: jsonb('metadata').default('{}'), // Additional context like mermaid code length, etc.
+	createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => {
+	return {
+		userDateIdx: index('ai_usage_user_date_idx').on(table.userId, table.createdAt),
+		userTypeIdx: index('ai_usage_user_type_idx').on(table.userId, table.type),
+	}
+});

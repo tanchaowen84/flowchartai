@@ -1,6 +1,7 @@
 'use client';
 
 import { CustomerPortalButton } from '@/components/pricing/customer-portal-button';
+import { AIUsageIndicator } from '@/components/shared/ai-usage-indicator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -86,6 +87,21 @@ export default function BillingCard() {
             <Skeleton className="h-10 w-full" />
           </CardFooter>
         </Card>
+
+        {/* AI Usage Card Skeleton */}
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Usage</CardTitle>
+            <CardDescription>Your AI feature usage statistics</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-6 w-3/4" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -113,6 +129,9 @@ export default function BillingCard() {
             </Button>
           </CardFooter>
         </Card>
+
+        {/* AI Usage Card still shows even when billing has error */}
+        <AIUsageIndicator />
       </div>
     );
   }
@@ -141,6 +160,9 @@ export default function BillingCard() {
             </Button>
           </CardFooter>
         </Card>
+
+        {/* AI Usage Card */}
+        <AIUsageIndicator />
       </div>
     );
   }
@@ -242,6 +264,9 @@ export default function BillingCard() {
           )}
         </CardFooter>
       </Card>
+
+      {/* AI Usage Card */}
+      <AIUsageIndicator />
     </div>
   );
 }

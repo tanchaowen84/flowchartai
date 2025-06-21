@@ -1,7 +1,5 @@
 'use client';
 
-import { AnimatedGradientText } from '@/components/magicui/animated-gradient-text';
-import { ShimmerButton } from '@/components/magicui/shimmer-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -137,17 +135,17 @@ export function FlowchartsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <AnimatedGradientText className="text-2xl font-bold mb-2">
-            🎨 My Flowcharts
-          </AnimatedGradientText>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-normal text-foreground mb-2">
+            My Flowcharts
+          </h1>
+          <p className="text-muted-foreground font-normal">
             Create, edit, and manage your AI-powered flowcharts
           </p>
         </div>
-        <ShimmerButton onClick={handleCreateNew}>
+        <Button onClick={handleCreateNew} className="font-normal">
           <Plus className="mr-2 h-4 w-4" />
           New Flowchart
-        </ShimmerButton>
+        </Button>
       </div>
 
       {/* Controls */}
@@ -169,7 +167,7 @@ export function FlowchartsDashboard() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="px-3 py-2 border border-gray-200 rounded-md text-sm bg-white"
+              className="px-3 py-2 border border-gray-200 rounded-md text-sm bg-white font-normal"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>

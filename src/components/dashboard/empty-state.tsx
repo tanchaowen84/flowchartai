@@ -1,6 +1,5 @@
 'use client';
 
-import { PulsatingButton } from '@/components/magicui/pulsating-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Plus, Sparkles } from 'lucide-react';
@@ -23,26 +22,26 @@ export function EmptyState({ onCreateNew }: EmptyStateProps) {
             </div>
           </div>
 
-          <h3 className="text-xl font-semibold text-gray-900 mb-3">
+          <h3 className="text-xl font-normal text-gray-900 mb-3">
             No flowcharts yet
           </h3>
 
-          <p className="text-gray-600 mb-8 leading-relaxed">
+          <p className="text-gray-600 mb-8 leading-relaxed font-normal">
             Create your first AI-powered flowchart to get started. Design,
             collaborate, and bring your ideas to life with intelligent
             assistance.
           </p>
 
           <div className="space-y-3">
-            <PulsatingButton onClick={onCreateNew} className="w-full">
+            <Button onClick={onCreateNew} className="w-full font-normal">
               <Plus className="mr-2 h-4 w-4" />
               Create Your First Flowchart
-            </PulsatingButton>
+            </Button>
 
             <Button
               variant="outline"
               onClick={() => router.push('/canvas')}
-              className="w-full"
+              className="w-full font-normal"
             >
               <Sparkles className="mr-2 h-4 w-4" />
               Start with Blank Canvas
@@ -50,9 +49,9 @@ export function EmptyState({ onCreateNew }: EmptyStateProps) {
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-500">
-              💡 <strong>Pro tip:</strong> Use AI assistance to convert text
-              descriptions into beautiful flowcharts
+            <p className="text-sm text-gray-500 font-normal">
+              💡 <span className="font-normal">Pro tip:</span> Use AI assistance
+              to convert text descriptions into beautiful flowcharts
             </p>
           </div>
         </CardContent>

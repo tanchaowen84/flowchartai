@@ -36,6 +36,13 @@
       "when": 1750509633898,
       "tag": "0004_stale_lucky_pierre",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1750515980104,
+      "tag": "0005_ambitious_ghost_rider",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,7 @@
+import { canUserUseAI, recordAIUsage } from '@/lib/ai-usage';
+import { auth } from '@/lib/auth';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
+import { headers } from 'next/headers';
 import OpenAI from 'openai';
 
 // OpenRouter 客户端配置
@@ -190,15 +193,53 @@ async function continueConversationAfterToolCalls(
 }
 
 export async function POST(req: Request) {
-  try {
-    const { messages } = await req.json();
+  let userId: string | null = null;
 
-    // 验证请求数据
+  try {
+    // 1. 身份验证
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
+      return new Response(
+        JSON.stringify({
+          error: 'Authentication required',
+          message: 'Please log in to use AI features',
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    userId = session.user.id;
+
+    // 2. 检查AI使用量限制
+    const usageCheck = await canUserUseAI(userId);
+    if (!usageCheck.canUse) {
+      return new Response(
+        JSON.stringify({
+          error: 'Usage limit exceeded',
+          message: usageCheck.reason,
+          remainingUsage: usageCheck.remainingUsage,
+          limit: usageCheck.limit,
+        }),
+        {
+          status: 429, // Too Many Requests
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // 3. 验证请求数据
+    const { messages } = await req.json();
     if (!messages || !Array.isArray(messages)) {
       return new Response('Invalid messages format', { status: 400 });
     }
 
-    // 验证 API Key
+    // 4. 验证 API Key
     if (!process.env.OPENROUTER_API_KEY) {
       console.error('OPENROUTER_API_KEY not configured');
       return new Response(JSON.stringify({ error: 'API key not configured' }), {
@@ -282,6 +323,10 @@ export async function POST(req: Request) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        let usageRecorded = false;
+        let hasGeneratedFlowchart = false;
+        let hasCanvasAnalysis = false;
+
         try {
           let fullResponse = '';
           const toolCalls: any[] = [];
@@ -330,6 +375,7 @@ export async function POST(req: Request) {
 
               for (const toolCall of toolCalls) {
                 if (toolCall.function.name === 'generate_flowchart') {
+                  hasGeneratedFlowchart = true;
                   try {
                     const args = JSON.parse(toolCall.function.arguments);
                     const data = JSON.stringify({
@@ -355,6 +401,7 @@ export async function POST(req: Request) {
                     });
                   }
                 } else if (toolCall.function.name === 'get_canvas_state') {
+                  hasCanvasAnalysis = true;
                   try {
                     // 对于画布状态请求，我们发送一个特殊的响应让前端处理
                     const data = JSON.stringify({
@@ -403,10 +450,78 @@ export async function POST(req: Request) {
             }
           }
 
+          // 记录成功的AI使用量
+          if (!usageRecorded && userId) {
+            usageRecorded = true;
+            try {
+              if (hasGeneratedFlowchart) {
+                await recordAIUsage(userId, 'flowchart_generation', {
+                  model,
+                  success: true,
+                  metadata: {
+                    messageCount: messages.length,
+                    hasImages,
+                    responseLength: fullResponse.length,
+                  },
+                });
+              } else if (hasCanvasAnalysis) {
+                await recordAIUsage(userId, 'canvas_analysis', {
+                  model,
+                  success: true,
+                  metadata: {
+                    messageCount: messages.length,
+                    hasImages,
+                    responseLength: fullResponse.length,
+                  },
+                });
+              } else {
+                // 普通对话也记录为流程图生成（因为用户可能在询问相关问题）
+                await recordAIUsage(userId, 'flowchart_generation', {
+                  model,
+                  success: true,
+                  metadata: {
+                    messageCount: messages.length,
+                    hasImages,
+                    responseLength: fullResponse.length,
+                    type: 'conversation',
+                  },
+                });
+              }
+            } catch (recordError) {
+              console.error('Failed to record AI usage:', recordError);
+              // 不影响用户体验，只记录错误
+            }
+          }
+
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
         } catch (error) {
           console.error('Stream error:', error);
+
+          // 记录失败的AI使用量
+          if (!usageRecorded && userId) {
+            usageRecorded = true;
+            try {
+              const usageType = hasGeneratedFlowchart
+                ? 'flowchart_generation'
+                : hasCanvasAnalysis
+                  ? 'canvas_analysis'
+                  : 'flowchart_generation';
+              await recordAIUsage(userId, usageType, {
+                model,
+                success: false,
+                errorMessage:
+                  error instanceof Error ? error.message : 'Unknown error',
+                metadata: {
+                  messageCount: messages.length,
+                  hasImages,
+                },
+              });
+            } catch (recordError) {
+              console.error('Failed to record AI usage error:', recordError);
+            }
+          }
+
           const errorData = JSON.stringify({
             type: 'error',
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -426,6 +541,22 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('FlowChart API Error:', error);
+
+    // 记录失败的AI使用量（如果还没有记录且有用户ID）
+    if (userId) {
+      try {
+        await recordAIUsage(userId, 'flowchart_generation', {
+          success: false,
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
+          metadata: {
+            errorStage: 'request_processing',
+          },
+        });
+      } catch (recordError) {
+        console.error('Failed to record AI usage error:', recordError);
+      }
+    }
 
     return new Response(
       JSON.stringify({

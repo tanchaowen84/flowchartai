@@ -100,14 +100,14 @@ export function FlowchartCard({
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <h3
-                className="font-semibold text-lg truncate hover:text-primary transition-colors"
+                className="font-normal text-lg truncate hover:text-primary transition-colors"
                 onClick={handleEdit}
                 title={title}
               >
                 {title}
               </h3>
               {isRecentlyUpdated && (
-                <Badge variant="secondary" className="mt-1 text-xs">
+                <Badge variant="secondary" className="mt-1 text-xs font-normal">
                   Recently Updated
                 </Badge>
               )}
@@ -153,7 +153,7 @@ export function FlowchartCard({
               <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
                 <div className="text-center text-gray-500">
                   <div className="text-2xl mb-2">📊</div>
-                  <div className="text-sm">Click to edit</div>
+                  <div className="text-sm font-normal">Click to edit</div>
                 </div>
               </div>
             )}
@@ -161,7 +161,7 @@ export function FlowchartCard({
         </CardContent>
 
         <CardFooter className="pt-0">
-          <div className="flex items-center justify-between w-full text-xs text-muted-foreground">
+          <div className="flex items-center justify-between w-full text-xs text-muted-foreground font-normal">
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               <span>
