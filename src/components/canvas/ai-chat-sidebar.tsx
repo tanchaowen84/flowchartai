@@ -358,14 +358,22 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                       : 'Generating flowchart...';
                   accumulatedContent += `\n\n🎨 **${modeText}**\n\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
                   setCurrentAssistantMessage(accumulatedContent);
+                } else if (data.toolName === 'get_canvas_state') {
+                  // Handle canvas state analysis
+                  accumulatedContent +=
+                    '\n\n🔍 **Analyzing current canvas...**';
+                  setCurrentAssistantMessage(accumulatedContent);
                 }
               } else if (data.type === 'tool-result') {
                 // Tool execution result - could add success feedback here
                 console.log('Tool result:', data.result);
               } else if (data.type === 'finish') {
-                // Final complete message - use this as the final content
-                accumulatedContent = data.content;
-                setCurrentAssistantMessage(accumulatedContent);
+                // Final complete message - only set if we don't have accumulated content
+                if (!accumulatedContent.trim()) {
+                  accumulatedContent = data.content;
+                  setCurrentAssistantMessage(accumulatedContent);
+                }
+                // If we already have content, just keep the accumulated content
               } else if (data.type === 'done' || data === '[DONE]') {
                 break;
               }

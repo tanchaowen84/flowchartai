@@ -209,6 +209,7 @@ OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 - [✅] 实现增量更新功能（替换而非叠加流程图）
 - [✅] 修复撤销/重做支持（使用CaptureUpdateAction.IMMEDIATELY）
 - [✅] 实现扩展/替换双模式功能（智能意图检测）
+- [✅] 实现画布状态分析工具（get_canvas_state）
 
 ### 第三阶段：高级功能 (可选)
 - [ ] 支持画布截图发送给 AI
@@ -298,6 +299,72 @@ excalidrawAPI.updateScene({
   captureUpdate: CaptureUpdateAction.IMMEDIATELY, // 关键修复
 });
 ```
+
+## 🔍 画布状态分析功能
+
+### 问题背景
+之前的实现只能保存AI生成时的原始Mermaid代码，无法感知：
+- 用户对AI生成元素的手动修改（移动、调整大小、改颜色等）
+- 用户手动添加的新元素
+- 当前画布的真实状态
+
+### 解决方案：Canvas Analyzer
+
+**文件路径**: `src/lib/canvas-analyzer.ts`
+
+**核心功能**:
+```typescript
+// 分析画布所有元素并生成详细描述
+export function analyzeCanvasElements(elements: ExcalidrawElement[]): CanvasAnalysis;
+
+// 为AI生成简化的画布状态描述
+export function generateAICanvasDescription(elements: ExcalidrawElement[]): string;
+```
+
+**分析内容**:
+- **元素统计**: 按类型分组统计（矩形、椭圆、箭头等）
+- **空间布局**: 边界框、元素分组、位置关系
+- **连接关系**: 分析箭头连接的起始和结束元素
+- **文本内容**: 提取所有文本元素和标签内容
+- **元素来源**: 区分AI生成元素 vs 用户添加元素
+- **用户修改**: 检测对AI元素的手动修改
+
+### AI工具集成
+
+**新增工具**: `get_canvas_state`
+```typescript
+const canvasAnalysisTool = {
+  type: 'function',
+  function: {
+    name: 'get_canvas_state',
+    description: 'Get detailed analysis of current canvas elements, including user modifications',
+    parameters: { type: 'object', properties: {}, required: [] }
+  }
+};
+```
+
+**使用场景**:
+- AI需要了解当前画布状态时主动调用
+- 修改现有流程图前先分析当前内容
+- 智能感知用户的手动修改
+
+**示例输出**:
+```
+The canvas contains 8 elements in total. Element types: 3 rectangles, 2 arrows, 2 text, 1 ellipse. 5 elements were AI-generated. 3 elements were manually added by the user. Text content includes: "开始", "处理数据", "结束". There are 2 connections between elements. The content spans approximately 450 x 300 pixels.
+```
+
+### 技术实现
+
+**元素分析算法**:
+- **空间分组**: 基于距离的聚类算法识别相关元素
+- **连接分析**: 通过startBinding和endBinding识别箭头连接
+- **文本提取**: 统一处理text元素和label属性
+- **来源识别**: 通过customData.aiGenerated标记区分元素来源
+
+**性能优化**:
+- 只分析非删除元素
+- 高效的距离计算和分组算法
+- 简洁的自然语言描述生成
 
 ### 技术细节
 - `CaptureUpdateAction.IMMEDIATELY`: 立即将操作记录到撤销历史

@@ -1,3 +1,4 @@
+import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
 import OpenAI from 'openai';
 
 // OpenRouter 客户端配置
@@ -39,19 +40,41 @@ const flowchartTool = {
   },
 };
 
+// 画布状态分析工具定义
+const canvasAnalysisTool = {
+  type: 'function' as const,
+  function: {
+    name: 'get_canvas_state',
+    description:
+      'Get detailed analysis of current canvas elements, including user modifications and all elements on the canvas. Use this to understand what is currently drawn before making modifications.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+};
+
 // 动态生成系统提示词的函数
 function generateSystemPrompt(canvasState: any) {
   const hasExistingFlowchart = canvasState?.existingMermaid;
 
   let prompt = `You are FlowChart AI, an expert at creating flowcharts using Mermaid syntax.
 
+AVAILABLE TOOLS:
+- generate_flowchart: Create or update flowcharts using Mermaid syntax
+- get_canvas_state: Get detailed analysis of current canvas elements (use this to understand what's currently drawn before making modifications)
+
 RULES:
 - If user asks to create, generate, draw, make, design, or modify a flowchart/diagram → use generate_flowchart tool
+- If you need to understand the current canvas state before making modifications → use get_canvas_state tool first
 - If user asks general questions, wants to chat, or discusses non-flowchart topics → respond normally with text
 - Always generate valid Mermaid syntax when using the tool
 - Keep flowcharts clear, well-structured, and easy to understand
 - Use appropriate Mermaid diagram types (flowchart, graph, sequence, etc.)
 - Use Chinese text in flowchart nodes when user communicates in Chinese
+
+IMPORTANT: After calling any tool, ALWAYS provide a helpful response to the user explaining what you found or what you did. Never just call a tool and end the conversation.
 
 MODE SELECTION:
 - Use "replace" mode when user wants to create a completely new flowchart or start over
@@ -106,6 +129,69 @@ When generating Mermaid code:
   return prompt;
 }
 
+// 工具调用完成后继续对话的函数
+async function continueConversationAfterToolCalls(
+  originalMessages: any[],
+  toolCalls: any[],
+  toolResults: any[],
+  controller: ReadableStreamDefaultController,
+  encoder: TextEncoder
+) {
+  try {
+    // 构建包含工具调用和结果的消息历史
+    const messagesWithToolCalls = [
+      ...originalMessages,
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: toolCalls.map((tc) => ({
+          id: tc.id,
+          type: tc.type,
+          function: {
+            name: tc.function.name,
+            arguments: tc.function.arguments,
+          },
+        })),
+      },
+      ...toolResults,
+    ];
+
+    // 重新调用AI API，让它基于工具结果继续生成回复
+    const followUpCompletion = await openai.chat.completions.create({
+      model: 'google/gemini-2.5-flash-preview-05-20',
+      messages: messagesWithToolCalls,
+      temperature: 0.7,
+      stream: true,
+    });
+
+    // 流式传输AI的后续回复
+    for await (const chunk of followUpCompletion) {
+      const delta = chunk.choices[0]?.delta;
+
+      if (delta?.content) {
+        const data = JSON.stringify({
+          type: 'text',
+          content: delta.content,
+        });
+        controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+      }
+
+      if (chunk.choices[0]?.finish_reason === 'stop') {
+        // Don't send a finish message that would overwrite the accumulated content
+        // Just break to end the stream naturally
+        break;
+      }
+    }
+  } catch (error) {
+    console.error('Error in follow-up conversation:', error);
+    const errorData = JSON.stringify({
+      type: 'error',
+      error: 'Failed to generate follow-up response after tool call.',
+    });
+    controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { messages, canvasState } = await req.json();
@@ -137,7 +223,7 @@ export async function POST(req: Request) {
     const completion = await openai.chat.completions.create({
       model: 'google/gemini-2.5-flash-preview-05-20',
       messages: fullMessages,
-      tools: [flowchartTool],
+      tools: [flowchartTool, canvasAnalysisTool],
       tool_choice: 'auto',
       temperature: 0.7,
       stream: true,
@@ -190,7 +276,9 @@ export async function POST(req: Request) {
 
             // 检查是否完成
             if (chunk.choices[0]?.finish_reason === 'tool_calls') {
-              // 发送工具调用信息
+              // 执行工具调用并准备继续对话
+              const toolResults: any[] = [];
+
               for (const toolCall of toolCalls) {
                 if (toolCall.function.name === 'generate_flowchart') {
                   try {
@@ -203,19 +291,62 @@ export async function POST(req: Request) {
                     });
                     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
 
-                    // 发送工具调用结果
-                    const resultData = JSON.stringify({
-                      type: 'tool-result',
-                      toolCallId: toolCall.id,
-                      result: 'Flowchart generated successfully!',
+                    // 收集工具结果，稍后让AI继续对话
+                    toolResults.push({
+                      tool_call_id: toolCall.id,
+                      role: 'tool',
+                      content: 'Flowchart generated successfully!',
                     });
-                    controller.enqueue(
-                      encoder.encode(`data: ${resultData}\n\n`)
-                    );
                   } catch (error) {
                     console.error('Error parsing tool call arguments:', error);
+                    toolResults.push({
+                      tool_call_id: toolCall.id,
+                      role: 'tool',
+                      content: 'Error generating flowchart.',
+                    });
+                  }
+                } else if (toolCall.function.name === 'get_canvas_state') {
+                  try {
+                    // 分析画布状态
+                    const canvasDescription = canvasState?.elements
+                      ? generateAICanvasDescription(canvasState.elements)
+                      : 'The canvas is currently empty with no elements.';
+
+                    const data = JSON.stringify({
+                      type: 'tool-call',
+                      toolCallId: toolCall.id,
+                      toolName: 'get_canvas_state',
+                      args: {},
+                    });
+                    controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+
+                    // 收集工具结果，稍后让AI继续对话
+                    toolResults.push({
+                      tool_call_id: toolCall.id,
+                      role: 'tool',
+                      content: canvasDescription,
+                    });
+                  } catch (error) {
+                    console.error('Error analyzing canvas state:', error);
+                    toolResults.push({
+                      tool_call_id: toolCall.id,
+                      role: 'tool',
+                      content:
+                        'Error analyzing canvas state. The canvas appears to be empty or inaccessible.',
+                    });
                   }
                 }
+              }
+
+              // 如果有工具调用结果，继续对话
+              if (toolResults.length > 0) {
+                await continueConversationAfterToolCalls(
+                  fullMessages,
+                  toolCalls,
+                  toolResults,
+                  controller,
+                  encoder
+                );
               }
             } else if (chunk.choices[0]?.finish_reason === 'stop') {
               // 普通对话完成
