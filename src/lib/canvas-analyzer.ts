@@ -342,59 +342,68 @@ function extractElementText(element: ExcalidrawElement): string | null {
 }
 
 /**
- * 生成画布的自然语言描述
+ * 生成画布的基础分析数据，供AI进行自然分析
  */
 function generateCanvasDescription(analysis: CanvasAnalysis): string {
-  const parts: string[] = [];
-
-  // 基本统计
+  // 基本检查
   if (analysis.totalElements === 0) {
     return 'The canvas is currently empty with no elements.';
   }
 
-  parts.push(
-    `The canvas contains ${analysis.totalElements} elements in total.`
-  );
+  // 收集所有分析数据，让AI自己决定如何表达
+  const analysisData = {
+    totalElements: analysis.totalElements,
+    elementTypes: analysis.elementsByType,
+    textContent: analysis.textContent.map((tc) => tc.text),
+    connections: analysis.connections.length,
+    connectionDetails: analysis.connections.map((conn) => conn.description),
+    hasDecisionPoints: analysis.elementsByType.diamond > 0,
+    hasProcessSteps: analysis.elementsByType.rectangle > 0,
+    hasStartEndPoints: analysis.textContent.some((tc) =>
+      ['start', 'begin', 'end', 'finish', 'complete'].some((keyword) =>
+        tc.text.toLowerCase().includes(keyword)
+      )
+    ),
+    canvasSize: {
+      width: Math.round(analysis.spatialLayout.boundingBox.width),
+      height: Math.round(analysis.spatialLayout.boundingBox.height),
+    },
+  };
 
-  // 元素类型统计
-  const typeDescriptions = Object.entries(analysis.elementsByType)
+  // 简单的自然语言描述，不强制格式
+  let description = `Canvas contains ${analysis.totalElements} elements. `;
+
+  // 元素类型
+  const elementTypes = Object.entries(analysis.elementsByType)
+    .filter(([_, count]) => count > 0)
     .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
     .join(', ');
-  parts.push(`Element types: ${typeDescriptions}.`);
+  description += `Element types: ${elementTypes}. `;
 
   // 文本内容
   if (analysis.textContent.length > 0) {
-    const textSummary = analysis.textContent
-      .slice(0, 5) // 只显示前5个文本内容
+    const texts = analysis.textContent
+      .slice(0, 8)
       .map((tc) => `"${tc.text}"`)
       .join(', ');
-    parts.push(
-      `Text content includes: ${textSummary}${analysis.textContent.length > 5 ? '...' : ''}.`
-    );
+    description += `Text content: ${texts}${analysis.textContent.length > 8 ? ' and more' : ''}. `;
   }
 
-  // 连接关系
+  // 连接信息
   if (analysis.connections.length > 0) {
-    parts.push(
-      `There are ${analysis.connections.length} connections between elements.`
-    );
-    if (analysis.connections.length <= 3) {
-      const connectionDescriptions = analysis.connections
-        .map((conn) => conn.description)
-        .join('; ');
-      parts.push(`Connections: ${connectionDescriptions}.`);
-    }
+    description += `Has ${analysis.connections.length} connections showing flow between elements. `;
   }
 
-  // 空间布局
-  const { boundingBox } = analysis.spatialLayout;
-  if (boundingBox.width > 0 && boundingBox.height > 0) {
-    parts.push(
-      `The content spans approximately ${Math.round(boundingBox.width)} x ${Math.round(boundingBox.height)} pixels.`
-    );
+  // 基本结构信息
+  if (analysisData.hasDecisionPoints) {
+    description += 'Contains decision points for branching logic. ';
   }
 
-  return parts.join(' ');
+  if (!analysisData.hasStartEndPoints && analysis.connections.length > 0) {
+    description += 'Note: Could benefit from clear start/end points. ';
+  }
+
+  return description.trim();
 }
 
 /**
