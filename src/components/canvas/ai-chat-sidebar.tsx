@@ -60,7 +60,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         '[data-radix-scroll-area-viewport]'
       );
       if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        // 使用 smooth 滚动以获得更好的用户体验
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: 'smooth',
+        });
       }
     }
   };
@@ -77,6 +81,88 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }
     };
   }, []);
+
+  const getCanvasState = () => {
+    if (!excalidrawAPI) return null;
+
+    try {
+      const elements = excalidrawAPI.getSceneElements();
+      const appState = excalidrawAPI.getAppState();
+      const files = excalidrawAPI.getFiles();
+
+      // 构建精简的画布状态，只包含AI需要的关键信息
+      const canvasState = {
+        // 元素信息 - 只包含非删除的元素的关键属性
+        elements: elements.map((element) => {
+          const baseElement = {
+            id: element.id,
+            type: element.type,
+            x: element.x,
+            y: element.y,
+            width: element.width,
+            height: element.height,
+          };
+
+          // 类型安全地添加特定元素的属性
+          if (element.type === 'text' && 'text' in element) {
+            return { ...baseElement, text: element.text };
+          }
+
+          if (
+            element.type === 'arrow' &&
+            'startBinding' in element &&
+            'endBinding' in element
+          ) {
+            return {
+              ...baseElement,
+              startBinding: element.startBinding,
+              endBinding: element.endBinding,
+            };
+          }
+
+          if (element.type === 'frame' && 'children' in element) {
+            return {
+              ...baseElement,
+              children: element.children,
+              name: 'name' in element ? element.name : undefined,
+            };
+          }
+
+          return baseElement;
+        }),
+
+        // 应用状态 - 只包含重要的视图信息
+        appState: {
+          viewBackgroundColor: appState.viewBackgroundColor,
+          scrollX: appState.scrollX,
+          scrollY: appState.scrollY,
+          zoom: appState.zoom,
+          theme: appState.theme,
+          gridSize: appState.gridSize,
+          // 当前选中的元素
+          selectedElementIds: appState.selectedElementIds,
+        },
+
+        // 文件数量统计（不传递实际文件数据以节省带宽）
+        filesCount: Object.keys(files).length,
+
+        // 场景元数据
+        metadata: {
+          elementsCount: elements.length,
+          hasImages: Object.keys(files).length > 0,
+          canvasSize: {
+            width: appState.width,
+            height: appState.height,
+          },
+        },
+      };
+
+      return canvasState;
+    } catch (error) {
+      console.warn('Failed to get canvas state:', error);
+      return null;
+    }
+  };
 
   const addFlowchartToCanvas = async (mermaidCode: string) => {
     if (!excalidrawAPI) {
@@ -152,6 +238,17 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
 
+    // 获取画布状态并记录调试信息
+    const canvasState = excalidrawAPI ? getCanvasState() : null;
+    if (canvasState) {
+      console.log('Canvas state being sent to AI:', {
+        elementsCount: canvasState.elements.length,
+        hasImages: canvasState.metadata.hasImages,
+        theme: canvasState.appState.theme,
+        zoom: canvasState.appState.zoom,
+      });
+    }
+
     try {
       const response = await fetch('/api/ai/chat/flowchart', {
         method: 'POST',
@@ -171,7 +268,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               content: userMessage.content,
             },
           ],
-          canvasState: null, // TODO: 将来可以传递当前画布状态
+          canvasState: canvasState,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -402,78 +499,87 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         </div>
 
         {/* Messages */}
-        <ScrollArea ref={scrollAreaRef} className="flex-1 px-4">
-          <div className="space-y-4">
-            {messages.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Ask me to create a flowchart!</p>
-                <p className="text-xs mt-1 opacity-75">
-                  I can help you visualize processes, workflows, and ideas.
-                </p>
-              </div>
-            )}
+        <div className="flex-1 overflow-hidden relative">
+          <ScrollArea ref={scrollAreaRef} className="h-full w-full">
+            <div className="space-y-4 px-4 pb-4 min-h-0">
+              {messages.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Ask me to create a flowchart!</p>
+                  <p className="text-xs mt-1 opacity-75">
+                    I can help you visualize processes, workflows, and ideas.
+                  </p>
+                  {excalidrawAPI && (
+                    <div className="mt-3 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-md mx-auto w-fit">
+                      🎨 Canvas context enabled - I can see your current drawing
+                    </div>
+                  )}
+                </div>
+              )}
 
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`${message.role === 'user' ? 'flex justify-end' : ''}`}
-              >
-                {message.role === 'user' ? (
-                  <Card className="max-w-[280px] p-3 bg-gray-100 text-gray-900 border-gray-100">
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                  </Card>
-                ) : (
-                  <div className="max-w-full">
-                    <div className="flex items-start gap-2 mb-2">
-                      <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
-                      <div className="flex-1">
-                        {renderMessageContent(message)}
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`${message.role === 'user' ? 'flex justify-end' : ''}`}
+                >
+                  {message.role === 'user' ? (
+                    <Card className="max-w-[280px] p-3 bg-gray-100 text-gray-900 border-gray-100">
+                      <p className="text-sm leading-relaxed">
+                        {message.content}
+                      </p>
+                    </Card>
+                  ) : (
+                    <div className="max-w-full">
+                      <div className="flex items-start gap-2 mb-2">
+                        <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
+                        <div className="flex-1">
+                          {renderMessageContent(message)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Current streaming message */}
+              {isLoading && currentAssistantMessage && (
+                <div className="max-w-full">
+                  <div className="flex items-start gap-2 mb-2">
+                    <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-sm leading-relaxed">
+                        {renderFormattedText(currentAssistantMessage)}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <div className="h-1 w-1 bg-blue-500 rounded-full animate-pulse" />
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              )}
 
-            {/* Current streaming message */}
-            {isLoading && currentAssistantMessage && (
-              <div className="max-w-full">
-                <div className="flex items-start gap-2 mb-2">
-                  <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-sm leading-relaxed">
-                      {renderFormattedText(currentAssistantMessage)}
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="h-1 w-1 bg-blue-500 rounded-full animate-pulse" />
+              {/* Loading indicator when no current message */}
+              {isLoading && !currentAssistantMessage && (
+                <div className="max-w-full">
+                  <div className="flex items-start gap-2">
+                    <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
+                    <div className="flex items-center gap-1 py-2">
+                      <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
+                      <div
+                        className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.1s' }}
+                      />
+                      <div
+                        className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.2s' }}
+                      />
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Loading indicator when no current message */}
-            {isLoading && !currentAssistantMessage && (
-              <div className="max-w-full">
-                <div className="flex items-start gap-2">
-                  <Bot className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0" />
-                  <div className="flex items-center gap-1 py-2">
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
-                    <div
-                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.1s' }}
-                    />
-                    <div
-                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.2s' }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
 
         {/* Input */}
         <div className="p-6">
