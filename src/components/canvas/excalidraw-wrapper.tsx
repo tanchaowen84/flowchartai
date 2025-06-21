@@ -60,13 +60,50 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     setCurrentFlowchartId(newId);
   };
 
-  // Track when data is loaded (now handled by initialData)
+  // Load flowchart data into Excalidraw when available (client-side only)
   useEffect(() => {
-    if (flowchart && excalidrawAPI) {
-      console.log('✅ Flowchart initialized via initialData:', flowchart.title);
-      setInitialDataLoaded(true);
+    if (excalidrawAPI && flowchart && !initialDataLoaded) {
+      console.log('🔄 Loading flowchart data...', {
+        flowchartId: flowchart.id,
+        title: flowchart.title,
+        contentLength: flowchart.content.length,
+      });
+
+      try {
+        const parsedContent = JSON.parse(flowchart.content);
+
+        // Prepare appState by excluding problematic properties
+        const { collaborators, ...safeAppState } = parsedContent.appState || {};
+
+        console.log('📊 Parsed content:', {
+          elementsCount: parsedContent.elements?.length || 0,
+          hasAppState: !!parsedContent.appState,
+          hasFiles: !!parsedContent.files,
+        });
+
+        // Update the scene with loaded data
+        excalidrawAPI.updateScene({
+          elements: parsedContent.elements || [],
+          appState: {
+            ...safeAppState,
+            viewBackgroundColor: '#ffffff',
+            // Don't override collaborators, let Excalidraw manage it
+          },
+        });
+
+        // Load files if they exist
+        if (parsedContent.files) {
+          // Note: File loading might need additional handling
+          // depending on how files are stored
+        }
+
+        setInitialDataLoaded(true);
+        console.log('✅ Flowchart loaded successfully:', flowchart.title);
+      } catch (err) {
+        console.error('❌ Error loading flowchart data:', err);
+      }
     }
-  }, [excalidrawAPI, flowchart]);
+  }, [excalidrawAPI, flowchart, initialDataLoaded]);
 
   // Reset initialDataLoaded when flowchartId changes
   useEffect(() => {
@@ -149,41 +186,16 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
         <Excalidraw
           excalidrawAPI={(api) => setExcalidrawAPI(api)}
-          initialData={(() => {
-            // If we have flowchart data, use it for initialization
-            if (flowchart && !loading) {
-              try {
-                const parsedContent = JSON.parse(flowchart.content);
-                const { collaborators, ...safeAppState } =
-                  parsedContent.appState || {};
-
-                console.log('🎨 Using flowchart data for initialData');
-                return {
-                  elements: parsedContent.elements || [],
-                  appState: {
-                    ...safeAppState,
-                    viewBackgroundColor: '#ffffff',
-                  },
-                  files: parsedContent.files || {},
-                };
-              } catch (err) {
-                console.error(
-                  '❌ Error parsing flowchart for initialData:',
-                  err
-                );
-              }
-            }
-
-            // Default empty state
-            console.log('🎨 Using default empty initialData');
-            return {
+          initialData={
+            // Use simple default initialData to avoid SSR issues
+            {
               appState: {
                 viewBackgroundColor: '#ffffff',
                 currentItemFontFamily: 1,
                 zenModeEnabled: false,
               },
-            };
-          })()}
+            }
+          }
           UIOptions={{
             canvasActions: {
               loadScene: false,

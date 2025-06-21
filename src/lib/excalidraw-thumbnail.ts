@@ -28,6 +28,12 @@ export async function generateThumbnail(
   maxHeight = 200,
   quality = 0.6
 ): Promise<string | null> {
+  // Only run on client-side
+  if (typeof window === 'undefined') {
+    console.warn('⚠️ Thumbnail generation skipped on server-side');
+    return null;
+  }
+
   try {
     // Import Excalidraw's exportToCanvas function dynamically
     const { exportToCanvas } = await import('@excalidraw/excalidraw');
@@ -133,6 +139,11 @@ export function generatePlaceholderThumbnail(
   width = 400,
   height = 300
 ): string {
+  // Only run on client-side
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
