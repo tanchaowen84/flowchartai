@@ -10,6 +10,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
 import {
+  createImageThumbnail,
+  encodeImageToBase64,
+  formatFileSize,
+  isValidImageFile,
+} from '@/lib/image-utils';
+import {
   convertMermaidToExcalidraw,
   countAiGeneratedElements,
   extractExistingMermaidCode,
@@ -32,14 +38,27 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+interface MessageContent {
+  type: 'text' | 'image_url';
+  text?: string;
+  image_url?: {
+    url: string;
+  };
+}
+
 interface Message {
   id: string;
-  content: string;
+  content: string | MessageContent[];
   role: 'user' | 'assistant';
   timestamp: Date;
   isFlowchart?: boolean;
   mermaidCode?: string;
   error?: string;
+  images?: {
+    file: File;
+    thumbnail: string;
+    base64: string;
+  }[];
 }
 
 interface AiChatSidebarProps {
@@ -59,9 +78,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -113,8 +135,56 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      // Clean up image preview URLs
+      imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
+
+  // Handle image selection
+  const handleImageSelect = async (files: FileList | null) => {
+    if (!files) return;
+
+    const validFiles: File[] = [];
+    const previewUrls: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      if (!isValidImageFile(file)) {
+        toast({
+          title: 'Invalid file',
+          description: `${file.name} is not a valid image file or is too large (max 5MB)`,
+          variant: 'destructive',
+        });
+        continue;
+      }
+
+      validFiles.push(file);
+      previewUrls.push(URL.createObjectURL(file));
+    }
+
+    if (validFiles.length > 0) {
+      setSelectedImages((prev) => [...prev, ...validFiles]);
+      setImagePreviewUrls((prev) => [...prev, ...previewUrls]);
+    }
+  };
+
+  // Remove selected image
+  const removeImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls((prev) => {
+      const urlToRevoke = prev[index];
+      URL.revokeObjectURL(urlToRevoke);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  // Handle camera button click
+  const handleCameraClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
   const getCanvasState = () => {
     if (!excalidrawAPI) return null;
@@ -290,17 +360,63 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   };
 
   const handleSendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && selectedImages.length === 0) || isLoading) return;
+
+    // Prepare message content
+    let messageContent: string | MessageContent[];
+    let messageImages: { file: File; thumbnail: string; base64: string }[] = [];
+
+    if (selectedImages.length > 0) {
+      // Convert images to base64 and create message content array
+      const imageData = await Promise.all(
+        selectedImages.map(async (file) => {
+          const base64 = await encodeImageToBase64(file);
+          const thumbnail = await createImageThumbnail(file);
+          return { file, thumbnail, base64 };
+        })
+      );
+
+      messageImages = imageData;
+
+      // Create multimodal content
+      const contentArray: MessageContent[] = [];
+
+      if (input.trim()) {
+        contentArray.push({
+          type: 'text',
+          text: input.trim(),
+        });
+      }
+
+      for (const { base64 } of imageData) {
+        contentArray.push({
+          type: 'image_url',
+          image_url: {
+            url: base64,
+          },
+        });
+      }
+
+      messageContent = contentArray;
+    } else {
+      messageContent = input.trim();
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: input.trim(),
+      content: messageContent,
       role: 'user',
       timestamp: new Date(),
+      images: messageImages.length > 0 ? messageImages : undefined,
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setSelectedImages([]);
+    setImagePreviewUrls((prev) => {
+      prev.forEach((url) => URL.revokeObjectURL(url));
+      return [];
+    });
     setIsLoading(true);
     setCurrentAssistantMessage('');
 
@@ -312,7 +428,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         // 发送完整的对话历史以提供上下文
         ...messages.map((msg) => ({
           role: msg.role,
-          content: msg.content,
+          content: typeof msg.content === 'string' ? msg.content : msg.content,
         })),
         // 添加当前用户消息
         {
@@ -582,7 +698,25 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     return (
       <div className="space-y-2">
         <div className="text-sm leading-relaxed">
-          {renderFormattedText(message.content)}
+          {typeof message.content === 'string'
+            ? renderFormattedText(message.content)
+            : message.content.map((content, index) => (
+                <div key={index}>
+                  {content.type === 'text' && content.text && (
+                    <div>{renderFormattedText(content.text)}</div>
+                  )}
+                  {content.type === 'image_url' && content.image_url && (
+                    <div className="mt-2">
+                      <img
+                        src={content.image_url.url}
+                        alt="Uploaded content"
+                        className="max-w-full h-auto rounded-lg border border-gray-200"
+                        style={{ maxHeight: '200px' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
         </div>
         {/* Flowchart is automatically added to canvas, no need for manual button */}
       </div>
@@ -667,9 +801,30 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 >
                   {message.role === 'user' ? (
                     <Card className="max-w-[280px] p-3 bg-gray-100 text-gray-900 border-gray-100">
-                      <p className="text-sm leading-relaxed">
-                        {message.content}
-                      </p>
+                      <div className="text-sm leading-relaxed space-y-2">
+                        {typeof message.content === 'string' ? (
+                          <p>{message.content}</p>
+                        ) : (
+                          message.content.map((content, index) => (
+                            <div key={index}>
+                              {content.type === 'text' && content.text && (
+                                <p>{content.text}</p>
+                              )}
+                              {content.type === 'image_url' &&
+                                content.image_url && (
+                                  <div className="mt-2">
+                                    <img
+                                      src={content.image_url.url}
+                                      alt="Uploaded content"
+                                      className="max-w-full h-auto rounded-lg border border-gray-200"
+                                      style={{ maxHeight: '150px' }}
+                                    />
+                                  </div>
+                                )}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </Card>
                   ) : (
                     <div className="max-w-full">
@@ -715,6 +870,44 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
         {/* Input */}
         <div className="p-6">
+          {/* Image previews */}
+          {selectedImages.length > 0 && (
+            <div className="mb-3 mx-2">
+              <div className="flex flex-wrap gap-2">
+                {selectedImages.map((file, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={imagePreviewUrls[index]}
+                      alt={`Preview ${index + 1}`}
+                      className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                      disabled={isLoading}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-1 py-0.5 rounded-b-lg truncate">
+                      {file.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => handleImageSelect(e.target.files)}
+            className="hidden"
+          />
+
           <div className="bg-white rounded-xl shadow-lg border border-gray-200/50 p-3 mx-2">
             <div className="flex items-end space-x-3">
               <Button
@@ -745,9 +938,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 />
               </div>
               <Button
+                onClick={() => {
+                  handleCameraClick();
+                }}
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0 mb-1"
+                disabled={isLoading}
+                title="Upload image"
               >
                 <Camera className="h-4 w-4" />
               </Button>
@@ -755,7 +953,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 onClick={handleSendMessage}
                 size="icon"
                 variant="ghost"
-                disabled={!input.trim() || isLoading}
+                disabled={
+                  (!input.trim() && selectedImages.length === 0) || isLoading
+                }
                 className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-30 flex-shrink-0 mb-1"
               >
                 <ArrowUp className="h-4 w-4" />

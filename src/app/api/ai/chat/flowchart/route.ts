@@ -71,12 +71,20 @@ CORE RULES:
 - Always generate valid Mermaid syntax when using the flowchart tool
 - Keep flowcharts clear, well-structured, and easy to understand
 
+IMAGE ANALYSIS CAPABILITIES:
+- You can analyze images uploaded by users
+- Look for processes, workflows, diagrams, or any visual content that could be converted to flowcharts
+- If user uploads an image and asks to create a flowchart, analyze the image content and create a corresponding Mermaid flowchart
+- Describe what you see in images and suggest how to represent it as a flowchart
+- Use image content to inform flowchart creation when relevant
+
 IMPORTANT RESPONSE GUIDELINES:
 - When generating flowcharts, DO NOT show or mention Mermaid code in your response
 - Focus on explaining what the flowchart represents and its purpose
 - The flowchart will be automatically added to the canvas - you don't need to tell users how to add it
 - Provide natural, conversational explanations about the process or workflow you created
 - Ask users if they want any modifications or improvements
+- When analyzing images, describe what you see and how it relates to flowchart creation
 
 CANVAS ANALYSIS APPROACH:
 When analyzing canvas content, be natural and conversational. Focus on:
@@ -175,18 +183,70 @@ export async function POST(req: Request) {
       });
     }
 
+    // 检查是否有图片内容，选择合适的模型
+    const hasImages = messages.some(
+      (msg: any) =>
+        Array.isArray(msg.content) &&
+        msg.content.some((content: any) => content.type === 'image_url')
+    );
+
+    // 选择支持视觉的模型（如果有图片）或普通模型
+    const model = hasImages
+      ? 'google/gemini-2.5-flash-preview-05-20' // 支持视觉
+      : 'google/gemini-2.5-flash-preview-05-20'; // 同样支持视觉，保持一致
+
     // 生成系统提示词
     const systemPrompt = generateSystemPrompt();
+
+    // 处理和验证消息格式
+    const processedMessages = messages.map((msg: any) => {
+      if (Array.isArray(msg.content)) {
+        // 多模态消息，验证格式
+        const validatedContent = msg.content.map((content: any) => {
+          if (content.type === 'text') {
+            return {
+              type: 'text',
+              text: content.text || '',
+            };
+          }
+          if (content.type === 'image_url') {
+            return {
+              type: 'image_url',
+              image_url: {
+                url: content.image_url?.url || '',
+              },
+            };
+          }
+          return content;
+        });
+
+        return {
+          role: msg.role,
+          content: validatedContent,
+        };
+      }
+
+      // 纯文本消息
+      return {
+        role: msg.role,
+        content: msg.content,
+      };
+    });
 
     // 构建完整的消息数组
     const fullMessages = [
       { role: 'system' as const, content: systemPrompt },
-      ...messages,
+      ...processedMessages,
     ];
+
+    console.log(
+      'Sending messages to OpenRouter:',
+      JSON.stringify(fullMessages, null, 2)
+    );
 
     // 调用 OpenRouter API
     const completion = await openai.chat.completions.create({
-      model: 'google/gemini-2.5-flash-preview-05-20',
+      model: model,
       messages: fullMessages,
       tools: [flowchartTool, canvasAnalysisTool],
       tool_choice: 'auto',
