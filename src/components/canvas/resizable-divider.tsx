@@ -17,7 +17,7 @@ export const ResizableDivider: React.FC<ResizableDividerProps> = ({
   onResizeStart,
   onResizeEnd,
   minWidth = 300,
-  maxWidth = 600,
+  maxWidth = 500,
   defaultWidth = 400,
   className = '',
 }) => {

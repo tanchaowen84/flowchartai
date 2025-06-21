@@ -10,18 +10,21 @@ import { useState } from 'react';
 interface SaveButtonProps {
   excalidrawAPI: ExcalidrawImperativeAPI | null;
   flowchartId?: string;
+  flowchartTitle?: string;
   onFlowchartIdChange?: (newId: string) => void;
 }
 
 export function SaveButton({
   excalidrawAPI,
   flowchartId,
+  flowchartTitle,
   onFlowchartIdChange,
 }: SaveButtonProps) {
   const router = useRouter();
   const { saveFlowchart, saving, lastSaved } = useFlowchartSave(
     excalidrawAPI,
-    flowchartId
+    flowchartId,
+    flowchartTitle
   );
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>(
     'idle'

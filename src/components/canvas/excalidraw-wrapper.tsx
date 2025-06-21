@@ -4,10 +4,11 @@ import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
-import { Loader2, User } from 'lucide-react';
+import { Edit, Loader2, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -31,6 +32,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [currentFlowchartId, setCurrentFlowchartId] = useState(flowchartId);
+  const [currentTitle, setCurrentTitle] = useState<string>('Untitled');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState<string>('Untitled');
 
   const router = useRouter();
   const currentUser = useCurrentUser();
@@ -58,6 +62,57 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
   const handleFlowchartIdChange = (newId: string) => {
     setCurrentFlowchartId(newId);
+  };
+
+  const handleTitleChange = async (newTitle: string) => {
+    setCurrentTitle(newTitle);
+
+    // Auto-save when title changes for existing flowcharts
+    if (currentFlowchartId && excalidrawAPI) {
+      try {
+        const response = await fetch(`/api/flowcharts/${currentFlowchartId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: newTitle,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('Failed to update title');
+        }
+      } catch (error) {
+        console.error('Error updating title:', error);
+      }
+    }
+  };
+
+  const handleTitleEditStart = () => {
+    setTempTitle(currentTitle);
+    setIsEditingTitle(true);
+  };
+
+  const handleTitleEditSave = async () => {
+    if (tempTitle.trim()) {
+      await handleTitleChange(tempTitle.trim());
+      setCurrentTitle(tempTitle.trim());
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleEditCancel = () => {
+    setTempTitle(currentTitle);
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTitleEditSave();
+    } else if (e.key === 'Escape') {
+      handleTitleEditCancel();
+    }
   };
 
   // Load flowchart data into Excalidraw when available (client-side only)
@@ -98,6 +153,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         }
 
         setInitialDataLoaded(true);
+        const title = flowchart.title || 'Untitled';
+        setCurrentTitle(title);
+        setTempTitle(title);
         console.log('✅ Flowchart loaded successfully:', flowchart.title);
       } catch (err) {
         console.error('❌ Error loading flowchart data:', err);
@@ -151,6 +209,42 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           width: isSidebarOpen ? `calc(100% - ${sidebarWidth}px)` : '100%',
         }}
       >
+        {/* Title Bar - only show for logged in users */}
+        {currentUser && (
+          <div className="absolute top-4 left-20 z-10 flex items-center">
+            <div className="flex items-center gap-2 px-3 py-2">
+              {/* Title Display/Edit */}
+              <div className="flex items-center gap-2">
+                {isEditingTitle ? (
+                  <Input
+                    value={tempTitle}
+                    onChange={(e) => setTempTitle(e.target.value)}
+                    onKeyDown={handleTitleKeyDown}
+                    onBlur={handleTitleEditSave}
+                    className="h-8 px-2 text-sm font-medium min-w-32 max-w-64 bg-white/90 border-gray-300"
+                    autoFocus
+                    placeholder="Enter title..."
+                  />
+                ) : (
+                  <>
+                    <span className="text-sm font-medium text-gray-800 max-w-64 truncate">
+                      {currentTitle}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleTitleEditStart}
+                      className="h-6 w-6 p-0 hover:bg-gray-100/50"
+                    >
+                      <Edit className="h-3 w-3 text-gray-600" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Top Right Controls */}
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
           {/* Save Button - only show for logged in users */}
@@ -158,6 +252,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
             <SaveButton
               excalidrawAPI={excalidrawAPI}
               flowchartId={currentFlowchartId}
+              flowchartTitle={currentTitle}
               onFlowchartIdChange={handleFlowchartIdChange}
             />
           )}
@@ -227,7 +322,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
             onResizeEnd={handleResizeEnd}
             defaultWidth={sidebarWidth}
             minWidth={300}
-            maxWidth={600}
+            maxWidth={500}
           />
         </div>
       )}

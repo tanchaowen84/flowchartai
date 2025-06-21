@@ -1,6 +1,6 @@
 'use client';
 
-import { MagicCard } from '@/components/magicui/magic-card';
+// import { MagicCard } from '@/components/magicui/magic-card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,7 +94,7 @@ export function FlowchartCard({
     new Date().getTime() - updatedAt.getTime() < 24 * 60 * 60 * 1000;
 
   return (
-    <MagicCard className="cursor-pointer hover:shadow-lg transition-all duration-300">
+    <Card className="cursor-pointer hover:shadow-lg transition-all duration-300">
       <Card className="h-full border-0 shadow-none">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -120,10 +120,6 @@ export function FlowchartCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleEdit}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Open
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsRenaming(true)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Rename
@@ -235,6 +231,6 @@ export function FlowchartCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </MagicCard>
+    </Card>
   );
 }

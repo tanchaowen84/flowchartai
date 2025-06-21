@@ -16,7 +16,8 @@ interface UseFlowchartSaveResult {
 
 export const useFlowchartSave = (
   excalidrawAPI: ExcalidrawImperativeAPI | null,
-  flowchartId?: string
+  flowchartId?: string,
+  defaultTitle?: string
 ): UseFlowchartSaveResult => {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -74,9 +75,9 @@ export const useFlowchartSave = (
         }
 
         const requestBody: any = { content };
-        if (title) {
-          requestBody.title = title;
-        }
+        // Use provided title, defaultTitle, or fallback to 'Untitled'
+        const finalTitle = title || defaultTitle || 'Untitled';
+        requestBody.title = finalTitle;
         if (thumbnail) {
           requestBody.thumbnail = thumbnail;
         }
@@ -139,7 +140,7 @@ export const useFlowchartSave = (
         setSaving(false);
       }
     },
-    [excalidrawAPI, flowchartId]
+    [excalidrawAPI, flowchartId, defaultTitle]
   );
 
   // Debounced auto-save function
