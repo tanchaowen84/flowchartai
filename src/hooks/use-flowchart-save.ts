@@ -56,29 +56,30 @@ export const useFlowchartSave = (
           files,
         });
 
-        // TODO: 临时禁用缩略图生成，先确保基本保存功能正常
         // Generate thumbnail if there are elements to draw
-        // let thumbnail: string | null = null;
-        // if (elements.length > 0) {
-        //   try {
-        //     thumbnail = await generateThumbnail(
-        //       { elements, appState },
-        //       400,
-        //       300
-        //     );
-        //   } catch (error) {
-        //     console.warn('Failed to generate thumbnail:', error);
-        //     // Continue without thumbnail if generation fails
-        //   }
-        // }
+        let thumbnail: string | null = null;
+        if (elements.length > 0) {
+          try {
+            console.log('📸 Generating thumbnail...');
+            thumbnail = await generateThumbnail(
+              { elements, appState },
+              300, // maxWidth
+              200, // maxHeight
+              0.6 // quality (60% for smaller file size)
+            );
+          } catch (error) {
+            console.warn('⚠️ Failed to generate thumbnail:', error);
+            // Continue without thumbnail if generation fails
+          }
+        }
 
         const requestBody: any = { content };
         if (title) {
           requestBody.title = title;
         }
-        // if (thumbnail) {
-        //   requestBody.thumbnail = thumbnail;
-        // }
+        if (thumbnail) {
+          requestBody.thumbnail = thumbnail;
+        }
 
         let response: Response;
 

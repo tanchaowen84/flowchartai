@@ -143,14 +143,15 @@ export function FlowchartCard({
 
         <CardContent className="pb-3">
           <div
-            className="h-32 rounded-lg border-2 border-dashed border-gray-200 overflow-hidden hover:border-primary/50 transition-colors cursor-pointer"
+            className="h-32 rounded-lg border-2 border-dashed border-gray-200 overflow-hidden hover:border-primary/50 transition-colors cursor-pointer bg-white"
             onClick={handleEdit}
           >
             {thumbnail ? (
               <img
                 src={thumbnail}
                 alt={`Preview of ${title}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain bg-white"
+                style={{ imageRendering: 'crisp-edges' }}
               />
             ) : (
               <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">

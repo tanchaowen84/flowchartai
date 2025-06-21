@@ -17,21 +17,23 @@ export interface ExcalidrawData {
 /**
  * Generate a thumbnail from Excalidraw canvas data
  * @param canvasData - The Excalidraw canvas data
- * @param width - Thumbnail width (default: 400)
- * @param height - Thumbnail height (default: 300)
+ * @param maxWidth - Maximum thumbnail width (default: 300)
+ * @param maxHeight - Maximum thumbnail height (default: 200)
+ * @param quality - JPEG quality (0-1, default: 0.6 for smaller size)
  * @returns Base64 encoded thumbnail image
  */
 export async function generateThumbnail(
   canvasData: ExcalidrawData,
-  width = 400,
-  height = 300
+  maxWidth = 300,
+  maxHeight = 200,
+  quality = 0.6
 ): Promise<string | null> {
   try {
     // Import Excalidraw's exportToCanvas function dynamically
     const { exportToCanvas } = await import('@excalidraw/excalidraw');
 
-    // Create a canvas element
-    const canvas = await exportToCanvas({
+    // Create a full-size canvas first to capture the entire scene
+    const fullCanvas = await exportToCanvas({
       elements: canvasData.elements,
       appState: {
         ...canvasData.appState,
@@ -39,13 +41,54 @@ export async function generateThumbnail(
         exportWithDarkMode: false,
         exportScale: 1,
         exportEmbedScene: false,
+        // Don't crop, show full scene
+        exportPadding: 20,
       },
       files: null,
-      getDimensions: () => ({ width, height }),
     });
 
-    // Convert canvas to base64
-    const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+    // Create a smaller canvas for the thumbnail
+    const thumbnailCanvas = document.createElement('canvas');
+    const ctx = thumbnailCanvas.getContext('2d');
+
+    if (!ctx) {
+      console.error('Failed to get canvas context');
+      return null;
+    }
+
+    // Calculate thumbnail dimensions while maintaining aspect ratio
+    const aspectRatio = fullCanvas.width / fullCanvas.height;
+    let thumbnailWidth = maxWidth;
+    let thumbnailHeight = maxHeight;
+
+    if (aspectRatio > maxWidth / maxHeight) {
+      // Wider than target ratio
+      thumbnailHeight = Math.round(maxWidth / aspectRatio);
+    } else {
+      // Taller than target ratio
+      thumbnailWidth = Math.round(maxHeight * aspectRatio);
+    }
+
+    thumbnailCanvas.width = thumbnailWidth;
+    thumbnailCanvas.height = thumbnailHeight;
+
+    // Draw the full canvas onto the thumbnail canvas (this will scale it down)
+    ctx.drawImage(fullCanvas, 0, 0, thumbnailWidth, thumbnailHeight);
+
+    // Convert to base64 with compression
+    let dataURL = thumbnailCanvas.toDataURL('image/jpeg', quality);
+
+    // If the thumbnail is still too large (>50KB), reduce quality further
+    let currentQuality = quality;
+    while (dataURL.length > 50000 && currentQuality > 0.3) {
+      currentQuality -= 0.1;
+      dataURL = thumbnailCanvas.toDataURL('image/jpeg', currentQuality);
+    }
+
+    console.log(
+      `📸 Thumbnail generated: ${thumbnailWidth}x${thumbnailHeight}, quality: ${currentQuality.toFixed(1)}, size: ${Math.round(dataURL.length / 1024)}KB`
+    );
+
     return dataURL;
   } catch (error) {
     console.error('Failed to generate thumbnail:', error);
