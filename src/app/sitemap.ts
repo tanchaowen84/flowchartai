@@ -19,7 +19,6 @@ function getEnabledStaticRoutes(): string[] {
     '/blog',
     '/about',
     '/contact',
-    '/waitlist',
     '/changelog',
     '/privacy',
     '/terms',
@@ -38,11 +37,6 @@ function getEnabledStaticRoutes(): string[] {
   // 条件性添加AI页面路由
   if (websiteConfig.features.enableAIPages) {
     conditionalRoutes.push('/ai/text', '/ai/image', '/ai/video', '/ai/audio');
-  }
-
-  // 条件性添加MagicUI页面路由
-  if (websiteConfig.features.enableMagicUIPage) {
-    conditionalRoutes.push('/magicui');
   }
 
   return [...baseRoutes, ...conditionalRoutes];
@@ -161,21 +155,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...docsParams.flatMap((param) =>
         routing.locales.map((locale) => ({
           url: getUrl(`/docs/${param.slug.join('/')}`, locale),
-          lastModified: new Date(),
-          priority: 0.8,
-          changeFrequency: 'weekly' as const,
-        }))
-      )
-    );
-  }
-
-  // 条件性添加blocks页面
-  if (websiteConfig.features.enableBlocksPages) {
-    const { categories } = await import('@/components/tailark/blocks');
-    sitemapList.push(
-      ...categories.flatMap((category) =>
-        routing.locales.map((locale) => ({
-          url: getUrl(`/blocks/${category}`, locale),
           lastModified: new Date(),
           priority: 0.8,
           changeFrequency: 'weekly' as const,
