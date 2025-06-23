@@ -114,7 +114,7 @@ export async function POST(req: Request) {
             error: 'Guest usage limit exceeded',
             message:
               guestCheck.reason ||
-              'Guest users can only use AI once per 24 hours. Please sign up for unlimited access.',
+              'Guest users can only use AI once per month. Please sign up for more requests.',
             isGuest: true,
             lastUsed: guestCheck.lastUsed,
           }),

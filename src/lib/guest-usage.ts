@@ -29,7 +29,7 @@ export function getClientIP(request: Request): string {
   return '127.0.0.1'; // fallback
 }
 
-// Check if guest can use AI (24-hour cooldown)
+// Check if guest can use AI (monthly limit: 1 time per month)
 export async function canGuestUseAI(request: Request): Promise<{
   canUse: boolean;
   reason?: string;
@@ -40,26 +40,19 @@ export async function canGuestUseAI(request: Request): Promise<{
     const ip = getClientIP(request);
     const ipHash = hashIP(ip);
 
-    // Check for usage in the last 24 hours
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    const recentUsage = await db
+    // Check for any successful usage (since records are auto-deleted after 30 days,
+    // this effectively creates a monthly limit without manual reset)
+    const existingUsage = await db
       .select()
       .from(guestUsage)
-      .where(
-        and(
-          eq(guestUsage.ipHash, ipHash),
-          gte(guestUsage.createdAt, oneDayAgo),
-          eq(guestUsage.success, true)
-        )
-      )
+      .where(and(eq(guestUsage.ipHash, ipHash), eq(guestUsage.success, true)))
       .limit(1);
 
-    if (recentUsage.length > 0) {
+    if (existingUsage.length > 0) {
       return {
         canUse: false,
-        reason: 'Already used free AI request in the last 24 hours',
-        lastUsed: recentUsage[0].createdAt,
+        reason: 'Already used free AI request this month',
+        lastUsed: existingUsage[0].createdAt,
       };
     }
 
@@ -96,6 +89,7 @@ export async function recordGuestAIUsage(
     });
 
     // Clean up old records (older than 30 days) to keep database size manageable
+    // This also serves as the monthly reset mechanism
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     await db.delete(guestUsage).where(lt(guestUsage.createdAt, thirtyDaysAgo));
   } catch (error) {
@@ -107,19 +101,19 @@ export async function recordGuestAIUsage(
 // Get guest usage statistics (for admin purposes)
 export async function getGuestUsageStats(): Promise<{
   totalUsage: number;
-  dailyUsage: number;
+  monthlyUsage: number;
   uniqueIPs: number;
 }> {
   try {
     const db = await getDb();
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [totalResult, dailyResult, uniqueIPsResult] = await Promise.all([
+    const [totalResult, monthlyResult, uniqueIPsResult] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(guestUsage),
       db
         .select({ count: sql<number>`count(*)` })
         .from(guestUsage)
-        .where(gte(guestUsage.createdAt, oneDayAgo)),
+        .where(gte(guestUsage.createdAt, thirtyDaysAgo)),
       db
         .select({ count: sql<number>`count(distinct ${guestUsage.ipHash})` })
         .from(guestUsage),
@@ -127,14 +121,14 @@ export async function getGuestUsageStats(): Promise<{
 
     return {
       totalUsage: totalResult[0]?.count || 0,
-      dailyUsage: dailyResult[0]?.count || 0,
+      monthlyUsage: monthlyResult[0]?.count || 0,
       uniqueIPs: uniqueIPsResult[0]?.count || 0,
     };
   } catch (error) {
     console.error('Error getting guest usage stats:', error);
     return {
       totalUsage: 0,
-      dailyUsage: 0,
+      monthlyUsage: 0,
       uniqueIPs: 0,
     };
   }

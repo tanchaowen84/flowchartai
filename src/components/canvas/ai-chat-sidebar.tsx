@@ -518,6 +518,19 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        // Handle rate limit errors specifically
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.isGuest) {
+          throw new Error(
+            errorData.message ||
+              'Guest users can only use AI once per month. Please sign up for more requests.'
+          );
+        }
+        throw new Error(
+          errorData.message || 'You have reached your AI usage limit.'
+        );
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
