@@ -55,7 +55,7 @@ export function GuestUsageIndicator({ className }: GuestUsageIndicatorProps) {
                 </div>
               )}
               <Button size="sm" asChild className="flex items-center gap-1">
-                <LocaleLink href="/auth/login">
+                <LocaleLink href="/auth/register">
                   <UserPlus className="h-3 w-3" />
                   Sign Up
                 </LocaleLink>

@@ -1,5 +1,7 @@
 'use client';
 
+import { LoginForm } from '@/components/auth/login-form';
+import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
 import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
 import MarkdownRenderer from '@/components/shared/markdown-renderer';
@@ -7,6 +9,12 @@ import { PricingModal } from '@/components/shared/pricing-modal';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -15,6 +23,7 @@ import { useAIUsageLimit } from '@/hooks/use-ai-usage-limit';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useGuestAIUsage } from '@/hooks/use-guest-ai-usage';
 import { toast } from '@/hooks/use-toast';
+import { useLocalePathname } from '@/i18n/navigation';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
 import {
   createImageThumbnail,
@@ -91,12 +100,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentUser = useCurrentUser();
+  const currentPath = useLocalePathname();
   const { usageData, checkUsageLimit, refreshUsageData } = useAIUsageLimit();
   const { canUseAI: canGuestUseAI, markAsUsed: markGuestAsUsed } =
     useGuestAIUsage();
@@ -389,7 +400,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } else {
       // Guest user - check guest limits
       if (!canGuestUseAI) {
-        setShowPricingModal(true);
+        setShowLoginModal(true);
         return;
       }
     }
@@ -481,6 +492,15 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return;
       }
 
+      // Check if this is a guest usage limit error
+      if (error instanceof Error && (error as any).isGuestLimit) {
+        // Show login modal for guest users who hit their limit
+        if (!currentUser) {
+          setShowLoginModal(true);
+          return;
+        }
+      }
+
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
         content:
@@ -522,10 +542,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         // Handle rate limit errors specifically
         const errorData = await response.json().catch(() => ({}));
         if (errorData.isGuest) {
-          throw new Error(
+          // Create a custom error with guest flag
+          const guestError = new Error(
             errorData.message ||
               'Guest users can only use AI once per month. Please sign up for more requests.'
           );
+          (guestError as any).isGuestLimit = true;
+          throw guestError;
         }
         throw new Error(
           errorData.message || 'You have reached your AI usage limit.'
@@ -1003,6 +1026,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Login Modal for Guest Users - Direct login modal */}
+      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+        <DialogContent className="sm:max-w-[400px] p-0">
+          <DialogHeader className="hidden">
+            <DialogTitle>Sign In</DialogTitle>
+          </DialogHeader>
+          <LoginForm callbackUrl={currentPath} className="border-none" />
+        </DialogContent>
+      </Dialog>
 
       {/* AI Usage Limit Card */}
       {showUsageLimitCard && usageData && (

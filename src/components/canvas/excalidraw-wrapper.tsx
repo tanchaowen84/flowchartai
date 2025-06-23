@@ -2,14 +2,15 @@
 
 import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
+import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
+import { useLocalePathname } from '@/i18n/navigation';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { Edit, Loader2, User } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import AiChatSidebar from './ai-chat-sidebar';
@@ -38,6 +39,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
   const router = useRouter();
   const currentUser = useCurrentUser();
+  const currentPath = useLocalePathname();
   const { flowchart, loading, error } = useFlowchart(currentFlowchartId);
 
   const handleGoHome = () => {
@@ -261,12 +263,16 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           {currentUser ? (
             <UserButton user={currentUser} />
           ) : (
-            <Button asChild variant="ghost" size="sm" className="h-9 px-3">
-              <Link href="/auth/login" className="flex items-center gap-2">
+            <LoginWrapper mode="modal" asChild callbackUrl={currentPath}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3 flex items-center gap-2"
+              >
                 <User className="h-4 w-4" />
                 <span>Sign In</span>
-              </Link>
-            </Button>
+              </Button>
+            </LoginWrapper>
           )}
           {!isSidebarOpen && (
             <Button
