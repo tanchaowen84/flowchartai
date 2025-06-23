@@ -1,15 +1,15 @@
 ---
 title: Cookie Policy
 description: How we use cookies and similar technologies on our website
-date: 2025-03-10T00:00:00.000Z
+date: 2025-06-23T00:00:00.000Z
 published: true
 ---
 
-*Last updated: [DATE]*
+*Last updated: June 23, 2025*
 
 ## Introduction
 
-This Cookie Policy explains how [COMPANY NAME] ("we," "our," or "us") uses cookies and similar technologies on our website and services. We are committed to being transparent about our cookie practices and complying with applicable privacy laws, including the EU ePrivacy Directive, GDPR, CCPA, and other international regulations.
+This Cookie Policy explains how FlowChart AI, a service operated by Chaowen Tan ("we," "our," or "us") uses cookies and similar technologies on our website and services. We are committed to being transparent about our cookie practices and complying with applicable privacy laws, including the EU ePrivacy Directive, GDPR, CCPA, and other international regulations.
 
 By continuing to use our website, you consent to our use of cookies as described in this policy, except where your consent is specifically required for non-essential cookies.
 
@@ -70,17 +70,18 @@ Cookies are small text files that are stored on your device (computer, tablet, o
 **Data Location**: United States
 **Legal Basis**: Necessary for contract performance (login service)
 
-### Payment Processing Cookies
-*These cookies are used to securely process payments and manage billing.*
+### Payment Processing Cookies (Creem)
+*These cookies are used to securely process payments and manage billing through our Merchant of Record.*
 
 | Cookie Name | Purpose | Duration | Set By |
 |-------------|---------|----------|--------|
-| `creem_session` | Secure payment session | 30 minutes | Creem |
+| `creem_session` | Secure payment session management | 30 minutes | Creem |
 | `creem_customer_id` | Customer identification for billing | 1 year | Creem |
+| `creem_checkout_state` | Maintains checkout process state | Session | Creem |
 | `creem_csrf` | Payment security protection | Session | Creem |
 
-**Creem's Privacy Policy**: [CREEM_PRIVACY_POLICY_URL]
-**Data Location**: Singapore
+**Creem's Privacy Policy**: https://creem.io/privacy
+**Data Location**: Singapore, Estonia
 **Legal Basis**: Necessary for contract performance (payment processing)
 
 ### Functional Cookies (Require Consent)
@@ -89,9 +90,10 @@ Cookies are small text files that are stored on your device (computer, tablet, o
 | Cookie Name | Purpose | Duration | Set By |
 |-------------|---------|----------|--------|
 | `theme_preference` | Remembers your dark/light mode choice | 1 year | Our Website |
-| `dashboard_layout` | Saves your dashboard layout preferences | 1 year | Our Website |
+| `canvas_settings` | Saves your canvas and drawing preferences | 1 year | Our Website |
 | `user_preferences` | Stores various user preference settings | 1 year | Our Website |
 | `feature_flags` | Manages feature availability for your account | Session | Our Website |
+| `ai_chat_history` | Maintains AI conversation context | Session | Our Website |
 
 ### Analytics Cookies (Require Consent)
 *These cookies help us understand how visitors interact with our website by collecting and reporting information anonymously.*
@@ -108,23 +110,33 @@ Cookies are small text files that are stored on your device (computer, tablet, o
 **Legal Basis**: Legitimate interest (with opt-out option)
 
 ### AI Service Cookies (Require Consent)
-*These cookies are used when you interact with our AI-powered features.*
+*These cookies are used when you interact with our AI-powered flowchart generation features.*
 
 | Cookie Name | Purpose | Duration | Set By |
 |-------------|---------|----------|--------|
 | `ai_session_state` | Maintains AI conversation context | Session | Our Website |
 | `ai_usage_tracking` | Tracks AI feature usage for billing | 30 days | Our Website |
-| `openrouter_session` | API session management | Session | OpenRouter |
-| `fal_processing_id` | Tracks AI processing tasks | 1 hour | Fal.ai |
-| `replicate_job_id` | Manages AI generation jobs | 24 hours | Replicate |
+| `openrouter_session` | API session management for AI services | Session | OpenRouter |
+| `flowchart_autosave` | Automatically saves your work in progress | Session | Our Website |
 
-**Third-Party AI Services**:
+**Third-Party AI Service**:
 - **OpenRouter**: https://openrouter.ai/privacy
-- **Fal.ai**: https://fal.ai/privacy
-- **Replicate**: https://replicate.com/privacy
 
 **Data Location**: United States
 **Legal Basis**: Consent (for AI feature usage)
+
+### Hosting and Infrastructure Cookies
+*These cookies are set by our hosting provider for performance and security.*
+
+| Cookie Name | Purpose | Duration | Set By |
+|-------------|---------|----------|--------|
+| `__vercel_live` | Vercel deployment and performance tracking | Session | Vercel |
+| `_vercel_jwt` | Vercel security and authentication | Session | Vercel |
+
+**Hosting Provider**: Vercel
+**Privacy Policy**: https://vercel.com/legal/privacy-policy
+**Data Location**: Global edge network
+**Legal Basis**: Necessary for service provision
 
 ### Email Service Cookies (Optional)
 *These cookies are used if you opt-in to email communications.*
@@ -155,7 +167,7 @@ Cookies are small text files that are stored on your device (computer, tablet, o
 You have several options to manage cookies:
 
 #### 1. Cookie Preference Center
-- Visit our Cookie Settings page: [WEBSITE_URL]/cookie-settings
+- Visit our Cookie Settings page: https://flowchartai.net/cookie-settings
 - Toggle different cookie categories on/off
 - View detailed information about each cookie
 - Save your preferences instantly
@@ -170,16 +182,17 @@ You have several options to manage cookies:
 - **Google**: https://adssettings.google.com/
 - **GitHub**: Account Settings > Privacy
 - **Creem**: Contact Creem support for opt-out options
+- **OpenRouter**: Manage through your OpenRouter account settings
 
 ### Withdrawing Consent
 
 You can withdraw your consent at any time by:
 1. **Updating Preferences**: Use our Cookie Settings page
 2. **Clearing Cookies**: Delete cookies through your browser
-3. **Contacting Us**: Email privacy@[COMPANY-DOMAIN].com
+3. **Contacting Us**: Email privacy@flowchartai.net
 4. **Re-visiting Banner**: Clear your consent cookie to see the banner again
 
-**Important**: Withdrawing consent may affect website functionality and your user experience.
+**Important**: Withdrawing consent may affect website functionality and your user experience, particularly for AI features and canvas functionality.
 
 ## International Compliance
 
@@ -221,8 +234,14 @@ We implement appropriate security measures for cookies:
 
 ## Changes to This Cookie Policy
 
-We may update our Cookie Policy from time to time. We will notify you of any changes by posting the new Cookie Policy on this page.
+We may update our Cookie Policy from time to time. We will notify you of any changes by posting the new Cookie Policy on this page and updating the "Last updated" date.
 
 ## Contact Us
 
-If you have any questions about this Cookie Policy, please [contact us](/contact).
+If you have any questions about this Cookie Policy, please contact us:
+
+- **Email**: privacy@flowchartai.net
+- **Website**: https://flowchartai.net
+- **Service Operator**: Chaowen Tan
+
+For specific questions about third-party cookies, please refer to the respective privacy policies of our service providers.

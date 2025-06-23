@@ -1,15 +1,15 @@
 ---
 title: Privacy Policy
 description: Our commitment to protecting your privacy and personal data
-date: 2025-03-10T00:00:00.000Z
+date: 2025-06-23T00:00:00.000Z
 published: true
 ---
 
-*Last updated: [DATE]*
+*Last updated: June 23, 2025*
 
 ## Introduction
 
-This Privacy Policy explains how [COMPANY NAME] ("we," "our," or "us") collects, uses, and protects your personal information when you use our services. We are committed to protecting your privacy and complying with applicable data protection laws, including the General Data Protection Regulation (GDPR), California Consumer Privacy Act (CCPA), and other international privacy regulations.
+This Privacy Policy explains how FlowChart AI, a service operated by Chaowen Tan ("we," "our," or "us") collects, uses, and protects your personal information when you use our AI-powered flowchart generation services. We are committed to protecting your privacy and complying with applicable data protection laws, including the General Data Protection Regulation (GDPR), California Consumer Privacy Act (CCPA), and other international privacy regulations.
 
 By using our services, you agree to the collection and use of information in accordance with this policy.
 
@@ -18,20 +18,22 @@ By using our services, you agree to the collection and use of information in acc
 ### Personal Information You Provide
 - **Account Information**: Name, email address, username, and password
 - **Profile Information**: Optional profile details you choose to share
-- **Payment Information**: Billing address and payment method details (processed securely by our payment processor)
+- **Payment Information**: Billing address and payment method details (processed securely by our payment processor Creem)
 - **Communication Data**: Messages you send to us through contact forms or support channels
-- **Content Data**: Text, images, and other content you input into our AI services
+- **Content Data**: Flowchart content, text prompts, and other content you input into our AI services
+- **AI Conversation Data**: Chat messages and interactions with our AI assistant
 
 ### Information We Collect Automatically
 - **Usage Data**: Pages visited, features used, time spent on our service, and interaction patterns
 - **Device Information**: IP address, browser type, operating system, device identifiers
 - **Log Data**: Server logs, error reports, and system activity
 - **Analytics Data**: Aggregated usage statistics and performance metrics
+- **Canvas Data**: Flowchart elements, positions, and drawing interactions
 
 ### Information from Third Parties
-- **Payment Processors**: Transaction status and payment verification data
-- **AI Service Providers**: Processing results and usage metrics (no content stored)
-- **Authentication Providers**: Basic profile information if you sign in through third-party services
+- **Payment Processors**: Transaction status and payment verification data from Creem
+- **AI Service Providers**: Processing results and usage metrics (content not permanently stored)
+- **Authentication Providers**: Basic profile information if you sign in through Google or GitHub
 
 ## Legal Basis for Processing (GDPR)
 
@@ -39,8 +41,9 @@ We process your personal data based on the following legal grounds:
 
 **Contract Performance**:
 - Account creation and management
-- Service delivery and customer support
-- Payment processing and billing
+- AI flowchart generation and canvas services
+- Payment processing and billing through Creem
+- Customer support and service delivery
 - Security and fraud prevention
 
 **Legitimate Interests**:
@@ -53,6 +56,7 @@ We process your personal data based on the following legal grounds:
 - Optional analytics cookies
 - Marketing email subscriptions
 - Non-essential service features
+- AI conversation data processing for service improvement
 
 **Legal Obligation**:
 - Tax and accounting records
@@ -63,19 +67,22 @@ We process your personal data based on the following legal grounds:
 
 ### Core Service Operations
 - **Account Management**: Creating and maintaining your user account
-- **Service Delivery**: Providing AI generation, content processing, and platform features
-- **Payment Processing**: Handling subscriptions, billing, and transaction management
+- **AI Services**: Providing flowchart generation, AI chat assistance, and canvas functionality
+- **Payment Processing**: Handling subscriptions and billing through Creem (our Merchant of Record)
 - **Customer Support**: Responding to inquiries and resolving issues
 - **Security**: Protecting against fraud, abuse, and unauthorized access
+- **Content Storage**: Saving and managing your flowchart projects
 
 ### Service Improvement
-- **Analytics**: Understanding usage patterns to improve our services
+- **Analytics**: Understanding usage patterns to improve our AI and canvas features
 - **Performance Monitoring**: Ensuring service reliability and optimization
-- **Feature Development**: Developing new features based on user needs
+- **Feature Development**: Developing new AI capabilities based on user needs
 - **Quality Assurance**: Testing and maintaining service quality
+- **AI Model Training**: Improving our AI responses (with anonymized data only)
 
 ### Communications
 - **Service Updates**: Important notifications about your account or our services
+- **AI Usage Limits**: Notifications about usage quotas and billing
 - **Marketing**: Promotional emails about new features (with opt-out option)
 - **Support**: Responses to your inquiries and support requests
 
@@ -83,19 +90,29 @@ We process your personal data based on the following legal grounds:
 
 We work with trusted third-party service providers to deliver our services:
 
-### Payment Processing
-- **Provider**: Creem
-- **Data Shared**: Billing information, transaction details
-- **Purpose**: Secure payment processing and subscription management
-- **Data Location**: Singapore and other regions as required
-- **Protection**: Industry-standard encryption and security measures
+### Payment Processing (Merchant of Record)
+- **Provider**: Creem (Armitage Labs OÜ)
+- **Data Shared**: Billing information, transaction details, customer contact information
+- **Purpose**: Secure payment processing, subscription management, tax compliance, refund processing
+- **Data Location**: Singapore, Estonia, and other regions as required by Creem
+- **Protection**: Industry-standard encryption and PCI compliance
+- **Privacy Policy**: https://creem.io/privacy
+- **Role**: Creem acts as our Merchant of Record and appears on customer billing statements
 
 ### AI Services
-- **Providers**: OpenRouter, Fal.ai, Replicate
-- **Data Shared**: User prompts and content for processing
-- **Purpose**: AI content generation and processing
-- **Data Retention**: Typically not stored by providers after processing
+- **Provider**: OpenRouter (for AI models and processing)
+- **Data Shared**: User prompts, flowchart content, and conversation data for processing
+- **Purpose**: AI-powered flowchart generation and chat assistance
+- **Data Retention**: Typically not stored permanently by providers after processing
+- **Data Location**: Primarily United States
 - **Protection**: Secure API connections and data handling agreements
+
+### Hosting and Infrastructure
+- **Provider**: Vercel (for application hosting)
+- **Data Shared**: All service data as necessary for global operations
+- **Purpose**: Hosting, content delivery, and service performance
+- **Data Location**: Global edge network including United States, Europe, and Asia-Pacific
+- **Protection**: Enterprise-grade security and encryption
 
 ### Email Services (Optional)
 - **Provider**: Resend
@@ -111,19 +128,21 @@ We work with trusted third-party service providers to deliver our services:
 - **Data Location**: Our controlled infrastructure
 - **Protection**: Privacy-focused analytics without personal tracking
 
-### Infrastructure
-- **Cloud Providers**: [AWS/Google Cloud/Other - to be specified]
-- **Data Shared**: All service data as necessary for operations
-- **Purpose**: Hosting, storage, and service delivery
-- **Protection**: Enterprise-grade security and encryption
+### File Storage
+- **Current**: Data stored within Vercel's infrastructure
+- **Future**: We may implement additional storage solutions (such as Cloudflare R2) for enhanced performance
+- **Data Shared**: Flowchart files, images, and project data
+- **Purpose**: Secure storage and backup of user content
+- **Protection**: Encrypted storage and secure access controls
 
 ## Data Retention
 
 We retain your personal data only as long as necessary for the purposes outlined in this policy:
 
 - **Account Data**: While your account is active plus 3 years after closure
-- **Payment Records**: 7 years after transaction completion (legal requirement)
-- **AI Content**: Deleted within 30 days unless explicitly saved by you
+- **Payment Records**: 7 years after transaction completion (legal requirement, managed by Creem)
+- **Flowchart Content**: While your account is active, or until you delete specific projects
+- **AI Conversation Data**: 30 days for service improvement, then anonymized or deleted
 - **Support Communications**: 2 years after resolution
 - **Analytics Data**: Aggregated data retained indefinitely (anonymized)
 - **Log Files**: 90 days for security and troubleshooting purposes
@@ -131,17 +150,18 @@ We retain your personal data only as long as necessary for the purposes outlined
 
 ## International Data Transfers
 
-As a global service, we may transfer your personal data to countries outside your residence, including:
+As a global service deployed on Vercel's edge network, we may transfer your personal data to countries outside your residence, including:
 
-- **United States**: For AI processing and some infrastructure services
-- **Singapore**: For payment processing through Creem
+- **United States**: For AI processing, hosting infrastructure, and some service providers
+- **Singapore & Estonia**: For payment processing through Creem (our Merchant of Record)
 - **European Union**: For users in EU/EEA regions when possible
+- **Other Regions**: Through Vercel's global edge network for optimal performance
 
 We ensure appropriate safeguards for international transfers through:
-- **Adequacy Decisions**: Transfers to countries with adequate protection
-- **Standard Contractual Clauses**: EU-approved contract terms
+- **Adequacy Decisions**: Transfers to countries with adequate protection levels
+- **Standard Contractual Clauses**: EU-approved contract terms with service providers
 - **Certification Programs**: Providers with recognized privacy certifications
-- **Binding Corporate Rules**: For transfers within corporate groups
+- **Data Processing Agreements**: Comprehensive agreements with all processors
 
 ## Your Rights and Choices
 
@@ -152,14 +172,14 @@ You have the following rights regarding your personal data:
 **Right to Rectification**: Request correction of inaccurate personal data
 **Right to Erasure**: Request deletion of your personal data
 **Right to Restrict Processing**: Request limitation of data processing
-**Right to Data Portability**: Request your data in a portable format
+**Right to Data Portability**: Request your data in a portable format (including flowchart exports)
 **Right to Object**: Object to processing based on legitimate interests
 **Right to Withdraw Consent**: Withdraw consent for consent-based processing
 
 ### How to Exercise Your Rights
-- **Email**: privacy@[COMPANY-DOMAIN].com
-- **Account Settings**: Many preferences can be managed in your account
-- **Support Portal**: Submit requests through our support system
+- **Email**: privacy@flowchartai.net
+- **Account Settings**: Many preferences can be managed in your account dashboard
+- **Data Export**: Export your flowcharts and project data directly from the application
 - **Response Time**: We will respond within 30 days (GDPR) or 45 days (CCPA)
 
 ### California Residents (CCPA)
@@ -178,16 +198,17 @@ We implement comprehensive security measures to protect your personal data:
 ### Technical Safeguards
 - **Encryption**: Data encrypted in transit (TLS 1.3) and at rest (AES-256)
 - **Access Controls**: Role-based access with multi-factor authentication
-- **Network Security**: Firewalls, intrusion detection, and monitoring
+- **Network Security**: Firewalls, intrusion detection, and monitoring through Vercel
 - **Regular Updates**: Security patches and system updates
 - **Secure Development**: Security-focused coding practices and reviews
+- **API Security**: Secure connections to all third-party AI services
 
 ### Organizational Safeguards
-- **Staff Training**: Regular privacy and security training for employees
 - **Access Limitation**: Strict need-to-know access policies
 - **Incident Response**: Procedures for handling security incidents
 - **Vendor Management**: Security requirements for third-party providers
-- **Regular Audits**: Internal and external security assessments
+- **Regular Audits**: Security assessments of our infrastructure
+- **Data Minimization**: Collecting only necessary data for service provision
 
 ### Data Breach Response
 In the event of a data breach, we will:
@@ -200,21 +221,22 @@ In the event of a data breach, we will:
 
 Our services are not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If we discover that we have collected personal information from a child under 13, we will delete it immediately.
 
-If you are a parent or guardian and believe your child has provided us with personal information, please contact us at privacy@[COMPANY-DOMAIN].com.
+If you are a parent or guardian and believe your child has provided us with personal information, please contact us at privacy@flowchartai.net.
 
 ## Cookies and Tracking
 
-We use cookies and similar technologies to enhance your experience. For detailed information about our cookie practices, please see our [Cookie Policy](/cookie).
+We use cookies and similar technologies to enhance your experience. For detailed information about our cookie practices, please see our [Cookie Policy](/cookie-policy).
 
 ### Essential Cookies
 - Session management and authentication
 - Security and fraud prevention
 - Basic functionality and preferences
+- Canvas state and flowchart autosave
 
 ### Optional Cookies (Consent Required)
 - Analytics and performance monitoring
 - Feature enhancement and personalization
-- Marketing and advertising (if applicable)
+- AI conversation context (for better assistance)
 
 You can manage cookie preferences through your browser settings or our cookie consent banner.
 
@@ -224,25 +246,43 @@ You can manage cookie preferences through your browser settings or our cookie co
 - **Opt-In**: We only send marketing emails with your explicit consent
 - **Opt-Out**: Unsubscribe links in all marketing emails
 - **Frequency**: Reasonable frequency with option to adjust preferences
-- **Content**: Relevant updates about our services and features
+- **Content**: Relevant updates about our AI features and flowchart tools
 
 ### Communication Preferences
 You can manage your communication preferences:
-- **Account Settings**: Update preferences in your user account
+- **Account Settings**: Update preferences in your user dashboard
 - **Unsubscribe Links**: Use links in emails to opt-out
-- **Contact Us**: Email privacy@[COMPANY-DOMAIN].com for assistance
+- **Contact Us**: Email privacy@flowchartai.net for assistance
 
 ## Automated Decision Making
 
 We may use automated systems for:
+- **AI Content Generation**: Automated flowchart creation based on your prompts
+- **Usage Limit Enforcement**: Automated tracking of AI usage quotas
 - **Fraud Detection**: Automated analysis of payment and usage patterns
-- **Content Moderation**: AI-powered content filtering and safety checks
+- **Content Moderation**: AI-powered content filtering for safety
 - **Service Optimization**: Automated performance and reliability improvements
 
 You have the right to:
 - **Request Human Review**: Ask for human intervention in automated decisions
 - **Explanation**: Understand the logic behind automated decisions
 - **Challenge**: Contest automated decisions that significantly affect you
+
+## Payment Processing and Creem Integration
+
+### Creem as Merchant of Record
+- **Legal Entity**: Creem (Armitage Labs OÜ) acts as our Merchant of Record
+- **Billing**: Creem's name appears on customer credit card statements
+- **Responsibilities**: Creem handles payment processing, tax collection, refunds, and chargebacks
+- **Data Processing**: Payment data is processed according to Creem's privacy policy
+- **Dispute Resolution**: Payment disputes are handled according to Creem's terms
+
+### Data Sharing with Creem
+We share the following data with Creem for payment processing:
+- Customer billing information and contact details
+- Subscription details and pricing information
+- Usage data for billing purposes
+- Support communication related to payments
 
 ## Changes to This Privacy Policy
 
@@ -255,22 +295,23 @@ We may update this Privacy Policy from time to time to reflect changes in our pr
 
 ## Contact Information
 
-### Data Protection Officer
-For privacy-related inquiries, contact our Data Protection Officer:
-- **Email**: dpo@[COMPANY-DOMAIN].com
-- **Address**: [COMPANY ADDRESS]
-
-### General Privacy Inquiries
-- **Email**: privacy@[COMPANY-DOMAIN].com
-- **Support Portal**: [SUPPORT URL]
+### Privacy Inquiries
+For privacy-related inquiries, contact us at:
+- **Email**: privacy@flowchartai.net
 - **Response Time**: Within 5 business days for general inquiries
+- **Data Requests**: Within 30 days for formal data subject requests
+
+### General Contact
+- **Support**: support@flowchartai.net
+- **Website**: https://flowchartai.net
+- **Service Operator**: Chaowen Tan
 
 ### Regulatory Complaints
 If you believe we have not addressed your privacy concerns adequately, you may file a complaint with:
 - **EU/EEA**: Your local data protection authority
 - **UK**: Information Commissioner's Office (ICO)
 - **California**: California Attorney General's Office
-- **Other Regions**: Relevant privacy regulatory authority
+- **China**: Relevant privacy regulatory authority in your jurisdiction
 
 ## Definitions
 
@@ -279,6 +320,7 @@ If you believe we have not addressed your privacy concerns adequately, you may f
 **Data Controller**: The entity that determines the purposes and means of processing personal data.
 **Data Processor**: The entity that processes personal data on behalf of the data controller.
 **Consent**: Freely given, specific, informed, and unambiguous indication of agreement to data processing.
+**Merchant of Record**: A legal entity responsible for selling goods or services, handling payments, taxes, and compliance.
 
 ---
 
