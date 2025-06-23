@@ -144,21 +144,6 @@
       "messageMaxLength": "Message must not exceed 500 characters"
     }
   },
-  "WaitlistPage": {
-    "title": "Waitlist",
-    "description": "Join our waitlist for the launch of our product",
-    "subtitle": "Join our waitlist for the launch of our product",
-    "form": {
-      "title": "Join Our Waitlist",
-      "description": "We will notify you when we launch our product",
-      "email": "Email",
-      "subscribe": "Subscribe",
-      "subscribing": "Subscribing...",
-      "success": "Subscribed successfully",
-      "fail": "Failed to subscribe",
-      "emailValidation": "Please enter a valid email address"
-    }
-  },
   "Newsletter": {
     "title": "Newsletter",
     "subtitle": "Join the community",
@@ -305,17 +290,9 @@
             "title": "Contact",
             "description": "Get in touch with our team for support or inquiries"
           },
-          "waitlist": {
-            "title": "Waitlist",
-            "description": "Join our waitlist for latest news and updates"
-          },
           "changelog": {
             "title": "Changelog",
             "description": "See the latest updates to our products"
-          },
-          "roadmap": {
-            "title": "Roadmap",
-            "description": "Explore our future plans and upcoming features"
           },
           "cookiePolicy": {
             "title": "Cookie Policy",
@@ -406,16 +383,14 @@
         "items": {
           "blog": "Blog",
           "docs": "Documentation",
-          "changelog": "Changelog",
-          "roadmap": "Roadmap"
+          "changelog": "Changelog"
         }
       },
       "company": {
         "title": "Company",
         "items": {
           "about": "About",
-          "contact": "Contact",
-          "waitlist": "Waitlist"
+          "contact": "Contact"
         }
       },
       "legal": {
