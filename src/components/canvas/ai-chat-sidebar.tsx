@@ -101,6 +101,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
   const [showDailyLimitCard, setShowDailyLimitCard] = useState(false);
+  const [dailyLimitUsageInfo, setDailyLimitUsageInfo] = useState<any>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -514,6 +515,17 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }
       }
 
+      // Check if this is a daily limit error for registered users
+      if (error instanceof Error && (error as any).isDailyLimit) {
+        // Handle daily limit reached for registered users
+        if (currentUser) {
+          console.log('✅ Showing DailyLimitReachedCard for registered user');
+          setDailyLimitUsageInfo((error as any).usageInfo);
+          setShowDailyLimitCard(true);
+          return;
+        }
+      }
+
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
         content:
@@ -563,6 +575,18 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           (guestError as any).isGuestLimit = true;
           throw guestError;
         }
+
+        // Check if this is a daily limit error for registered users
+        if (errorData.usageInfo?.timeFrame === 'daily') {
+          console.log('🔄 Detected daily limit error:', errorData.usageInfo);
+          const dailyLimitError = new Error(
+            errorData.message || 'You have reached your daily AI usage limit.'
+          );
+          (dailyLimitError as any).isDailyLimit = true;
+          (dailyLimitError as any).usageInfo = errorData.usageInfo;
+          throw dailyLimitError;
+        }
+
         throw new Error(
           errorData.message || 'You have reached your AI usage limit.'
         );
@@ -1085,14 +1109,24 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowDailyLimitCard(false)}
+              onClick={() => {
+                setShowDailyLimitCard(false);
+                setDailyLimitUsageInfo(null);
+              }}
               className="absolute -top-2 -right-2 z-10 bg-white shadow-md hover:bg-gray-50"
             >
               <X className="h-4 w-4" />
             </Button>
             <DailyLimitReachedCard
-              nextResetTime={usageData?.nextResetTime}
-              onClose={() => setShowDailyLimitCard(false)}
+              nextResetTime={
+                dailyLimitUsageInfo?.nextResetTime
+                  ? new Date(dailyLimitUsageInfo.nextResetTime)
+                  : usageData?.nextResetTime
+              }
+              onClose={() => {
+                setShowDailyLimitCard(false);
+                setDailyLimitUsageInfo(null);
+              }}
             />
           </div>
         </div>
