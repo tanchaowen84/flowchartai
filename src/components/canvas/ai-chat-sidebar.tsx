@@ -3,7 +3,6 @@
 import { LoginForm } from '@/components/auth/login-form';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
-import { DailyLimitReachedCard } from '@/components/shared/daily-limit-reached-card';
 import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
 import MarkdownRenderer from '@/components/shared/markdown-renderer';
 import { PricingModal } from '@/components/shared/pricing-modal';
@@ -100,7 +99,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
-  const [showDailyLimitCard, setShowDailyLimitCard] = useState(false);
   const [dailyLimitUsageInfo, setDailyLimitUsageInfo] = useState<any>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -403,7 +401,15 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       if (!canUseAI) {
         // Check if it's a daily limit for free users
         if (usageData?.timeFrame === 'daily') {
-          setShowDailyLimitCard(true);
+          console.log(
+            '🎯 Daily limit detected - showing PricingModal directly'
+          );
+          // Set daily limit context and show pricing modal directly
+          setDailyLimitUsageInfo({
+            timeFrame: 'daily',
+            nextResetTime: usageData.nextResetTime,
+          });
+          setShowPricingModal(true);
         } else {
           setShowUsageLimitCard(true);
         }
@@ -519,9 +525,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       if (error instanceof Error && (error as any).isDailyLimit) {
         // Handle daily limit reached for registered users
         if (currentUser) {
-          console.log('✅ Showing DailyLimitReachedCard for registered user');
+          console.log(
+            '✅ Showing PricingModal with daily limit context for registered user'
+          );
           setDailyLimitUsageInfo((error as any).usageInfo);
-          setShowDailyLimitCard(true);
+          setShowPricingModal(true);
           return;
         }
       }
@@ -1102,43 +1110,25 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         </div>
       )}
 
-      {/* Daily Limit Reached Card */}
-      {showDailyLimitCard && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="relative max-w-md w-full">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setShowDailyLimitCard(false);
-                setDailyLimitUsageInfo(null);
-              }}
-              className="absolute -top-2 -right-2 z-10 bg-white shadow-md hover:bg-gray-50"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <DailyLimitReachedCard
-              nextResetTime={
-                dailyLimitUsageInfo?.nextResetTime
-                  ? new Date(dailyLimitUsageInfo.nextResetTime)
-                  : usageData?.nextResetTime
-              }
-              onClose={() => {
-                setShowDailyLimitCard(false);
-                setDailyLimitUsageInfo(null);
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Pricing Modal */}
       <PricingModal
         isOpen={showPricingModal}
         onClose={() => {
           setShowPricingModal(false);
+          setDailyLimitUsageInfo(null); // Clear limit context
           refreshUsageData(); // Refresh usage data when modal closes
         }}
+        limitContext={
+          dailyLimitUsageInfo
+            ? {
+                type: 'daily',
+                nextResetTime: dailyLimitUsageInfo.nextResetTime
+                  ? new Date(dailyLimitUsageInfo.nextResetTime)
+                  : undefined,
+                message: "You've used your free AI request for today",
+              }
+            : undefined
+        }
       />
     </div>
   );

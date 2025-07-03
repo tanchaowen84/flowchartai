@@ -14,12 +14,23 @@ import { PaymentTypes } from '@/payment/types';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
 
+interface LimitContext {
+  type: 'daily' | 'monthly';
+  nextResetTime?: Date;
+  message?: string;
+}
+
 interface PricingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  limitContext?: LimitContext;
 }
 
-export function PricingModal({ isOpen, onClose }: PricingModalProps) {
+export function PricingModal({
+  isOpen,
+  onClose,
+  limitContext,
+}: PricingModalProps) {
   const [isYearly, setIsYearly] = useState(false);
   const [currentPlanIndex, setCurrentPlanIndex] = useState(1); // Start with Pro plan
   const currentUser = useCurrentUser();
@@ -59,10 +70,33 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
 
   const { main: priceMain, period: pricePeriod } = formatPriceDisplay();
 
+  // Format reset time for limit context
+  const formatResetTime = (resetTime: Date) => {
+    const now = new Date();
+    const diff = resetTime.getTime() - now.getTime();
+
+    if (diff <= 0) return 'soon';
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md p-0 border-0">
         <div className="p-6 space-y-6">
+          {/* Limit Context - Simple Reset Time */}
+          {limitContext?.nextResetTime && (
+            <div className="text-center text-sm text-gray-600 -mt-2 mb-2">
+              Your free request resets in{' '}
+              {formatResetTime(limitContext.nextResetTime)}
+            </div>
+          )}
           {/* Billing Toggle */}
           <div className="flex justify-center">
             <div className="flex items-center bg-gray-100 rounded-lg p-1">
