@@ -111,8 +111,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
   const { usageData, checkUsageLimit, refreshUsageData } = useAIUsageLimit();
-  const { canUseAI: canGuestUseAI, markAsUsed: markGuestAsUsed } =
-    useGuestAIUsage();
+  const {
+    canUseAI: canGuestUseAI,
+    hasUsedFreeRequest,
+    markAsUsed: markGuestAsUsed,
+    handleLimitReached: handleGuestLimitReached,
+  } = useGuestAIUsage();
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -405,11 +409,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return;
       }
     } else {
-      // Guest user - check guest limits
-      if (!canGuestUseAI) {
-        setShowLoginModal(true);
-        return;
-      }
+      // Guest user - let the request go to backend for real validation
+      // Backend will check actual database usage and return appropriate error if needed
+      console.log(
+        '🎯 Guest user sending request - backend will validate usage',
+        { hasUsedBefore: hasUsedFreeRequest }
+      );
     }
 
     // Prepare message content
@@ -501,8 +506,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       // Check if this is a guest usage limit error
       if (error instanceof Error && (error as any).isGuestLimit) {
-        // Show login modal for guest users who hit their limit
+        // Handle guest limit reached
         if (!currentUser) {
+          handleGuestLimitReached();
           setShowLoginModal(true);
           return;
         }

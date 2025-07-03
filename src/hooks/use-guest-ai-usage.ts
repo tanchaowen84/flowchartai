@@ -25,12 +25,13 @@ export function useGuestAIUsage() {
 
     setGuestUsage({
       hasUsedFreeRequest: hasUsed,
-      canUseAI: !hasUsed,
+      // Always allow frontend usage - backend will be the authoritative check
+      canUseAI: true,
       usageTimestamp: timestamp ? Number.parseInt(timestamp, 10) : null,
     });
   }, []);
 
-  // Mark guest usage as used
+  // Mark guest usage as used (called after successful AI response)
   const markAsUsed = () => {
     const timestamp = Date.now();
     localStorage.setItem(GUEST_USAGE_KEY, 'true');
@@ -38,7 +39,21 @@ export function useGuestAIUsage() {
 
     setGuestUsage({
       hasUsedFreeRequest: true,
-      canUseAI: false,
+      // Keep canUseAI as true - backend is the authoritative source
+      canUseAI: true,
+      usageTimestamp: timestamp,
+    });
+  };
+
+  // Handle guest limit reached (called when backend returns limit error)
+  const handleLimitReached = () => {
+    const timestamp = Date.now();
+    localStorage.setItem(GUEST_USAGE_KEY, 'true');
+    localStorage.setItem(GUEST_USAGE_TIMESTAMP_KEY, timestamp.toString());
+
+    setGuestUsage({
+      hasUsedFreeRequest: true,
+      canUseAI: true, // Keep true, backend is authoritative
       usageTimestamp: timestamp,
     });
   };
@@ -81,6 +96,7 @@ export function useGuestAIUsage() {
   return {
     ...guestUsage,
     markAsUsed,
+    handleLimitReached,
     resetUsage,
     getBrowserFingerprint,
   };

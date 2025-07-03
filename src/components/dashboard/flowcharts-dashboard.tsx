@@ -85,11 +85,11 @@ export function FlowchartsDashboard() {
         return;
       }
     } else {
-      // Guest user - check guest limits
-      if (!canGuestUseAI) {
-        setShowPricingModal(true);
-        return;
-      }
+      // Guest user - allow navigation to canvas
+      // Backend will validate usage when AI is actually used
+      console.log(
+        '🎯 Guest user creating new flowchart - backend will validate AI usage when needed'
+      );
     }
 
     router.push('/canvas');
