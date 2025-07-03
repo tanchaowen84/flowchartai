@@ -8,6 +8,9 @@ interface AIUsageData {
   totalLimit: number;
   isLimitReached: boolean;
   subscriptionStatus: 'free' | 'monthly' | 'yearly' | 'lifetime';
+  timeFrame?: 'daily' | 'monthly';
+  nextResetTime?: Date;
+  reason?: string;
 }
 
 // 全局缓存对象
@@ -64,6 +67,11 @@ async function fetchUsageDataCore(userId: string): Promise<AIUsageData> {
         totalLimit: responseData.limits?.limit || 0,
         isLimitReached: !responseData.limits?.canUse,
         subscriptionStatus: 'free', // 可以根据实际响应数据调整
+        timeFrame: responseData.limits?.timeFrame,
+        nextResetTime: responseData.limits?.nextResetTime
+          ? new Date(responseData.limits.nextResetTime)
+          : undefined,
+        reason: responseData.limits?.reason,
       };
 
       // 更新全局缓存

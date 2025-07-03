@@ -3,6 +3,7 @@
 import { LoginForm } from '@/components/auth/login-form';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
+import { DailyLimitReachedCard } from '@/components/shared/daily-limit-reached-card';
 import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
 import MarkdownRenderer from '@/components/shared/markdown-renderer';
 import { PricingModal } from '@/components/shared/pricing-modal';
@@ -99,6 +100,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
+  const [showDailyLimitCard, setShowDailyLimitCard] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -394,7 +396,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       // Logged in user - check subscription limits
       const canUseAI = await checkUsageLimit();
       if (!canUseAI) {
-        setShowUsageLimitCard(true);
+        // Check if it's a daily limit for free users
+        if (usageData?.timeFrame === 'daily') {
+          setShowDailyLimitCard(true);
+        } else {
+          setShowUsageLimitCard(true);
+        }
         return;
       }
     } else {
@@ -1060,6 +1067,26 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 setShowUsageLimitCard(false);
                 setShowPricingModal(true);
               }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Daily Limit Reached Card */}
+      {showDailyLimitCard && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="relative max-w-md w-full">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDailyLimitCard(false)}
+              className="absolute -top-2 -right-2 z-10 bg-white shadow-md hover:bg-gray-50"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <DailyLimitReachedCard
+              nextResetTime={usageData?.nextResetTime}
+              onClose={() => setShowDailyLimitCard(false)}
             />
           </div>
         </div>

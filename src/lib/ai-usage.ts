@@ -4,7 +4,7 @@ import { and, eq, gte, sql } from 'drizzle-orm';
 
 // AI使用量限制配置
 export const AI_USAGE_LIMITS = {
-  FREE_USER_MONTHLY: 5, // 免费用户每月5次
+  FREE_USER_DAILY: 1, // 免费用户每天1次
   MONTHLY_SUBSCRIBER: 500, // 月费用户每月500次
   // 其他订阅等级的限制可以在这里添加
 } as const;
@@ -49,6 +49,8 @@ export async function canUserUseAI(userId: string): Promise<{
   reason?: string;
   remainingUsage?: number;
   limit?: number;
+  timeFrame?: 'daily' | 'monthly';
+  nextResetTime?: Date;
 }> {
   const db = await getDb();
 
@@ -57,25 +59,41 @@ export async function canUserUseAI(userId: string): Promise<{
 
   let limit: number;
   let timeFrame: Date;
+  let timeFrameType: 'daily' | 'monthly';
+  let nextResetTime: Date;
 
   if (subscription.type === 'free') {
-    // 免费用户：每月5次
-    limit = AI_USAGE_LIMITS.FREE_USER_MONTHLY;
+    // 免费用户：每天1次
+    limit = AI_USAGE_LIMITS.FREE_USER_DAILY;
     timeFrame = new Date();
-    timeFrame.setDate(1); // 本月开始时间
-    timeFrame.setHours(0, 0, 0, 0);
+    timeFrame.setHours(0, 0, 0, 0); // 今天开始时间
+    timeFrameType = 'daily';
+
+    // 下次重置时间（明天0点）
+    nextResetTime = new Date(timeFrame);
+    nextResetTime.setDate(nextResetTime.getDate() + 1);
   } else if (subscription.interval === 'month') {
     // 月费用户：每月500次
     limit = AI_USAGE_LIMITS.MONTHLY_SUBSCRIBER;
     timeFrame = new Date();
     timeFrame.setDate(1); // 本月开始时间
     timeFrame.setHours(0, 0, 0, 0);
+    timeFrameType = 'monthly';
+
+    // 下次重置时间（下月1号0点）
+    nextResetTime = new Date(timeFrame);
+    nextResetTime.setMonth(nextResetTime.getMonth() + 1);
   } else {
     // 其他订阅类型暂时按月费处理
     limit = AI_USAGE_LIMITS.MONTHLY_SUBSCRIBER;
     timeFrame = new Date();
     timeFrame.setDate(1);
     timeFrame.setHours(0, 0, 0, 0);
+    timeFrameType = 'monthly';
+
+    // 下次重置时间（下月1号0点）
+    nextResetTime = new Date(timeFrame);
+    nextResetTime.setMonth(nextResetTime.getMonth() + 1);
   }
 
   // 查询用户在时间范围内的使用次数
@@ -94,12 +112,16 @@ export async function canUserUseAI(userId: string): Promise<{
   const remainingUsage = Math.max(0, limit - currentUsage);
 
   if (currentUsage >= limit) {
-    const timeFrameText = 'this month'; // 现在所有用户都是按月计费
+    const timeFrameText = timeFrameType === 'daily' ? 'today' : 'this month';
+    const resetText = timeFrameType === 'daily' ? 'tomorrow' : 'next month';
+
     return {
       canUse: false,
-      reason: `You have reached your AI usage limit for ${timeFrameText}. Used: ${currentUsage}/${limit}`,
+      reason: `You have reached your AI usage limit for ${timeFrameText}. Used: ${currentUsage}/${limit}. Resets ${resetText}.`,
       remainingUsage: 0,
       limit,
+      timeFrame: timeFrameType,
+      nextResetTime,
     };
   }
 
@@ -107,6 +129,8 @@ export async function canUserUseAI(userId: string): Promise<{
     canUse: true,
     remainingUsage,
     limit,
+    timeFrame: timeFrameType,
+    nextResetTime,
   };
 }
 

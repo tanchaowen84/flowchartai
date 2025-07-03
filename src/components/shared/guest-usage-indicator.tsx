@@ -74,7 +74,7 @@ export function GuestUsageIndicator({ className }: GuestUsageIndicatorProps) {
 
           {/* Bottom explanation text */}
           <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-            Sign up for 5 monthly requests
+            Sign up for more requests
           </div>
         </div>
       </CardContent>
