@@ -189,12 +189,24 @@ export default function BillingCard() {
           <div className="flex items-center justify-between">
             <div className="text-3xl font-medium">{currentPlan?.name}</div>
             {subscription && (
-              <Badge variant="outline">
-                {subscription?.status === 'trialing'
+              <Badge
+                variant={
+                  subscription.status === 'active'
+                    ? 'default'
+                    : subscription.status === 'canceled'
+                      ? 'destructive'
+                      : subscription.status === 'trialing'
+                        ? 'secondary'
+                        : 'outline'
+                }
+              >
+                {subscription.status === 'trialing'
                   ? t('status.trial')
-                  : subscription?.status === 'active'
+                  : subscription.status === 'active'
                     ? t('status.active')
-                    : ''}
+                    : subscription.status === 'canceled'
+                      ? t('status.canceled')
+                      : subscription.status}
               </Badge>
             )}
           </div>
@@ -236,6 +248,14 @@ export default function BillingCard() {
                 subscription.currentPeriodEnd && (
                   <div className="text-amber-500">
                     {t('trialEnds')} {formatDate(subscription.currentPeriodEnd)}
+                  </div>
+                )}
+
+              {subscription.status === 'canceled' &&
+                subscription.currentPeriodEnd && (
+                  <div className="text-amber-600 font-medium">
+                    {t('serviceEnds')}{' '}
+                    {formatDate(subscription.currentPeriodEnd)}
                   </div>
                 )}
             </div>

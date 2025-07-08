@@ -10,7 +10,7 @@
 
 import { getDb } from '../../db';
 import { user, payment, creditsHistory } from '../../db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, gte } from 'drizzle-orm';
 import type { 
   CreemCustomer, 
   CreemSubscription,
@@ -723,9 +723,10 @@ export async function addCreditsToUser(
 
 /**
  * Gets user's current payment status and subscription information
- * 
+ * Now supports grace period for canceled subscriptions
+ *
  * @param userId - User ID to get payment status for
- * @returns Promise<PaymentRecord | null> - Active payment record or null if none found
+ * @returns Promise<PaymentRecord | null> - Valid payment record or null if none found
  * @throws {CreemOperationError} When operation fails
  */
 export async function getUserPaymentStatus(
@@ -740,21 +741,40 @@ export async function getUserPaymentStatus(
     }
 
     const db = await getDb();
-    
-    // Get the most recent active payment
-    const activePayments = await db
+
+    // Get payments that are still within their period (including canceled ones)
+    const payments = await db
       .select()
       .from(payment)
       .where(
         and(
           eq(payment.userId, userId),
-          eq(payment.status, 'active')
+          // Check if still within valid period
+          gte(payment.periodEnd, new Date())
         )
       )
-      .orderBy(desc(payment.createdAt))
-      .limit(1);
+      .orderBy(desc(payment.createdAt));
 
-    return activePayments.length > 0 ? activePayments[0] : null;
+    if (payments.length === 0) {
+      return null;
+    }
+
+    // Find the most recent valid subscription
+    const validPayment = payments.find(p => {
+      // 1. Active or trialing subscriptions are valid
+      if (p.status === 'active' || p.status === 'trialing') {
+        return true;
+      }
+
+      // 2. Canceled subscriptions with grace period are still valid
+      if (p.status === 'canceled' && p.cancelAtPeriodEnd) {
+        return p.periodEnd && p.periodEnd > new Date();
+      }
+
+      return false;
+    });
+
+    return validPayment || null;
 
   } catch (error) {
     if (error instanceof CreemOperationError) {
@@ -788,22 +808,41 @@ export async function getUserActiveSubscription(
     }
 
     const db = await getDb();
-    
-    // Get the most recent active subscription
-    const activeSubscriptions = await db
+
+    // Get subscriptions that are still within their period (including canceled ones)
+    const subscriptions = await db
       .select()
       .from(payment)
       .where(
         and(
           eq(payment.userId, userId),
           eq(payment.type, PaymentTypes.SUBSCRIPTION),
-          eq(payment.status, 'active')
+          // Check if still within valid period
+          gte(payment.periodEnd, new Date())
         )
       )
-      .orderBy(desc(payment.createdAt))
-      .limit(1);
+      .orderBy(desc(payment.createdAt));
 
-    return activeSubscriptions.length > 0 ? activeSubscriptions[0] : null;
+    if (subscriptions.length === 0) {
+      return null;
+    }
+
+    // Find the most recent valid subscription
+    const validSubscription = subscriptions.find(p => {
+      // 1. Active or trialing subscriptions are valid
+      if (p.status === 'active' || p.status === 'trialing') {
+        return true;
+      }
+
+      // 2. Canceled subscriptions with grace period are still valid
+      if (p.status === 'canceled' && p.cancelAtPeriodEnd) {
+        return p.periodEnd && p.periodEnd > new Date();
+      }
+
+      return false;
+    });
+
+    return validSubscription || null;
 
   } catch (error) {
     if (error instanceof CreemOperationError) {

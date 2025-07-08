@@ -442,6 +442,7 @@
         "status": {
           "active": "Active",
           "trial": "Trial",
+          "canceled": "Canceled",
           "free": "Free",
           "lifetime": "Lifetime"
         },
@@ -462,6 +463,7 @@
         "price": "Price:",
         "nextBillingDate": "Next billing date:",
         "trialEnds": "Trial ends:",
+        "serviceEnds": "Service ends:",
         "freePlanMessage": "You are currently on the free plan with limited features",
         "lifetimeMessage": "You have lifetime access to all premium features",
         "manageSubscription": "Manage Subscription and Billing",

@@ -1,6 +1,6 @@
 import { getDb } from '@/db';
 import { aiUsage, payment, user } from '@/db/schema';
-import { and, eq, gte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, sql } from 'drizzle-orm';
 
 // AI使用量限制配置
 export const AI_USAGE_LIMITS = {
@@ -13,33 +13,74 @@ export const AI_USAGE_LIMITS = {
 export async function getUserSubscriptionStatus(userId: string) {
   const db = await getDb();
 
-  // 查询用户的有效订阅
-  const activePayments = await db
+  // 查询用户的订阅记录（不限制status，但要求在有效期内）
+  const payments = await db
     .select({
       type: payment.type,
       interval: payment.interval,
       status: payment.status,
       periodEnd: payment.periodEnd,
+      cancelAtPeriodEnd: payment.cancelAtPeriodEnd,
+      canceledAt: payment.canceledAt,
     })
     .from(payment)
     .where(
       and(
         eq(payment.userId, userId),
-        eq(payment.status, 'active'),
         // 检查订阅是否还在有效期内
         gte(payment.periodEnd, new Date())
       )
-    );
+    )
+    .orderBy(sql`${payment.createdAt} DESC`);
 
-  if (activePayments.length === 0) {
-    return { type: 'free', interval: null };
+  if (payments.length === 0) {
+    return {
+      type: 'free',
+      interval: null,
+      status: 'free',
+      isInGracePeriod: false,
+      willEndOn: null,
+    };
   }
 
-  // 返回第一个有效订阅（假设用户只有一个有效订阅）
-  const subscription = activePayments[0];
+  // 查找有效的订阅
+  const validSubscription = payments.find((p) => {
+    // 1. Active或trialing状态的订阅直接有效
+    if (p.status === 'active' || p.status === 'trialing') {
+      return true;
+    }
+
+    // 2. Canceled状态但设置了cancelAtPeriodEnd的订阅
+    // 在periodEnd之前仍然有效（宽限期）
+    if (p.status === 'canceled' && p.cancelAtPeriodEnd) {
+      return p.periodEnd && p.periodEnd > new Date();
+    }
+
+    return false;
+  });
+
+  if (!validSubscription) {
+    return {
+      type: 'free',
+      interval: null,
+      status: 'free',
+      isInGracePeriod: false,
+      willEndOn: null,
+    };
+  }
+
+  // 判断是否在宽限期
+  const isInGracePeriod =
+    validSubscription.status === 'canceled' &&
+    validSubscription.cancelAtPeriodEnd;
+
   return {
-    type: subscription.type,
-    interval: subscription.interval,
+    type: validSubscription.type,
+    interval: validSubscription.interval,
+    status: validSubscription.status,
+    isInGracePeriod,
+    willEndOn: validSubscription.periodEnd,
+    canceledAt: validSubscription.canceledAt,
   };
 }
 

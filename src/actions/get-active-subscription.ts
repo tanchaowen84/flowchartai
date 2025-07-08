@@ -55,22 +55,38 @@ export const getActiveSubscriptionAction = actionClient
       // console.log('get user subscriptions:', subscriptions);
 
       let subscriptionData = null;
-      // Find the most recent active subscription (if any)
+      // Find the most recent valid subscription (including grace period)
       if (subscriptions && subscriptions.length > 0) {
-        // First try to find an active subscription
+        // First try to find an active or trialing subscription
         const activeSubscription = subscriptions.find(
           (sub) => sub.status === 'active' || sub.status === 'trialing'
         );
 
-        // If found, use it
         if (activeSubscription) {
           console.log('find active subscription for userId:', session.user.id);
           subscriptionData = activeSubscription;
         } else {
-          console.log(
-            'no active subscription found for userId:',
-            session.user.id
+          // If no active subscription, look for canceled subscriptions in grace period
+          const canceledWithGracePeriod = subscriptions.find(
+            (sub) =>
+              sub.status === 'canceled' &&
+              sub.cancelAtPeriodEnd &&
+              sub.currentPeriodEnd &&
+              new Date(sub.currentPeriodEnd) > new Date()
           );
+
+          if (canceledWithGracePeriod) {
+            console.log(
+              'find canceled subscription in grace period for userId:',
+              session.user.id
+            );
+            subscriptionData = canceledWithGracePeriod;
+          } else {
+            console.log(
+              'no valid subscription found for userId:',
+              session.user.id
+            );
+          }
         }
       } else {
         console.log('no subscriptions found for userId:', session.user.id);
