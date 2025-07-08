@@ -3,15 +3,12 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Plus, Sparkles } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 interface EmptyStateProps {
   onCreateNew: () => void;
 }
 
 export function EmptyState({ onCreateNew }: EmptyStateProps) {
-  const router = useRouter();
-
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4">
       <Card className="max-w-lg w-full">
@@ -40,7 +37,7 @@ export function EmptyState({ onCreateNew }: EmptyStateProps) {
 
             <Button
               variant="outline"
-              onClick={() => router.push('/canvas')}
+              onClick={onCreateNew}
               className="w-full font-normal"
             >
               <Sparkles className="mr-2 h-4 w-4" />

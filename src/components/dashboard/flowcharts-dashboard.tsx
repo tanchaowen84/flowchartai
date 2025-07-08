@@ -84,15 +84,35 @@ export function FlowchartsDashboard() {
         setShowUsageLimitCard(true);
         return;
       }
+
+      // Pre-create flowchart for logged in users
+      try {
+        const response = await fetch('/api/flowcharts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}), // Empty body for pre-creation
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create flowchart');
+        }
+
+        const data = await response.json();
+        router.push(`/canvas/${data.id}`);
+      } catch (error) {
+        console.error('Error creating flowchart:', error);
+        toast.error('Failed to create new flowchart');
+      }
     } else {
-      // Guest user - allow navigation to canvas
+      // Guest user - allow navigation to canvas without pre-creation
       // Backend will validate usage when AI is actually used
       console.log(
         '🎯 Guest user creating new flowchart - backend will validate AI usage when needed'
       );
+      router.push('/canvas');
     }
-
-    router.push('/canvas');
   };
 
   const handleDelete = async (id: string) => {

@@ -62,6 +62,36 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Check if this is a pre-creation request (no content provided)
+    const isPreCreation = !body.content;
+
+    if (isPreCreation) {
+      // Pre-create flowchart with minimal data
+      const flowchartId = `flowchart_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+      const db = await getDb();
+      const [newFlowchart] = await db
+        .insert(flowcharts)
+        .values({
+          id: flowchartId,
+          title: 'Untitled',
+          content:
+            '{"type":"excalidraw","version":2,"source":"https://excalidraw.com","elements":[],"appState":{"gridSize":null,"viewBackgroundColor":"#ffffff"}}', // Empty Excalidraw content
+          userId: session.user.id,
+        })
+        .returning({ id: flowcharts.id });
+
+      return NextResponse.json(
+        {
+          id: newFlowchart.id,
+          preCreated: true,
+        },
+        { status: 201 }
+      );
+    }
+
+    // Regular creation with content
     const validatedData = createFlowchartSchema.parse(body);
 
     // Generate unique ID

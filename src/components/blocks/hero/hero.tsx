@@ -1,11 +1,16 @@
+'use client';
+
 import { Ripple } from '@/components/magicui/ripple';
 import { AnimatedGroup } from '@/components/tailark/motion/animated-group';
 import { TextEffect } from '@/components/tailark/motion/text-effect';
 import { Button } from '@/components/ui/button';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { LocaleLink } from '@/i18n/navigation';
 import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 const transitionVariants = {
   item: {
@@ -29,9 +34,38 @@ const transitionVariants = {
 
 export default function HeroSection() {
   const t = useTranslations('HomePage.hero');
+  const router = useRouter();
+  const currentUser = useCurrentUser();
   const linkIntroduction = 'https://x.com/mksaascom';
-  const linkPrimary = '/canvas';
   const linkSecondary = 'https://demo.mksaas.com';
+
+  const handleCreateNew = async () => {
+    if (currentUser) {
+      // Logged in user - pre-create flowchart
+      try {
+        const response = await fetch('/api/flowcharts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}), // Empty body for pre-creation
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create flowchart');
+        }
+
+        const data = await response.json();
+        router.push(`/canvas/${data.id}`);
+      } catch (error) {
+        console.error('Error creating flowchart:', error);
+        toast.error('Failed to create new flowchart');
+      }
+    } else {
+      // Guest user - go to canvas directly
+      router.push('/canvas');
+    }
+  };
 
   return (
     <>
@@ -119,13 +153,11 @@ export default function HeroSection() {
                     className="bg-foreground/10 rounded-[calc(var(--radius-xl)+0.125rem)] border p-0.5"
                   >
                     <Button
-                      asChild
+                      onClick={handleCreateNew}
                       size="lg"
                       className="rounded-xl px-5 text-base"
                     >
-                      <LocaleLink href={linkPrimary}>
-                        <span className="text-nowrap">{t('primary')}</span>
-                      </LocaleLink>
+                      <span className="text-nowrap">{t('primary')}</span>
                     </Button>
                   </div>
                   <Button
