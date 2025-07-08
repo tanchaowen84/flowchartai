@@ -12,7 +12,6 @@ interface SaveButtonProps {
   flowchartId?: string;
   flowchartTitle?: string;
   onFlowchartIdChange?: (newId: string) => void;
-  onSaveSuccess?: () => void;
 }
 
 export function SaveButton({
@@ -20,7 +19,6 @@ export function SaveButton({
   flowchartId,
   flowchartTitle,
   onFlowchartIdChange,
-  onSaveSuccess,
 }: SaveButtonProps) {
   const router = useRouter();
   const { saveFlowchart, saving, lastSaved } = useFlowchartSave(
@@ -39,9 +37,6 @@ export function SaveButton({
     if (result.success) {
       setSaveStatus('success');
       setErrorMessage('');
-
-      // Call success callback to reset unsaved changes
-      onSaveSuccess?.();
 
       // If this was a new flowchart (no existing flowchartId) and we got a new ID,
       // update the URL without reloading the page

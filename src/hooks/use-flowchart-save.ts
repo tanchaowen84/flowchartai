@@ -21,6 +21,7 @@ export const useFlowchartSave = (
 ): UseFlowchartSaveResult => {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const saveFlowchart = useCallback(
     async (title?: string): Promise<SaveResult> => {
@@ -141,6 +142,17 @@ export const useFlowchartSave = (
     },
     [excalidrawAPI, flowchartId, defaultTitle]
   );
+
+  // Debounced auto-save function
+  const debouncedSave = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      saveFlowchart();
+    }, 3000); // Auto-save after 3 seconds of inactivity
+  }, [saveFlowchart]);
 
   return {
     saveFlowchart,

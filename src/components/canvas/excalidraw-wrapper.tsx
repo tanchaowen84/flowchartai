@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
-import { useFlowchartSave } from '@/hooks/use-flowchart-save';
 import { useLocalePathname } from '@/i18n/navigation';
 import type {
   ExcalidrawImperativeAPI,
@@ -16,7 +15,7 @@ import type {
 } from '@excalidraw/excalidraw/types';
 import { Edit, Loader2, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AiChatSidebar from './ai-chat-sidebar';
 import ResizableDivider from './resizable-divider';
 import { SaveButton } from './save-button';
@@ -84,17 +83,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const currentPath = useLocalePathname();
   const { flowchart, loading, error } = useFlowchart(currentFlowchartId);
 
-  // Auto-save hook
-  const { saveFlowchart } = useFlowchartSave(
-    excalidrawAPI,
-    currentFlowchartId,
-    currentTitle
-  );
-
-  // Track if content has changed since last save
-  const hasUnsavedChanges = useRef(false);
-  const lastSaveContent = useRef<string>('');
-
   // Compute initial data based on flowchart content
   const initialData = useMemo((): ExcalidrawInitialDataState => {
     if (flowchart?.content) {
@@ -126,26 +114,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const handleFlowchartIdChange = (newId: string) => {
     setCurrentFlowchartId(newId);
   };
-
-  const handleSaveSuccess = useCallback(() => {
-    // Reset unsaved changes flag when save is successful
-    hasUnsavedChanges.current = false;
-    if (excalidrawAPI) {
-      try {
-        const elements = excalidrawAPI.getSceneElements();
-        const appState = excalidrawAPI.getAppState();
-        const files = excalidrawAPI.getFiles();
-
-        lastSaveContent.current = JSON.stringify({
-          elements,
-          appState: { ...appState, collaborators: undefined },
-          files,
-        });
-      } catch (error) {
-        console.error('Error updating last save content:', error);
-      }
-    }
-  }, [excalidrawAPI]);
 
   const handleTitleChange = async (newTitle: string) => {
     setCurrentTitle(newTitle);
@@ -198,80 +166,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     }
   };
 
-  // Auto-save on exit function
-  const autoSaveOnExit = useCallback(async () => {
-    if (
-      hasUnsavedChanges.current &&
-      excalidrawAPI &&
-      currentFlowchartId &&
-      currentUser
-    ) {
-      console.log('🔄 Auto-saving before exit...');
-      try {
-        await saveFlowchart();
-        console.log('✅ Auto-save on exit successful');
-      } catch (error) {
-        console.error('❌ Auto-save on exit failed:', error);
-      }
-    }
-  }, [excalidrawAPI, currentFlowchartId, currentUser, saveFlowchart]);
-
-  // Track content changes
-  const checkForChanges = useCallback(() => {
-    if (!excalidrawAPI) return;
-
-    try {
-      const elements = excalidrawAPI.getSceneElements();
-      const appState = excalidrawAPI.getAppState();
-      const files = excalidrawAPI.getFiles();
-
-      const currentContent = JSON.stringify({
-        elements,
-        appState: { ...appState, collaborators: undefined },
-        files,
-      });
-
-      if (currentContent !== lastSaveContent.current) {
-        hasUnsavedChanges.current = true;
-        lastSaveContent.current = currentContent;
-      }
-    } catch (error) {
-      console.error('Error checking for changes:', error);
-    }
-  }, [excalidrawAPI]);
-
-  // Set up auto-save on page unload/navigation
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges.current && currentUser && currentFlowchartId) {
-        // Show browser confirmation dialog
-        e.preventDefault();
-        e.returnValue = '';
-
-        // Attempt to save (though this might not complete due to page unload)
-        autoSaveOnExit();
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        // Page is being hidden (tab switch, minimize, etc.)
-        autoSaveOnExit();
-      }
-    };
-
-    // Add event listeners
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      // Clean up and save before component unmounts
-      autoSaveOnExit();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [autoSaveOnExit, currentUser, currentFlowchartId]);
-
   // Update title when flowchart data is loaded
   useEffect(() => {
     if (flowchart) {
@@ -279,12 +173,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       setCurrentTitle(title);
       setTempTitle(title);
       console.log('✅ Flowchart data loaded:', flowchart.title);
-
-      // Reset change tracking when new flowchart is loaded
-      hasUnsavedChanges.current = false;
-      if (flowchart.content) {
-        lastSaveContent.current = flowchart.content;
-      }
     }
   }, [flowchart]);
 
@@ -374,7 +262,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
               flowchartId={currentFlowchartId}
               flowchartTitle={currentTitle}
               onFlowchartIdChange={handleFlowchartIdChange}
-              onSaveSuccess={handleSaveSuccess}
             />
           )}
 
@@ -408,7 +295,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           key={flowchart ? flowchart.id : 'new'}
           excalidrawAPI={(api) => setExcalidrawAPI(api)}
           initialData={initialData}
-          onChange={checkForChanges}
           UIOptions={{
             canvasActions: {
               loadScene: false,
