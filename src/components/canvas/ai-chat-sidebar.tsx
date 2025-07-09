@@ -82,7 +82,11 @@ interface AiChatSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   excalidrawAPI?: ExcalidrawImperativeAPI | null;
+  isAPIReady?: boolean;
   width?: number;
+  autoInput?: string;
+  shouldAutoGenerate?: boolean;
+  onAutoGenerateComplete?: () => void;
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
@@ -90,7 +94,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   isOpen,
   onToggle,
   excalidrawAPI,
+  isAPIReady = false,
   width = 400,
+  autoInput,
+  shouldAutoGenerate,
+  onAutoGenerateComplete,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -102,6 +110,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [dailyLimitUsageInfo, setDailyLimitUsageInfo] = useState<any>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const hasAutoSentRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -160,6 +169,147 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   useEffect(() => {
     adjustTextareaHeight();
   }, [input]);
+
+  // Auto-send function that bypasses input state
+  const handleAutoSendMessage = async (messageText: string) => {
+    if (!messageText.trim() || isLoading) return;
+
+    // Check AI usage limit based on user type
+    if (currentUser) {
+      // Logged in user - check subscription limits
+      const canUseAI = await checkUsageLimit();
+      if (!canUseAI) {
+        // Check if it's a daily limit for free users
+        if (usageData?.timeFrame === 'daily') {
+          console.log(
+            '🎯 Daily limit detected - showing PricingModal directly'
+          );
+          // Set daily limit context and show pricing modal directly
+          setDailyLimitUsageInfo({
+            timeFrame: 'daily',
+            nextResetTime: usageData.nextResetTime,
+          });
+          setShowPricingModal(true);
+        } else {
+          setShowUsageLimitCard(true);
+        }
+        return;
+      }
+    } else {
+      // Guest user - let the request go to backend for real validation
+      console.log(
+        '🎯 Guest user sending request - backend will validate usage',
+        { hasUsedBefore: hasUsedFreeRequest }
+      );
+    }
+
+    // Create user message with the provided text
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: messageText,
+      role: 'user',
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInput(''); // Clear input after sending
+    setIsLoading(true);
+    setCurrentAssistantMessage('');
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
+    try {
+      await processAIConversation([
+        // Send complete conversation history for context
+        ...messages.map((msg) => ({
+          role: msg.role,
+          content: typeof msg.content === 'string' ? msg.content : msg.content,
+        })),
+        // Add current user message
+        {
+          role: 'user',
+          content: userMessage.content,
+        },
+      ]);
+
+      // Mark guest usage after successful AI response
+      if (!currentUser) {
+        markGuestAsUsed();
+      }
+    } catch (error) {
+      console.error('Error sending auto message:', error);
+      // Handle errors similar to handleSendMessage
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      if (error instanceof Error && (error as any).isGuestLimit) {
+        if (!currentUser) {
+          handleGuestLimitReached();
+          setShowLoginModal(true);
+          return;
+        }
+      }
+
+      if (error instanceof Error && (error as any).isDailyLimit) {
+        if (currentUser) {
+          console.log(
+            '✅ Showing PricingModal with daily limit context for registered user'
+          );
+          setDailyLimitUsageInfo((error as any).usageInfo);
+          setShowPricingModal(true);
+          return;
+        }
+      }
+
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        content:
+          'Sorry, I encountered an error while processing your request. Please try again.',
+        role: 'assistant',
+        timestamp: new Date(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+      setCurrentAssistantMessage('');
+
+      toast({
+        title: 'Error',
+        description: 'Failed to process your message. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  // Handle auto-generation from homepage - ONLY ONCE
+  useEffect(() => {
+    if (
+      shouldAutoGenerate &&
+      autoInput &&
+      isOpen &&
+      isAPIReady &&
+      !hasAutoSentRef.current
+    ) {
+      hasAutoSentRef.current = true; // Immediately mark as sent to prevent any duplicates
+      setInput(autoInput);
+
+      console.log(
+        '🚀 Auto-sending message now that API is ready:',
+        autoInput.substring(0, 50) + '...'
+      );
+
+      // Small delay to ensure component is fully loaded
+      setTimeout(async () => {
+        await handleAutoSendMessage(autoInput);
+        onAutoGenerateComplete?.();
+      }, 500);
+    }
+  }, [shouldAutoGenerate, autoInput, isOpen, isAPIReady]);
 
   // Clean up abort controller on unmount
   useEffect(() => {
@@ -309,6 +459,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     mode: 'replace' | 'extend' = 'replace'
   ) => {
     if (!excalidrawAPI) {
+      console.error('❌ ExcalidrawAPI not available');
       toast({
         title: 'Canvas not ready',
         description:
@@ -317,6 +468,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       });
       return;
     }
+
+    console.log('✅ Adding flowchart to canvas with mode:', mode);
 
     try {
       // Convert Mermaid to Excalidraw elements
@@ -740,6 +893,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     // If a flowchart was generated, add it to the canvas
     if (isFlowchartGenerated && mermaidCode) {
+      console.log('🎨 Attempting to add flowchart to canvas:', {
+        mermaidCode: mermaidCode.substring(0, 100) + '...',
+        flowchartMode,
+        excalidrawAPIReady: !!excalidrawAPI,
+      });
       await addFlowchartToCanvas(mermaidCode, flowchartMode);
     }
   };

@@ -70,6 +70,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 }) => {
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
+  const [isAPIReady, setIsAPIReady] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
@@ -77,6 +78,8 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [currentTitle, setCurrentTitle] = useState<string>('Untitled');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState<string>('Untitled');
+  const [autoInput, setAutoInput] = useState<string>('');
+  const [shouldAutoGenerate, setShouldAutoGenerate] = useState(false);
 
   const router = useRouter();
   const currentUser = useCurrentUser();
@@ -165,6 +168,22 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       handleTitleEditCancel();
     }
   };
+
+  // Check for auto-generation from homepage
+  useEffect(() => {
+    const autoGenerate = localStorage.getItem('flowchart_auto_generate');
+    const autoInputContent = localStorage.getItem('flowchart_auto_input');
+
+    if (autoGenerate === 'true' && autoInputContent) {
+      setAutoInput(autoInputContent);
+      setShouldAutoGenerate(true);
+      setIsSidebarOpen(true);
+
+      // Clear localStorage to avoid repeated triggers
+      localStorage.removeItem('flowchart_auto_generate');
+      localStorage.removeItem('flowchart_auto_input');
+    }
+  }, []);
 
   // Update title when flowchart data is loaded
   useEffect(() => {
@@ -293,7 +312,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
         <Excalidraw
           key={flowchart ? flowchart.id : 'new'}
-          excalidrawAPI={(api) => setExcalidrawAPI(api)}
+          excalidrawAPI={(api) => {
+            setExcalidrawAPI(api);
+            setIsAPIReady(true);
+            console.log('✅ ExcalidrawAPI initialized and ready');
+          }}
           initialData={initialData}
           UIOptions={{
             canvasActions: {
@@ -336,7 +359,14 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         isOpen={isSidebarOpen}
         onToggle={toggleSidebar}
         excalidrawAPI={excalidrawAPI}
+        isAPIReady={isAPIReady}
         width={sidebarWidth}
+        autoInput={autoInput}
+        shouldAutoGenerate={shouldAutoGenerate}
+        onAutoGenerateComplete={() => {
+          setAutoInput('');
+          setShouldAutoGenerate(false);
+        }}
       />
     </div>
   );
