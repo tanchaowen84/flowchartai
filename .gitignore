@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# 忽略 secrets 设置脚本
+set-secrets.sh
+
 # dependencies
 /node_modules
 /.pnp
@@ -61,3 +64,5 @@ next-env.d.ts
 # Environment files
 .dev.vars
 .env.production
+
+.sh
