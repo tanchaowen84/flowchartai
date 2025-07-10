@@ -49,7 +49,7 @@ export const websiteConfig: WebsiteConfig = {
   },
   auth: {
     enableGoogleLogin: true,
-    enableGithubLogin: true,
+    enableGithubLogin: false,
   },
   i18n: {
     defaultLocale: 'en',
