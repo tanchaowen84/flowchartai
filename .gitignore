@@ -51,3 +51,13 @@ next-env.d.ts
 .dev.vars
 .dev.vars*
 !.dev.vars.example
+
+# OpenNext build output
+.open-next/
+
+# Wrangler
+.wrangler/
+
+# Environment files
+.dev.vars
+.env.production

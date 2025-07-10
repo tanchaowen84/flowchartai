@@ -6,20 +6,16 @@ import createNextIntlPlugin from 'next-intl/plugin';
  * https://nextjs.org/docs/app/api-reference/config/next-config-js
  */
 const nextConfig: NextConfig = {
-  /* config options here */
   devIndicators: false,
 
-  // https://nextjs.org/docs/architecture/nextjs-compiler#remove-console
   // Remove all console.* calls in production only
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 
   images: {
-    // https://vercel.com/docs/image-optimization/managing-image-optimization-costs#minimizing-image-optimization-costs
-    // https://nextjs.org/docs/app/api-reference/components/image#unoptimized
-    // vercel has limits on image optimization, 1000 images per month
-    unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',
+    // Cloudflare Workers requires unoptimized images
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -47,6 +43,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
+  // Production optimizations
+  experimental: {
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+  },
 };
 
 /**
@@ -62,3 +63,14 @@ const withNextIntl = createNextIntlPlugin();
  * https://www.content-collections.dev/docs/quickstart/next
  */
 export default withContentCollections(withNextIntl(nextConfig));
+
+// Add OpenNext Cloudflare development support
+if (process.env.NODE_ENV === 'development') {
+  import('@opennextjs/cloudflare')
+    .then(({ initOpenNextCloudflareForDev }) => {
+      initOpenNextCloudflareForDev();
+    })
+    .catch(() => {
+      // Silently fail if package is not available
+    });
+}

@@ -1,0 +1,17 @@
+/_next/static/*
+  Cache-Control: public,max-age=31536000,immutable
+
+/favicon.ico
+  Cache-Control: public,max-age=86400
+
+/logo.png
+  Cache-Control: public,max-age=86400
+
+/logo-dark.png
+  Cache-Control: public,max-age=86400
+
+/og.png
+  Cache-Control: public,max-age=86400
+
+/api/*
+  Cache-Control: no-cache, no-store, must-revalidate

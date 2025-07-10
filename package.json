@@ -15,7 +15,11 @@
     "db:studio": "drizzle-kit studio",
     "list-contacts": "tsx scripts/list-contacts.ts",
     "docs": "content-collections build",
-    "email": "email dev --dir src/mail/templates --port 3333"
+    "email": "email dev --dir src/mail/templates --port 3333",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.13",
@@ -34,6 +38,7 @@
     "@fumadocs/content-collections": "^1.1.8",
     "@hookform/resolvers": "^4.1.0",
     "@next/third-parties": "^15.3.0",
+    "@opennextjs/cloudflare": "^1.4.0",
     "@openpanel/nextjs": "^1.0.7",
     "@orama/orama": "^3.1.4",
     "@orama/tokenizers": "^3.1.4",
@@ -132,6 +137,7 @@
     "use-intl": "^3.26.5",
     "use-media": "^1.5.0",
     "vaul": "^1.1.2",
+    "wrangler": "^4.24.1",
     "zod": "^3.24.2",
     "zustand": "^5.0.3"
   },
