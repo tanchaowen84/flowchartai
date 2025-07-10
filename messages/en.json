@@ -582,27 +582,27 @@
       "items": {
         "item-1": {
           "title": "Product Management",
-          "description": "Create user journey maps, feature flows, and product roadmaps with AI assistance."
+          "description": "Transform product ideas into actionable roadmaps. Create detailed user journey maps, feature prioritization matrices, and sprint planning workflows. AI helps you visualize complex product ecosystems and stakeholder relationships with precision."
         },
         "item-2": {
           "title": "Software Development",
-          "description": "Design system architecture, API workflows, and database schemas effortlessly."
+          "description": "Architect robust systems with confidence. Design microservices architectures, API integration flows, database relationships, and deployment pipelines. Perfect for technical documentation and system design reviews."
         },
         "item-3": {
           "title": "Business Analysis",
-          "description": "Map business processes, decision trees, and workflow optimizations."
+          "description": "Unlock insights through visual process mapping. Create comprehensive business process flows, decision trees, risk assessment matrices, and operational optimization diagrams that drive strategic decisions."
         },
         "item-4": {
           "title": "Education & Training",
-          "description": "Build learning paths, concept diagrams, and educational flowcharts."
+          "description": "Enhance learning through visual storytelling. Build interactive curriculum maps, concept relationship diagrams, assessment workflows, and training progression paths that engage students and improve comprehension."
         },
         "item-5": {
           "title": "Startup Planning",
-          "description": "Visualize business models, operational flows, and strategic processes."
+          "description": "Turn startup vision into executable strategy. Visualize business model canvases, funding pipelines, go-to-market strategies, and operational workflows. Essential for pitch decks and investor presentations."
         },
         "item-6": {
           "title": "Project Management",
-          "description": "Create project timelines, task dependencies, and process workflows."
+          "description": "Orchestrate complex projects with clarity. Design project timelines, resource allocation flows, risk mitigation processes, and team collaboration workflows. Keep stakeholders aligned and projects on track."
         }
       }
     },

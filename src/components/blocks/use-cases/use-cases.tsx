@@ -1,8 +1,5 @@
 import { HeaderSection } from '@/components/layout/header-section';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { LocaleLink } from '@/i18n/navigation';
-import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type * as React from 'react';
 
@@ -20,7 +17,7 @@ export default function UseCasesSection() {
           descriptionAs="p"
         />
 
-        <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <UseCaseCard
             title={t('items.item-1.title')}
             description={t('items.item-1.description')}
@@ -59,37 +56,19 @@ export default function UseCasesSection() {
 const UseCaseCard = ({
   title,
   description,
-  link = '/canvas',
 }: {
   title: string;
   description: string;
-  link?: string;
 }) => {
-  const t = useTranslations('HomePage.useCases');
-
   return (
-    <Card className="p-6 hover:bg-accent dark:hover:bg-accent">
-      <div className="relative">
-        <div className="space-y-2 py-6">
-          <h3 className="text-base font-medium">{title}</h3>
-          <p className="text-muted-foreground line-clamp-2 text-sm">
-            {description}
-          </p>
-        </div>
-
-        <div className="flex gap-3 border-t border-dashed pt-6">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="gap-1 pr-2 shadow-none"
-          >
-            <LocaleLink href={link}>
-              {t('tryNow')}
-              <ChevronRight className="ml-0 !size-3.5 opacity-50" />
-            </LocaleLink>
-          </Button>
-        </div>
+    <Card className="group p-8 hover:bg-accent/50 dark:hover:bg-accent/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+          {title}
+        </h3>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          {description}
+        </p>
       </div>
     </Card>
   );
