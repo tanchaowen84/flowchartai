@@ -574,6 +574,108 @@
     "logocloud": {
       "title": "Your favorite companies are our partners"
     },
+    "useCases": {
+      "title": "Use Cases",
+      "subtitle": "Perfect for Every Professional",
+      "description": "FlowChart AI adapts to your workflow, whether you're planning, designing, or presenting complex processes.",
+      "tryNow": "Try Now",
+      "items": {
+        "item-1": {
+          "title": "Product Management",
+          "description": "Create user journey maps, feature flows, and product roadmaps with AI assistance."
+        },
+        "item-2": {
+          "title": "Software Development",
+          "description": "Design system architecture, API workflows, and database schemas effortlessly."
+        },
+        "item-3": {
+          "title": "Business Analysis",
+          "description": "Map business processes, decision trees, and workflow optimizations."
+        },
+        "item-4": {
+          "title": "Education & Training",
+          "description": "Build learning paths, concept diagrams, and educational flowcharts."
+        },
+        "item-5": {
+          "title": "Startup Planning",
+          "description": "Visualize business models, operational flows, and strategic processes."
+        },
+        "item-6": {
+          "title": "Project Management",
+          "description": "Create project timelines, task dependencies, and process workflows."
+        }
+      }
+    },
+    "demo": {
+      "title": "See FlowChart AI in Action",
+      "subtitle": "From Idea to Flowchart in Seconds",
+      "description": "Watch how our AI transforms natural language descriptions into professional flowcharts instantly.",
+      "tryItNow": "Try It Now",
+      "features": {
+        "feature-1": {
+          "title": "Natural Language Input",
+          "description": "Simply describe your process in plain English"
+        },
+        "feature-2": {
+          "title": "AI-Powered Generation",
+          "description": "Advanced AI creates professional flowcharts automatically"
+        },
+        "feature-3": {
+          "title": "Instant Editing",
+          "description": "Customize and refine your flowchart with ease"
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Simple 3-Step Process",
+      "description": "Creating professional flowcharts with FlowChart AI is incredibly simple and fast.",
+      "getStarted": "Get Started",
+      "steps": {
+        "step-1": {
+          "title": "Describe Your Idea",
+          "description": "Tell FlowChart AI what process or workflow you want to visualize using natural language."
+        },
+        "step-2": {
+          "title": "AI Creates Your Flowchart",
+          "description": "Our advanced AI analyzes your description and generates a professional flowchart instantly."
+        },
+        "step-3": {
+          "title": "Edit & Export",
+          "description": "Customize your flowchart on our powerful canvas and export in your preferred format."
+        }
+      }
+    },
+    "aiCapabilities": {
+      "title": "Advanced AI Capabilities",
+      "subtitle": "Powered by Cutting-Edge AI",
+      "description": "FlowChart AI leverages the latest artificial intelligence to understand your needs and create perfect diagrams.",
+      "capability-1": "Natural Language Understanding - Interprets complex process descriptions",
+      "capability-2": "Smart Layout Optimization - Automatically arranges elements for clarity",
+      "capability-3": "Incremental Updates - Add to existing flowcharts without starting over",
+      "capability-4": "Multi-language Support - Create flowcharts in multiple languages"
+    },
+    "comparison": {
+      "title": "Why Choose FlowChart AI?",
+      "subtitle": "See the Difference",
+      "description": "Compare FlowChart AI with traditional flowchart tools and see why professionals choose us.",
+      "traditional": {
+        "title": "Traditional Tools",
+        "subtitle": "Time-consuming and complex",
+        "item-1": "Hours of manual drawing and positioning",
+        "item-2": "Steep learning curve for complex software",
+        "item-3": "Difficult collaboration and sharing",
+        "item-4": "Manual updates when changes are needed"
+      },
+      "flowchartAi": {
+        "title": "FlowChart AI",
+        "subtitle": "Fast, intelligent, and intuitive",
+        "item-1": "Generate flowcharts in seconds with AI",
+        "item-2": "Natural language input - no training needed",
+        "item-3": "Built-in collaboration and real-time sharing",
+        "item-4": "AI-assisted modifications and updates"
+      }
+    },
     "integration": {
       "title": "Integrations",
       "subtitle": "Integrate with your favorite tools",

@@ -1,17 +1,13 @@
+import { AiCapabilitiesSection } from '@/components/blocks/ai-capabilities';
 import CallToActionSection from '@/components/blocks/calltoaction/calltoaction';
+import { ComparisonSection } from '@/components/blocks/comparison';
+import { DemoSection } from '@/components/blocks/demo';
 import FaqSection from '@/components/blocks/faqs/faqs';
 import FeaturesSection from '@/components/blocks/features/features';
-import Features2Section from '@/components/blocks/features/features2';
-import Features3Section from '@/components/blocks/features/features3';
 import HeroSection from '@/components/blocks/hero/hero';
-import IntegrationSection from '@/components/blocks/integration/integration';
-import Integration2Section from '@/components/blocks/integration/integration2';
-import LogoCloud from '@/components/blocks/logo-cloud/logo-cloud';
+import { HowItWorksSection } from '@/components/blocks/how-it-works';
 import PricingSection from '@/components/blocks/pricing/pricing';
-import StatsSection from '@/components/blocks/stats/stats';
-import TestimonialsSection from '@/components/blocks/testimonials/testimonials';
-import { NewsletterCard } from '@/components/newsletter/newsletter-card';
-import DiscordWidget from '@/components/shared/discord-widget';
+import { UseCasesSection } from '@/components/blocks/use-cases';
 import { constructMetadata } from '@/lib/metadata';
 import { getUrlWithLocale } from '@/lib/urls/urls';
 import type { Metadata } from 'next';
@@ -50,31 +46,23 @@ export default async function HomePage(props: HomePageProps) {
       <div className="flex flex-col">
         <HeroSection />
 
-        <LogoCloud />
+        <UseCasesSection />
 
-        <StatsSection />
-
-        <IntegrationSection />
+        <DemoSection />
 
         <FeaturesSection />
 
-        <Features2Section />
+        <HowItWorksSection />
 
-        <Features3Section />
+        <AiCapabilitiesSection />
 
-        <Integration2Section />
+        <ComparisonSection />
 
         <PricingSection />
 
         <FaqSection />
 
         <CallToActionSection />
-
-        <TestimonialsSection />
-
-        <NewsletterCard />
-
-        <DiscordWidget />
       </div>
     </>
   );
