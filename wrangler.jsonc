@@ -24,5 +24,15 @@
   "env": {
     "dev": { "minify": false } // 本地调试可关掉
   },
-  "keep_names": false
+  "keep_names": false,
+  "vars": {
+    "NEXT_PUBLIC_BASE_URL": "https://flowchart-ai.tanchaowen84.workers.dev",
+    "GITHUB_CLIENT_ID": "Ov23linrbudpTpwAwNBm",
+    "GOOGLE_CLIENT_ID": "635506504005-nofbmafufp3t00efnm28b47mjtklftk1.apps.googleusercontent.com",
+    "CREEM_SUCCESS_URL": "https://flowchart-ai.tanchaowen84.workers.dev/dashboard",
+    "NEXT_PUBLIC_CREEM_PRODUCT_ID_PRO_MONTHLY": "prod_3JnqwZ3OkvTBP6XfItBH9j",
+    "NEXT_PUBLIC_CREEM_PRODUCT_ID_PRO_YEARLY": "null",
+    "DISABLE_IMAGE_OPTIMIZATION": "true",
+    "NEXT_PUBLIC_DEMO_WEBSITE": "false"
+  }
 }
