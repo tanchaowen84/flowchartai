@@ -46,9 +46,9 @@ export default async function HomePage(props: HomePageProps) {
       <div className="flex flex-col">
         <HeroSection />
 
-        <UseCasesSection />
-
         <DemoSection />
+
+        <UseCasesSection />
 
         <FeaturesSection />
 
