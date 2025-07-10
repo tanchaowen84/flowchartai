@@ -629,20 +629,35 @@
     "howItWorks": {
       "title": "How It Works",
       "subtitle": "Simple 3-Step Process",
-      "description": "Creating professional flowcharts with FlowChart AI is incredibly simple and fast.",
+      "description": "Creating professional flowcharts with FlowChart AI is incredibly simple and fast. Our intelligent system transforms your ideas into beautiful diagrams in minutes, not hours.",
       "getStarted": "Get Started",
       "steps": {
         "step-1": {
           "title": "Describe Your Idea",
-          "description": "Tell FlowChart AI what process or workflow you want to visualize using natural language."
+          "description": "Simply describe your process, workflow, or system in plain English. No technical jargon required - just explain what you want to visualize as if you're talking to a colleague.",
+          "details": [
+            "Natural language processing understands complex descriptions",
+            "Support for multiple languages and technical domains",
+            "Smart context recognition for better accuracy"
+          ]
         },
         "step-2": {
           "title": "AI Creates Your Flowchart",
-          "description": "Our advanced AI analyzes your description and generates a professional flowchart instantly."
+          "description": "Our advanced AI analyzes your description and generates a professional flowchart instantly. The system intelligently determines the best layout, shapes, and connections.",
+          "details": [
+            "Automatic shape selection and optimal positioning",
+            "Smart connector routing and alignment",
+            "Professional styling and color schemes applied"
+          ]
         },
         "step-3": {
           "title": "Edit & Export",
-          "description": "Customize your flowchart on our powerful canvas and export in your preferred format."
+          "description": "Fine-tune your flowchart using our intuitive canvas editor. Add details, adjust styling, and export in multiple formats including PNG, SVG, PDF, and more.",
+          "details": [
+            "Drag-and-drop editing with real-time collaboration",
+            "Multiple export formats for any use case",
+            "Version history and cloud synchronization"
+          ]
         }
       }
     },
