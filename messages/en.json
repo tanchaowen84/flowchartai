@@ -665,7 +665,11 @@
         "item-1": "Hours of manual drawing and positioning",
         "item-2": "Steep learning curve for complex software",
         "item-3": "Difficult collaboration and sharing",
-        "item-4": "Manual updates when changes are needed"
+        "item-4": "Manual updates when changes are needed",
+        "item-5": "Limited template and shape libraries",
+        "item-6": "Version control and backup challenges",
+        "item-7": "Expensive licensing and subscription fees",
+        "item-8": "Platform-specific compatibility issues"
       },
       "flowchartAi": {
         "title": "FlowChart AI",
@@ -673,7 +677,11 @@
         "item-1": "Generate flowcharts in seconds with AI",
         "item-2": "Natural language input - no training needed",
         "item-3": "Built-in collaboration and real-time sharing",
-        "item-4": "AI-assisted modifications and updates"
+        "item-4": "AI-assisted modifications and updates",
+        "item-5": "Unlimited templates and smart suggestions",
+        "item-6": "Automatic version history and cloud backup",
+        "item-7": "Affordable pricing with generous free tier",
+        "item-8": "Works seamlessly across all devices and browsers"
       }
     },
     "integration": {

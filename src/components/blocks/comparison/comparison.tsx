@@ -1,6 +1,4 @@
 import { HeaderSection } from '@/components/layout/header-section';
-import { Card } from '@/components/ui/card';
-import { CheckIcon, XIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export default function ComparisonSection() {
@@ -8,7 +6,7 @@ export default function ComparisonSection() {
 
   return (
     <section id="comparison" className="px-4 py-16">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl space-y-8 lg:space-y-16">
         <HeaderSection
           title={t('title')}
           subtitle={t('subtitle')}
@@ -17,68 +15,118 @@ export default function ComparisonSection() {
           descriptionAs="p"
         />
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
-          <ComparisonCard
-            title={t('traditional.title')}
-            subtitle={t('traditional.subtitle')}
-            items={[
-              { text: t('traditional.item-1'), isPositive: false },
-              { text: t('traditional.item-2'), isPositive: false },
-              { text: t('traditional.item-3'), isPositive: false },
-              { text: t('traditional.item-4'), isPositive: false },
-            ]}
-            isHighlighted={false}
-          />
+        <div className="grid items-start gap-12 lg:grid-cols-2 lg:gap-20">
+          {/* Traditional Tools */}
+          <div className="lg:pr-0">
+            <div className="mb-8">
+              <h3 className="text-2xl font-semibold">
+                {t('traditional.title')}
+              </h3>
+              <p className="mt-4 text-muted-foreground">
+                {t('traditional.subtitle')}
+              </p>
+            </div>
 
-          <ComparisonCard
-            title={t('flowchartAi.title')}
-            subtitle={t('flowchartAi.subtitle')}
-            items={[
-              { text: t('flowchartAi.item-1'), isPositive: true },
-              { text: t('flowchartAi.item-2'), isPositive: true },
-              { text: t('flowchartAi.item-3'), isPositive: true },
-              { text: t('flowchartAi.item-4'), isPositive: true },
-            ]}
-            isHighlighted={true}
-          />
+            <ul className="space-y-4">
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('traditional.item-1')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('traditional.item-2')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('traditional.item-3')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('traditional.item-4')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('traditional.item-5')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('traditional.item-6')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('traditional.item-7')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('traditional.item-8')}
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* FlowChart AI */}
+          <div className="lg:pl-0">
+            <div className="mb-8">
+              <h3 className="text-2xl font-semibold">
+                {t('flowchartAi.title')}
+              </h3>
+              <p className="mt-4 text-muted-foreground">
+                {t('flowchartAi.subtitle')}
+              </p>
+            </div>
+
+            <ul className="space-y-4">
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('flowchartAi.item-1')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('flowchartAi.item-2')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('flowchartAi.item-3')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('flowchartAi.item-4')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('flowchartAi.item-5')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('flowchartAi.item-6')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('flowchartAi.item-7')}
+                </span>
+              </li>
+              <li className="pb-4 border-b border-dashed">
+                <span className="text-sm leading-relaxed">
+                  {t('flowchartAi.item-8')}
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
   );
 }
-
-const ComparisonCard = ({
-  title,
-  subtitle,
-  items,
-  isHighlighted,
-}: {
-  title: string;
-  subtitle: string;
-  items: { text: string; isPositive: boolean }[];
-  isHighlighted: boolean;
-}) => {
-  return (
-    <Card className={`p-6 ${isHighlighted ? 'ring-2 ring-primary bg-primary/5' : ''}`}>
-      <div className="space-y-4">
-        <div className="text-center">
-          <h3 className="text-xl font-semibold">{title}</h3>
-          <p className="text-muted-foreground text-sm mt-1">{subtitle}</p>
-        </div>
-
-        <ul className="space-y-3">
-          {items.map((item, index) => (
-            <li key={index} className="flex items-start gap-3">
-              {item.isPositive ? (
-                <CheckIcon className="size-5 text-green-500 mt-0.5 flex-shrink-0" />
-              ) : (
-                <XIcon className="size-5 text-red-500 mt-0.5 flex-shrink-0" />
-              )}
-              <span className="text-sm">{item.text}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Card>
-  );
-};
