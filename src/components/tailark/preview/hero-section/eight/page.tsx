@@ -126,14 +126,14 @@ export default function HeroSection() {
               <div className="relative mx-auto max-w-6xl overflow-hidden px-4">
                 <Image
                   className="z-2 border-border/25 relative hidden rounded-2xl border dark:block"
-                  src="/blocks/music.png"
+                  src="https://cdn.flowchartai.org/static/blocks/music.png"
                   alt="app screen"
                   width={2796}
                   height={2008}
                 />
                 <Image
                   className="z-2 border-border/25 relative rounded-2xl border dark:hidden"
-                  src="/blocks/music-light.png"
+                  src="https://cdn.flowchartai.org/static/blocks/music-light.png"
                   alt="app screen"
                   width={2796}
                   height={2008}

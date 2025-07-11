@@ -138,14 +138,14 @@ export default function HeroSection() {
 
                   <Image
                     className="rounded-(--radius) z-1 relative border dark:hidden"
-                    src="/blocks/card.png"
+                    src="https://cdn.flowchartai.org/static/blocks/card.png"
                     alt="tailus ui hero section"
                     width={2880}
                     height={2074}
                   />
                   <Image
                     className="rounded-(--radius) z-1 relative hidden border dark:block"
-                    src="/blocks/dark-card.webp"
+                    src="https://cdn.flowchartai.org/static/blocks/dark-card.webp"
                     alt="tailus ui hero section"
                     width={2880}
                     height={2074}

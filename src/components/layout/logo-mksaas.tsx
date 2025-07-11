@@ -4,7 +4,7 @@ import Image from 'next/image';
 export function MkSaaSLogo({ className }: { className?: string }) {
   return (
     <Image
-      src="/mksaas.png"
+      src="https://cdn.flowchartai.org/static/mksaas.png"
       alt="Logo of MkSaaS"
       title="Logo of MkSaaS"
       width={96}

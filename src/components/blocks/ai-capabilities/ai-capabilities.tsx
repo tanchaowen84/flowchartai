@@ -52,14 +52,14 @@ export default function AiCapabilitiesSection() {
           <div className="border-border/50 relative rounded-3xl border p-3 lg:col-span-3">
             <div className="bg-linear-to-b aspect-76/59 relative rounded-2xl from-zinc-300 to-transparent p-px dark:from-zinc-700">
               <Image
-                src="/blocks/dark-card.webp"
+                src="https://cdn.flowchartai.org/static/blocks/dark-card.webp"
                 className="hidden rounded-[15px] dark:block"
                 alt="AI capabilities illustration dark"
                 width={1207}
                 height={929}
               />
               <Image
-                src="/blocks/card.png"
+                src="https://cdn.flowchartai.org/static/blocks/card.png"
                 className="rounded-[15px] shadow dark:hidden"
                 alt="AI capabilities illustration light"
                 width={1207}

@@ -19,7 +19,11 @@
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "test-cdn": "node scripts/test-cdn.js",
+    "migrate-assets": "node scripts/migrate-assets.js",
+    "update-asset-paths": "node scripts/update-asset-paths.js",
+    "test-cdn-resources": "node scripts/test-cdn-resources.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.13",
@@ -153,6 +157,7 @@
     "@types/react-dom": "^19",
     "concurrently": "^9.1.2",
     "drizzle-kit": "^0.30.4",
+    "glob": "^11.0.3",
     "postcss": "^8",
     "react-email": "3.0.7",
     "tailwindcss": "^4.0.14",

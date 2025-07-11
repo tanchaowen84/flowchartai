@@ -20,21 +20,21 @@ export default function FeaturesSection() {
               <div className="aspect-88/36 relative">
                 <div className="bg-radial-[at_75%_25%] to-background z-1 -inset-17 absolute from-transparent to-75%"></div>
                 <Image
-                  src="/blocks/mail-upper.png"
+                  src="https://cdn.flowchartai.org/static/blocks/mail-upper.png"
                   className="absolute inset-0 z-10"
                   alt="payments illustration dark"
                   width={2797}
                   height={1137}
                 />
                 <Image
-                  src="/blocks/mail-back.png"
+                  src="https://cdn.flowchartai.org/static/blocks/mail-back.png"
                   className="hidden dark:block"
                   alt="payments illustration dark"
                   width={2797}
                   height={1137}
                 />
                 <Image
-                  src="/blocks/mail-back-light.png"
+                  src="https://cdn.flowchartai.org/static/blocks/mail-back-light.png"
                   className="dark:hidden"
                   alt="payments illustration light"
                   width={2797}

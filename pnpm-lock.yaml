@@ -396,6 +396,9 @@ importers:
       drizzle-kit:
         specifier: ^0.30.4
         version: 0.30.4
+      glob:
+        specifier: ^11.0.3
+        version: 11.0.3
       postcss:
         specifier: ^8
         version: 8.5.2

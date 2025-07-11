@@ -33,6 +33,7 @@
     "NEXT_PUBLIC_CREEM_PRODUCT_ID_PRO_MONTHLY": "prod_3JnqwZ3OkvTBP6XfItBH9j",
     "NEXT_PUBLIC_CREEM_PRODUCT_ID_PRO_YEARLY": "null",
     "DISABLE_IMAGE_OPTIMIZATION": "true",
-    "NEXT_PUBLIC_DEMO_WEBSITE": "false"
+    "NEXT_PUBLIC_DEMO_WEBSITE": "false",
+    "STORAGE_PUBLIC_URL": "https://cdn.flowchartai.org"
   }
 }

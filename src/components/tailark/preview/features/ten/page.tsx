@@ -22,8 +22,8 @@ export default function Features() {
               <div className="absolute inset-0 [background:radial-gradient(125%_125%_at_50%_0%,transparent_40%,var(--color-blue-600),var(--color-white)_100%)]"></div>
               <div className="aspect-76/59 p-1 px-6">
                 <DualModeImage
-                  darkSrc="/blocks/payments.png"
-                  lightSrc="/blocks/payments-light.png"
+                  darkSrc="https://cdn.flowchartai.org/static/blocks/payments.png"
+                  lightSrc="https://cdn.flowchartai.org/static/blocks/payments-light.png"
                   alt="payments illustration"
                   width={1207}
                   height={929}
@@ -46,8 +46,8 @@ export default function Features() {
                 <div className="absolute -inset-6 [background:radial-gradient(50%_50%_at_75%_50%,transparent,var(--color-background)_100%)]"></div>
                 <div className="aspect-76/59 border">
                   <DualModeImage
-                    darkSrc="/blocks/origin-cal-dark.png"
-                    lightSrc="/blocks/origin-cal.png"
+                    darkSrc="https://cdn.flowchartai.org/static/blocks/origin-cal-dark.png"
+                    lightSrc="https://cdn.flowchartai.org/static/blocks/origin-cal.png"
                     alt="calendar illustration"
                     width={1207}
                     height={929}

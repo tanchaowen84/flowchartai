@@ -50,14 +50,14 @@ export default function ContentSection() {
             ></div>
             <div className="border-border/50 relative rounded-2xl border border-dotted p-2">
               <Image
-                src="/blocks/charts.png"
+                src="https://cdn.flowchartai.org/static/blocks/charts.png"
                 className="hidden rounded-[12px] dark:block"
                 alt="payments illustration dark"
                 width={1207}
                 height={929}
               />
               <Image
-                src="/blocks/charts-light.png"
+                src="https://cdn.flowchartai.org/static/blocks/charts-light.png"
                 className="rounded-[12px] shadow dark:hidden"
                 alt="payments illustration light"
                 width={1207}

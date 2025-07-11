@@ -35,7 +35,7 @@ export default async function AIAudioPage() {
               <Avatar className="size-32 p-0.5">
                 <AvatarImage
                   className="rounded-full border-4 border-gray-200"
-                  src="/logo.png"
+                  src="https://cdn.flowchartai.org/static/logo.png"
                   alt="Avatar"
                 />
                 <AvatarFallback>

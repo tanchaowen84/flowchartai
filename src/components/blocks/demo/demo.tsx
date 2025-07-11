@@ -26,14 +26,14 @@ export default function DemoSection() {
             <div className="aspect-video bg-background relative w-full rounded-2xl">
               <div className="size-full overflow-hidden rounded-2xl border bg-zinc-900 shadow-md relative">
                 <Image
-                  src="/blocks/music-light.png"
+                  src="https://cdn.flowchartai.org/static/blocks/music-light.png"
                   className="size-full object-cover object-left-top dark:hidden"
                   alt="FlowChart AI Demo"
                   width={1207}
                   height={929}
                 />
                 <Image
-                  src="/blocks/music.png"
+                  src="https://cdn.flowchartai.org/static/blocks/music.png"
                   className="size-full object-cover object-left-top dark:block hidden"
                   alt="FlowChart AI Demo"
                   width={1207}
