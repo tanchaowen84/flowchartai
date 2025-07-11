@@ -565,8 +565,8 @@
     "title": "MkSaaS",
     "description": "Make AI SaaS in days, simply and effortlessly",
     "hero": {
-      "title": "Create Beautiful Flowcharts with AI",
-      "description": "Transform your ideas into professional flowcharts instantly. Our AI-powered editor helps you design, edit, and collaborate on diagrams effortlessly.",
+      "title": "Create Beautiful Flowcharts with FlowChart AI",
+      "description": "FlowChart AI helps you transform ideas into detailed, professional flowcharts instantly. Use natural language to design, edit, and collaborate on diagrams—no design skills required.",
       "introduction": "Introducing FlowChart AI",
       "primary": "Start Creating",
       "secondary": "See Demo"
@@ -576,9 +576,9 @@
     },
     "useCases": {
       "title": "Use Cases",
-      "subtitle": "Perfect for Every Professional",
-      "description": "FlowChart AI adapts to your workflow, whether you're planning, designing, or presenting complex processes.",
-      "tryNow": "Try Now",
+      "subtitle": "Let AI Handle the Heavy Lifting",
+      "description": "FlowChart AI helps you map out complex processes, brainstorm ideas, and build professional diagrams—faster and easier than ever before.",
+      "tryNow": "Start with FlowChart AI",
       "items": {
         "item-1": {
           "title": "Product Management",
@@ -609,66 +609,67 @@
     "demo": {
       "title": "See FlowChart AI in Action",
       "subtitle": "From Idea to Flowchart in Seconds",
-      "description": "Watch how our AI transforms natural language descriptions into professional flowcharts instantly.",
-      "tryItNow": "Try It Now",
+      "description": "Watch how FlowChart AI turns natural language prompts into precise, presentation-ready flowcharts — no design skills or manual effort needed.",
+      "tryItNow": "Use FlowChart AI Now",
       "features": {
         "feature-1": {
           "title": "Natural Language Input",
-          "description": "Simply describe your process in plain English"
+          "description": "Simply describe your process in Language you like — no shapes, templates, or special tools required"
         },
         "feature-2": {
           "title": "AI-Powered Generation",
-          "description": "Advanced AI creates professional flowcharts automatically"
+          "description": "FlowChart AI Automatically generates clean, logical diagrams based on your input"
         },
         "feature-3": {
           "title": "Instant Editing",
-          "description": "Customize and refine your flowchart with ease"
+          "description": "Customize and refine your diagram, Easily adjust elements, add details, and make it your own"
         }
       }
     },
     "howItWorks": {
-      "title": "How It Works",
-      "subtitle": "Simple 3-Step Process",
-      "description": "Creating professional flowcharts with FlowChart AI is incredibly simple and fast. Our intelligent system transforms your ideas into beautiful diagrams in minutes, not hours.",
-      "getStarted": "Get Started",
+      "title": "Start in 3 Easy Steps",
+      "subtitle": "No Experience Needed",
+      "description": "FlowChart AI makes creating flowcharts as simple as typing your thoughts. Whether you're a beginner or a pro, you can go from messy ideas to structured diagrams in minutes—without any design tools.",
       "steps": {
         "step-1": {
-          "title": "Describe Your Idea",
-          "description": "Simply describe your process, workflow, or system in plain English. No technical jargon required - just explain what you want to visualize as if you're talking to a colleague.",
+          "title": "Just Type What You Need",
+          "description": "Start by describing your process, structure, or system in natural language. FlowChart AI understands what you mean—even if it's not perfectly written.",
           "details": [
-            "Natural language processing understands complex descriptions",
-            "Support for multiple languages and technical domains",
-            "Smart context recognition for better accuracy"
+            "Describe your workflow in plain English—FlowChart AI handles the diagram generation",
+            "FlowChart AI supports business logic, software systems, and educational use cases",
+            "AI-powered understanding of both concise and complex process descriptions"
           ]
         },
         "step-2": {
-          "title": "AI Creates Your Flowchart",
-          "description": "Our advanced AI analyzes your description and generates a professional flowchart instantly. The system intelligently determines the best layout, shapes, and connections.",
+          "title": "FlowChart AI Builds Your Diagram",
+          "description": "FlowChart AI transforms your input into a clean, structured flowchart using intelligent shape detection and layout optimization.",
           "details": [
-            "Automatic shape selection and optimal positioning",
-            "Smart connector routing and alignment",
-            "Professional styling and color schemes applied"
+            "Automatically generates accurate diagrams with FlowChart AI’s layout engine",
+            "Optimized visual structure for readability and presentation",
+            "No need to manually draw—FlowChart AI does it all for you"
           ]
         },
         "step-3": {
-          "title": "Edit & Export",
-          "description": "Fine-tune your flowchart using our intuitive canvas editor. Add details, adjust styling, and export in multiple formats including PNG, SVG, PDF, and more.",
+          "title": "Edit, Manage & Save",
+          "description": "Make adjustments using FlowChart AI’s intuitive editor. Save diagrams to your personal workspace, manage your flowcharts, and return to refine or export when needed.",
           "details": [
-            "Drag-and-drop editing with real-time collaboration",
-            "Multiple export formats for any use case",
-            "Version history and cloud synchronization"
+            "Edit using FlowChart AI’s drag-and-drop canvas—fast and intuitive",
+            "Organize all your diagrams in a personal FlowChart AI workspace",
+            "Export in Excalidraw format; PNG, SVG, and PDF exports coming soon"
           ]
         }
-      }
+      },
+      "getStarted":"Using FlowChart AI Now"
     },
     "aiCapabilities": {
-      "title": "Advanced AI Capabilities",
-      "subtitle": "Powered by Cutting-Edge AI",
-      "description": "FlowChart AI leverages the latest artificial intelligence to understand your needs and create perfect diagrams.",
-      "capability-1": "Natural Language Understanding - Interprets complex process descriptions",
-      "capability-2": "Smart Layout Optimization - Automatically arranges elements for clarity",
-      "capability-3": "Incremental Updates - Add to existing flowcharts without starting over",
-      "capability-4": "Multi-language Support - Create flowcharts in multiple languages"
+      "title": "FlowChart AI Capabilities",
+      "subtitle": "Smarter Diagrams Powered by Advanced AI",
+      "description": "FlowChart AI uses state-of-the-art language models and layout engines to turn your ideas into perfect, presentation-ready flowcharts—fast, accurate, and effortless.",
+      "capability-1": "Natural Language Processing – FlowChart AI understands messy or vague input and translates it into structured diagrams",
+      "capability-2": "Smart Layout Engine – Automatically arranges elements logically and visually for maximum clarity",
+      "capability-3": "AI-Powered Edits – Update and expand existing flowcharts without starting over",
+      "capability-4": "Multi-language Input – Describe your flowcharts in any language you’re comfortable with",
+      "capability-5": "Context-Aware Suggestions – FlowChart AI intelligently recommends diagram elements and connections based on your intent"
     },
     "comparison": {
       "title": "Why Choose FlowChart AI?",
@@ -739,24 +740,24 @@
     },
     "features": {
       "title": "Features",
-      "subtitle": "The features of your product",
-      "description": "Write the description of your product here",
+      "subtitle": "AI-Powered Flowchart Creation",
+      "description": "FlowChart AI offers a comprehensive set of features designed to make diagramming effortless, intelligent, and collaborative.",
       "items": {
         "item-1": {
-          "title": "Product Feature One",
-          "description": "Please write the detailed description of feature one here, make it as detailed as possible, make it more attractive to users"
+          "title": "Natural Language to Diagram",
+          "description": "Describe your process or idea in plain language, and let AI instantly turn it into a professional flowchart. No design skills or technical jargon required—just explain your workflow and see it visualized."
         },
         "item-2": {
-          "title": "Product Feature Two",
-          "description": "Please write the detailed description of feature two here, make it as detailed as possible, make it more attractive to users"
+          "title": "Personal Workspace & Diagram Library",
+          "description": "Keep all your diagrams organized in one place. Our platform provides a personal workspace where you can access, manage, and continue editing your saved diagrams with ease."
         },
         "item-3": {
-          "title": "Product Feature Three",
-          "description": "Please write the detailed description of feature three here, make it as detailed as possible, make it more attractive to users"
+          "title": "Intuitive Drag-and-Drop Editor",
+          "description": "Easily refine and customize your diagram with a user-friendly canvas. Move elements, adjust connections, and apply styles with simple drag-and-drop—no learning curve."
         },
         "item-4": {
-          "title": "Product Feature Four",
-          "description": "Please write the detailed description of feature four here, make it as detailed as possible, make it more attractive to users"
+          "title": "Export & Integrate Anywhere",
+          "description": "Export your diagrams in Excalidraw format for editing or backup. Support for PNG, SVG, and PDF exports is coming soon to broaden your sharing and presentation options."
         }
       }
     },
@@ -810,24 +811,40 @@
       "subtitle": "Frequently Asked Questions",
       "items": {
         "item-1": {
-          "question": "Do you offer a free trial?",
-          "answer": "Yes, we offer a 7-day free trial."
+          "question": "Is there a free version of FlowChart AI?",
+          "answer": "Yes! We offer a free tier that includes 5 AI-generated flowcharts per month. It's a great way to explore the tool without commitment."
         },
         "item-2": {
-          "question": "How do I cancel my subscription?",
-          "answer": "You can cancel your subscription by visiting the billing page."
+          "question": "What formats can I export my diagrams to?",
+          "answer": "Currently, you can export diagrams in Excalidraw format. Support for PNG, SVG, and PDF exports is coming soon."
         },
         "item-3": {
-          "question": "Can I change my plan?",
-          "answer": "Yes, you can change your plan at any time by visiting the billing page."
+          "question": "Can I manage my flowcharts and access them later?",
+          "answer": "Absolutely. FlowChart AI provides a personal workspace where you can save, manage, and edit your flowcharts anytime."
         },
         "item-4": {
-          "question": "What is the refund policy?",
-          "answer": "We offer a 30-day money-back guarantee if you are not happy with our product."
+          "question": "What AI capabilities does FlowChart AI offer?",
+          "answer": "FlowChart AI uses natural language understanding, smart layout optimization, and incremental updates to help you generate and edit flowcharts quickly and intuitively."
         },
         "item-5": {
-          "question": "Can't find what you're looking for?",
-          "answer": "Please contact our customer support team at support@mksaas.com"
+          "question": "How can I upgrade or change my plan?",
+          "answer": "You can upgrade, downgrade, or cancel your subscription anytime through your account's billing settings."
+        },
+        "item-6": {
+          "question": "How complex of a flowchart can FlowChart AI generate?",
+          "answer": "FlowChart AI supports diagrams with up to 50 nodes and 5 levels of hierarchy. Typical text-to-diagram generation completes in under 15 seconds."
+        },
+        "item-7": {
+          "question": "How do I write effective prompts?",
+          "answer": "Use clear natural language and structure: list steps line by line, indicate start/end nodes, and specify branches like 'if/else'. FlowChart AI will translate this into accurate diagrams."
+        },
+        "item-8": {
+          "question": "Can teams collaborate on flowcharts?",
+          "answer": "Workspace is currently personal. You can share Excalidraw files manually. Team collaboration and shared workspaces are on our roadmap."
+        },
+        "item-9": {
+          "question": "Can I generate diagrams from uploaded documents?",
+          "answer": "Currently FlowChart AI only supports text input. We’re working to support PDF, Markdown, and document uploads in future versions."
         }
       }
     },

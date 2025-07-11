@@ -52,6 +52,30 @@ export default function FaqSection() {
       question: t('items.item-5.question'),
       answer: t('items.item-5.answer'),
     },
+    {
+      id: 'item-6',
+      icon: 'network',
+      question: t('items.item-6.question'),
+      answer: t('items.item-6.answer'),
+    },
+    {
+      id: 'item-7',
+      icon: 'lightbulb',
+      question: t('items.item-7.question'),
+      answer: t('items.item-7.answer'),
+    },
+    {
+      id: 'item-8',
+      icon: 'users',
+      question: t('items.item-8.question'),
+      answer: t('items.item-8.answer'),
+    },
+    {
+      id: 'item-9',
+      icon: 'upload',
+      question: t('items.item-9.question'),
+      answer: t('items.item-9.answer'),
+    },
   ];
 
   return (
