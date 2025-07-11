@@ -22,6 +22,10 @@ const FILE_PATTERNS = [
   'src/**/*.ts',
   'src/**/*.jsx',
   'src/**/*.js',
+  // 添加配置文件
+  'src/config/*.tsx',
+  'src/app/manifest.ts',
+  'public/_headers',
 ];
 
 // 需要排除的目录
@@ -96,6 +100,24 @@ function updateAssetPaths(content) {
       pattern: /url\(["']?\/([^"')]*\.(png|jpg|jpeg|gif|webp|svg|ico))["']?\)/gi,
       replacement: `url("${CDN_STATIC_PATH}/$1")`,
       description: 'CSS url() functions'
+    },
+    // 配置文件中的路径 (如 ogImage, logoLight, logoDark)
+    {
+      pattern: /(ogImage|logoLight|logoDark):\s*["']\/([^"']*\.(png|jpg|jpeg|gif|webp|svg|ico))["']/gi,
+      replacement: `$1: "${CDN_STATIC_PATH}/$2"`,
+      description: 'Config file image paths'
+    },
+    // Manifest 文件中的 icon src
+    {
+      pattern: /src:\s*["']\/([^"']*\.(png|jpg|jpeg|gif|webp|svg|ico))["']/gi,
+      replacement: `src: "${CDN_STATIC_PATH}/$1"`,
+      description: 'Manifest icon paths'
+    },
+    // Headers 文件中的路径
+    {
+      pattern: /^\/([^\/\s]*\.(png|jpg|jpeg|gif|webp|svg|ico))$/gm,
+      replacement: `/${CDN_STATIC_PATH.replace('https://cdn.flowchartai.org', '')}/$1`,
+      description: 'Headers file paths'
     },
   ];
   

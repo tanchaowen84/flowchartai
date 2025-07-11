@@ -18,9 +18,9 @@ export const websiteConfig: WebsiteConfig = {
       enableSwitch: true,
     },
     images: {
-      ogImage: '/og.png',
-      logoLight: '/logo.png',
-      logoDark: '/logo-dark.png',
+      ogImage: 'https://cdn.flowchartai.org/static/og.png',
+      logoLight: 'https://cdn.flowchartai.org/static/logo.png',
+      logoDark: 'https://cdn.flowchartai.org/static/logo-dark.png',
     },
     social: {
       github: 'https://github.com/MkSaaSHQ',

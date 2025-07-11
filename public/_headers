@@ -1,17 +1,9 @@
 /_next/static/*
   Cache-Control: public,max-age=31536000,immutable
 
-/favicon.ico
-  Cache-Control: public,max-age=86400
-
-/logo.png
-  Cache-Control: public,max-age=86400
-
-/logo-dark.png
-  Cache-Control: public,max-age=86400
-
-/og.png
-  Cache-Control: public,max-age=86400
-
 /api/*
   Cache-Control: no-cache, no-store, must-revalidate
+
+# Static assets are now served from CDN (cdn.flowchartai.org)
+# The following rules are no longer needed as assets are served from R2
+# /favicon.ico, /logo.png, /logo-dark.png, /og.png
