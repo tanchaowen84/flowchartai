@@ -6,6 +6,7 @@ import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { websiteConfig } from '@/config/website';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
 import { useLocalePathname } from '@/i18n/navigation';
@@ -331,7 +332,25 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         >
           <MainMenu>
             <MainMenu.Item onSelect={handleGoHome}>Back To Home</MainMenu.Item>
-            <MainMenu.DefaultItems.Socials />
+            {/* Custom Social Links */}
+            {websiteConfig.metadata.social?.github && (
+              <MainMenu.Item
+                onSelect={() =>
+                  window.open(websiteConfig.metadata.social?.github!, '_blank')
+                }
+              >
+                GitHub
+              </MainMenu.Item>
+            )}
+            {websiteConfig.metadata.social?.discord && (
+              <MainMenu.Item
+                onSelect={() =>
+                  window.open(websiteConfig.metadata.social?.discord!, '_blank')
+                }
+              >
+                Discord
+              </MainMenu.Item>
+            )}
             <MainMenu.DefaultItems.Export />
           </MainMenu>
         </Excalidraw>

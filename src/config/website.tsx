@@ -23,9 +23,9 @@ export const websiteConfig: WebsiteConfig = {
       logoDark: '/logo.png',
     },
     social: {
-      github: 'https://github.com/flowchartai',
-      twitter: 'https://x.com/flowchartai',
-      discord: 'https://discord.gg/flowchartai',
+      github: 'https://github.com/tanchaowen84/flowchartai',
+      twitter: 'https://x.com/tanchaowen84',
+      discord: 'https://discord.gg/Pfdyhqqu',
     },
   },
   features: {
