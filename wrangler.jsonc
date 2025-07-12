@@ -25,6 +25,11 @@
     "dev": { "minify": false } // 本地调试可关掉
   },
   "keep_names": false,
+  "observability": {
+    "logs": {
+      "enabled": true
+    }
+  },
   "vars": {
     "NEXT_PUBLIC_BASE_URL": "https://flowchart-ai.tanchaowen84.workers.dev",
     "GITHUB_CLIENT_ID": "Ov23linrbudpTpwAwNBm",
