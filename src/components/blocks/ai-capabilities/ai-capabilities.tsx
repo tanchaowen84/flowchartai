@@ -1,10 +1,5 @@
 import { HeaderSection } from '@/components/layout/header-section';
-import {
-  BrainIcon,
-  LanguagesIcon,
-  RefreshCwIcon,
-  ZapIcon,
-} from 'lucide-react';
+import { BrainIcon, LanguagesIcon, RefreshCwIcon, ZapIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
@@ -51,20 +46,15 @@ export default function AiCapabilitiesSection() {
 
           <div className="border-border/50 relative rounded-3xl border p-3 lg:col-span-3">
             <div className="bg-linear-to-b aspect-76/59 relative rounded-2xl from-zinc-300 to-transparent p-px dark:from-zinc-700">
-              <Image
-                src="https://cdn.flowchartai.org/static/blocks/dark-card.webp"
-                className="hidden rounded-[15px] dark:block"
-                alt="AI capabilities illustration dark"
-                width={1207}
-                height={929}
-              />
-              <Image
-                src="https://cdn.flowchartai.org/static/blocks/card.png"
-                className="rounded-[15px] shadow dark:hidden"
-                alt="AI capabilities illustration light"
-                width={1207}
-                height={929}
-              />
+              <div className="h-full w-full rounded-[15px] bg-gradient-to-br from-muted/50 to-background overflow-hidden flex items-center justify-center">
+                <Image
+                  src="https://cdn.flowchartai.org/static/blocks/ai_capabilities.png"
+                  className="h-full w-full object-cover object-center"
+                  alt="AI Capabilities - Intelligent Flowchart Generation"
+                  width={800}
+                  height={600}
+                />
+              </div>
             </div>
           </div>
         </div>

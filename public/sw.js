@@ -12,6 +12,7 @@ const URLS_TO_CACHE = [
     '/feature3.png',
     '/feature4.png',
     '/howitworks1.png',
+    '/ai_capabilities.png',
     // Other images used in iframes
     '/payments.png',
     '/payments-light.png',

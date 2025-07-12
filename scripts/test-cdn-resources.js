@@ -30,6 +30,7 @@ const TEST_RESOURCES = [
   'blocks/feature3.png',
   'blocks/feature4.png',
   'blocks/howitworks1.png',
+  'blocks/ai_capabilities.png',
   'blocks/music.png',
   'blocks/music-light.png',
   'blocks/card.png',

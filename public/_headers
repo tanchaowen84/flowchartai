@@ -4,13 +4,28 @@
 /favicon.ico
   Cache-Control: public,max-age=86400
 
+/favicon-16x16.png
+  Cache-Control: public,max-age=86400
+
+/favicon-32x32.png
+  Cache-Control: public,max-age=86400
+
+/android-chrome-192x192.png
+  Cache-Control: public,max-age=86400
+
+/android-chrome-512x512.png
+  Cache-Control: public,max-age=86400
+
+/apple-touch-icon.png
+  Cache-Control: public,max-age=86400
+
 /logo.png
   Cache-Control: public,max-age=86400
 
-/logo-dark.png
+/og.png
   Cache-Control: public,max-age=86400
 
-/og.png
+/blocks/*
   Cache-Control: public,max-age=86400
 
 /api/*
