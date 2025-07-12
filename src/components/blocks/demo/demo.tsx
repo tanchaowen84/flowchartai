@@ -2,9 +2,7 @@ import { HeaderSection } from '@/components/layout/header-section';
 import { BorderBeam } from '@/components/magicui/border-beam';
 import { Button } from '@/components/ui/button';
 import { LocaleLink } from '@/i18n/navigation';
-import { PlayIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 
 export default function DemoSection() {
   const t = useTranslations('HomePage.demo');
@@ -21,31 +19,29 @@ export default function DemoSection() {
         />
 
         <div className="mt-12 space-y-8">
-          {/* Main Demo Video/Image */}
+          {/* Main Demo Video */}
           <div className="bg-background w-full relative flex overflow-hidden rounded-2xl border p-2">
             <div className="aspect-video bg-background relative w-full rounded-2xl">
               <div className="size-full overflow-hidden rounded-2xl border bg-zinc-900 shadow-md relative">
-                <Image
-                  src="https://cdn.flowchartai.org/static/blocks/music-light.png"
-                  className="size-full object-cover object-left-top dark:hidden"
-                  alt="FlowChart AI Demo"
-                  width={1207}
-                  height={929}
-                />
-                <Image
-                  src="https://cdn.flowchartai.org/static/blocks/music.png"
-                  className="size-full object-cover object-left-top dark:block hidden"
-                  alt="FlowChart AI Demo"
-                  width={1207}
-                  height={929}
-                />
-
-                {/* Play Button Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <Button size="lg" className="rounded-full h-16 w-16 p-0">
-                    <PlayIcon className="size-6 ml-1" />
-                  </Button>
-                </div>
+                <video
+                  className="size-full object-cover object-center"
+                  controls
+                  preload="metadata"
+                  poster="https://cdn.flowchartai.org/static/demo-thumbnail.png"
+                >
+                  <source
+                    src="https://cdn.flowchartai.org/static/demo.mp4"
+                    type="video/mp4"
+                  />
+                  <track
+                    kind="captions"
+                    src=""
+                    srcLang="en"
+                    label="English captions"
+                    default
+                  />
+                  Your browser does not support the video tag.
+                </video>
               </div>
             </div>
             <BorderBeam
