@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { LocaleLink } from '@/i18n/navigation';
 import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import type * as React from 'react';
 
 export default function HowItWorksSection() {
@@ -90,17 +91,14 @@ export default function HowItWorksSection() {
 
           <div className="border-border/50 relative rounded-3xl border p-3 lg:col-span-3">
             <div className="bg-linear-to-b aspect-[4/3] relative rounded-2xl from-zinc-300 to-transparent p-px dark:from-zinc-700">
-              <div className="h-full w-full rounded-[15px] bg-gradient-to-br from-muted/50 to-background flex items-center justify-center">
-                <div className="text-center space-y-4 p-8">
-                  <div className="text-6xl">🎯</div>
-                  <h3 className="text-xl font-semibold">
-                    Simple 3-Step Process
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    From natural language description to professional flowchart
-                    in seconds
-                  </p>
-                </div>
+              <div className="h-full w-full rounded-[15px] bg-gradient-to-br from-muted/50 to-background overflow-hidden">
+                <Image
+                  src="https://cdn.flowchartai.org/static/blocks/howitworks1.png"
+                  className="h-full w-full object-cover object-center"
+                  alt="How FlowChart AI Works - Step by Step Process"
+                  width={800}
+                  height={600}
+                />
               </div>
             </div>
           </div>

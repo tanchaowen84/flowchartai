@@ -39,7 +39,7 @@ export default function DemoSection() {
                   width={1207}
                   height={929}
                 />
-                
+
                 {/* Play Button Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                   <Button size="lg" className="rounded-full h-16 w-16 p-0">
@@ -74,9 +74,7 @@ export default function DemoSection() {
           {/* CTA */}
           <div className="text-center">
             <Button asChild size="lg">
-              <LocaleLink href="/canvas">
-                {t('tryItNow')}
-              </LocaleLink>
+              <LocaleLink href="/canvas">{t('tryItNow')}</LocaleLink>
             </Button>
           </div>
         </div>

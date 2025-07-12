@@ -5,7 +5,14 @@ const CACHE_NAME = 'cnblocks-iframe-cache-v1'
 const URLS_TO_CACHE = [
     // Default assets that should be cached
     '/favicon.ico',
-    // Images used in iframes
+    // Landing page images
+    '/demo.png',
+    '/feature1.png',
+    '/feature2.png',
+    '/feature3.png',
+    '/feature4.png',
+    '/howitworks1.png',
+    // Other images used in iframes
     '/payments.png',
     '/payments-light.png',
     '/origin-cal.png',

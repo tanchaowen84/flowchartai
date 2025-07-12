@@ -30,23 +30,23 @@ export default function FeaturesSection() {
 
   const images = {
     'item-1': {
-      image: '/blocks/charts-light.png',
-      darkImage: '/blocks/charts.png',
+      image: 'https://cdn.flowchartai.org/static/blocks/feature1.png',
+      darkImage: 'https://cdn.flowchartai.org/static/blocks/feature1.png',
       alt: 'Product Feature One',
     },
     'item-2': {
-      image: '/blocks/music-light.png',
-      darkImage: '/blocks/music.png',
+      image: 'https://cdn.flowchartai.org/static/blocks/feature2.png',
+      darkImage: 'https://cdn.flowchartai.org/static/blocks/feature2.png',
       alt: 'Product Feature Two',
     },
     'item-3': {
-      image: '/blocks/mail2-light.png',
-      darkImage: '/blocks/mail2.png',
+      image: 'https://cdn.flowchartai.org/static/blocks/feature3.png',
+      darkImage: 'https://cdn.flowchartai.org/static/blocks/feature3.png',
       alt: 'Product Feature Three',
     },
     'item-4': {
-      image: '/blocks/payments-light.png',
-      darkImage: '/blocks/payments.png',
+      image: 'https://cdn.flowchartai.org/static/blocks/feature4.png',
+      darkImage: 'https://cdn.flowchartai.org/static/blocks/feature4.png',
       alt: 'Product Feature Four',
     },
   };

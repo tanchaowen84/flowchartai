@@ -23,7 +23,8 @@
     "test-cdn": "node scripts/test-cdn.js",
     "migrate-assets": "node scripts/migrate-assets.js",
     "update-asset-paths": "node scripts/update-asset-paths.js",
-    "test-cdn-resources": "node scripts/test-cdn-resources.js"
+    "test-cdn-resources": "node scripts/test-cdn-resources.js",
+    "test-new-images": "node scripts/test-new-images.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.13",
