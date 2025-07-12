@@ -812,39 +812,39 @@
       "items": {
         "item-1": {
           "question": "Is there a free version of FlowChart AI?",
-          "answer": "Yes! We offer a free tier that includes 5 AI-generated flowcharts per month. It's a great way to explore the tool without commitment."
+          "answer": "Yes. FlowChart AI is open-sourced under the MIT License and available on GitHub. You can self-host and modify it freely. We also offer a free tier — every registered user can generate one AI flowchart per day for free."
         },
         "item-2": {
           "question": "What formats can I export my diagrams to?",
-          "answer": "Currently, you can export diagrams in Excalidraw format. Support for PNG, SVG, and PDF exports is coming soon."
+          "answer": "Currently, we support exporting flowcharts in Excalidraw format only. In future updates, we plan to add support for PDF, PNG, and SVG formats."
         },
         "item-3": {
           "question": "Can I manage my flowcharts and access them later?",
-          "answer": "Absolutely. FlowChart AI provides a personal workspace where you can save, manage, and edit your flowcharts anytime."
+          "answer": "Yes. FlowChart AI provides a personal workspace where you can save, manage, and edit your flowcharts anytime, from anywhere."
         },
         "item-4": {
           "question": "What AI capabilities does FlowChart AI offer?",
-          "answer": "FlowChart AI uses natural language understanding, smart layout optimization, and incremental updates to help you generate and edit flowcharts quickly and intuitively."
+          "answer": "FlowChart AI allows users to describe their processes or workflows in natural language. The AI interprets the input, handles intelligent layout and diagram structure, and generates editable flowcharts accordingly."
         },
         "item-5": {
           "question": "How can I upgrade or change my plan?",
-          "answer": "You can upgrade, downgrade, or cancel your subscription anytime through your account's billing settings."
+          "answer": "Yes. You can freely upgrade, downgrade, or cancel your plan through your account's billing settings."
         },
         "item-6": {
           "question": "How complex of a flowchart can FlowChart AI generate?",
-          "answer": "FlowChart AI supports diagrams with up to 50 nodes and 5 levels of hierarchy. Typical text-to-diagram generation completes in under 15 seconds."
+          "answer": "There is no strict limit on the complexity of flowcharts. The actual capability depends on the content and structure of your input."
         },
         "item-7": {
           "question": "How do I write effective prompts?",
-          "answer": "Use clear natural language and structure: list steps line by line, indicate start/end nodes, and specify branches like 'if/else'. FlowChart AI will translate this into accurate diagrams."
+          "answer": "Use clear natural language and structured steps. You may optionally upload reference images to aid AI understanding. FlowChart AI will then convert your input into a structured diagram."
         },
         "item-8": {
           "question": "Can teams collaborate on flowcharts?",
-          "answer": "Workspace is currently personal. You can share Excalidraw files manually. Team collaboration and shared workspaces are on our roadmap."
+          "answer": "Currently, FlowChart AI is built for individual use. Team collaboration and shared workspaces are part of our future roadmap."
         },
         "item-9": {
           "question": "Can I generate diagrams from uploaded documents?",
-          "answer": "Currently FlowChart AI only supports text input. We’re working to support PDF, Markdown, and document uploads in future versions."
+          "answer": "At the moment, FlowChart AI supports text and image inputs only. Support for document uploads including PDF, Markdown, and other formats is under active development."
         }
       }
     },
