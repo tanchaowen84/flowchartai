@@ -310,7 +310,7 @@
       }
     },
     "footer": {
-      "tagline": "Make AI SaaS in days, simply and effortlessly",
+      "tagline": "Create beautiful flowcharts with FlowChart AI - fast, intelligent, and effortless",
       "product": {
         "title": "Product",
         "items": {
@@ -659,7 +659,7 @@
           ]
         }
       },
-      "getStarted":"Using FlowChart AI Now"
+      "getStarted": "Using FlowChart AI Now"
     },
     "aiCapabilities": {
       "title": "FlowChart AI Capabilities",
