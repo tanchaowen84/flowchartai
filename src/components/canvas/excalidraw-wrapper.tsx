@@ -180,9 +180,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       setShouldAutoGenerate(true);
       setIsSidebarOpen(true);
 
-      // Clear localStorage to avoid repeated triggers
-      localStorage.removeItem('flowchart_auto_generate');
-      localStorage.removeItem('flowchart_auto_input');
+      // 🔧 不要立即清除localStorage，等待自动发送成功后再清除
+      console.log('🚀 Auto-generation setup from homepage:', {
+        autoInput: autoInputContent.substring(0, 50) + '...',
+        willAutoGenerate: true,
+      });
     }
   }, []);
 

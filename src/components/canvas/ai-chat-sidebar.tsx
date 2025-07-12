@@ -300,14 +300,68 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       console.log(
         '🚀 Auto-sending message now that API is ready:',
-        autoInput.substring(0, 50) + '...'
+        autoInput.substring(0, 50) + '...',
+        {
+          shouldAutoGenerate,
+          hasAutoInput: !!autoInput,
+          isOpen,
+          isAPIReady,
+          hasAutoSent: hasAutoSentRef.current,
+        }
       );
 
       // Small delay to ensure component is fully loaded
       setTimeout(async () => {
-        await handleAutoSendMessage(autoInput);
-        onAutoGenerateComplete?.();
+        try {
+          await handleAutoSendMessage(autoInput);
+
+          // 🔧 只有在自动发送成功后才清除localStorage
+          localStorage.removeItem('flowchart_auto_generate');
+          localStorage.removeItem('flowchart_auto_input');
+          console.log('✅ Auto-generation completed, localStorage cleared');
+
+          onAutoGenerateComplete?.();
+        } catch (error) {
+          console.error('❌ Auto-generation failed:', error);
+          // 如果失败，不清除localStorage，允许用户重试
+        }
       }, 500);
+    }
+  }, [shouldAutoGenerate, autoInput, isOpen, isAPIReady]);
+
+  // 🔧 备用机制：如果API初始化很慢，提供一个超时重试
+  useEffect(() => {
+    if (shouldAutoGenerate && autoInput && isOpen && !hasAutoSentRef.current) {
+      // 如果5秒后API还没准备好，尝试强制发送
+      const timeoutId = setTimeout(() => {
+        if (!hasAutoSentRef.current) {
+          console.log(
+            '⏰ API initialization timeout, attempting force send...'
+          );
+          if (isAPIReady) {
+            // API现在准备好了，正常发送
+            hasAutoSentRef.current = true;
+            setInput(autoInput);
+            setTimeout(async () => {
+              try {
+                await handleAutoSendMessage(autoInput);
+                localStorage.removeItem('flowchart_auto_generate');
+                localStorage.removeItem('flowchart_auto_input');
+                console.log('✅ Force auto-generation completed');
+                onAutoGenerateComplete?.();
+              } catch (error) {
+                console.error('❌ Force auto-generation failed:', error);
+              }
+            }, 500);
+          } else {
+            console.warn(
+              '⚠️ ExcalidrawAPI still not ready after 5s, user will need to manually send'
+            );
+          }
+        }
+      }, 5000);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [shouldAutoGenerate, autoInput, isOpen, isAPIReady]);
 
