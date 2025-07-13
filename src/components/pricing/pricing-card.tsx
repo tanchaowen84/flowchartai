@@ -88,11 +88,16 @@ export function PricingCard({
     formattedPrice = t('freePrice');
   } else if (price && price.amount > 0) {
     // price is available
-    formattedPrice = formatPrice(price.amount, price.currency);
-    if (interval === PlanIntervals.MONTH) {
+    if (interval === PlanIntervals.YEAR) {
+      // For yearly plans, display as monthly equivalent
+      const monthlyAmount = Math.round(price.amount / 12);
+      formattedPrice = formatPrice(monthlyAmount, price.currency);
       priceLabel = t('perMonth');
-    } else if (interval === PlanIntervals.YEAR) {
-      priceLabel = t('perYear');
+    } else {
+      formattedPrice = formatPrice(price.amount, price.currency);
+      if (interval === PlanIntervals.MONTH) {
+        priceLabel = t('perMonth');
+      }
     }
   } else {
     formattedPrice = t('notAvailable');

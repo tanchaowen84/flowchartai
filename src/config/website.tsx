@@ -109,6 +109,7 @@ export const websiteConfig: WebsiteConfig = {
         ],
         isFree: false,
         isLifetime: false,
+        recommended: true,
       },
       professional: {
         id: 'professional',
@@ -134,7 +135,6 @@ export const websiteConfig: WebsiteConfig = {
         ],
         isFree: false,
         isLifetime: false,
-        recommended: true,
       },
     },
   },
