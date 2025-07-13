@@ -1,13 +1,46 @@
 import { getDb } from '@/db';
-import { aiUsage, payment, user } from '@/db/schema';
-import { and, desc, eq, gte, sql } from 'drizzle-orm';
+import { aiUsage, payment } from '@/db/schema';
+import { and, eq, gte, sql } from 'drizzle-orm';
 
 // AI使用量限制配置
 export const AI_USAGE_LIMITS = {
   FREE_USER_DAILY: 1, // 免费用户每天1次
-  MONTHLY_SUBSCRIBER: 500, // 月费用户每月500次
-  // 其他订阅等级的限制可以在这里添加
+  HOBBY_USER_MONTHLY: 500, // Hobby用户每月500次
+  PROFESSIONAL_USER_MONTHLY: 1000, // Professional用户每月1000次
 } as const;
+
+// 通过Creem产品ID识别计划等级
+function getPlanLevelFromPriceId(
+  priceId: string
+): 'free' | 'hobby' | 'professional' {
+  // 检查环境变量中的产品ID
+  const hobbyIds = [
+    process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_MONTHLY,
+    process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_YEARLY,
+  ];
+
+  const professionalIds = [
+    process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_MONTHLY,
+    process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_YEARLY,
+  ];
+
+  if (hobbyIds.includes(priceId)) return 'hobby';
+  if (professionalIds.includes(priceId)) return 'professional';
+  return 'free'; // 未知产品ID按免费限制处理
+}
+
+// 获取用户的计划类型
+export async function getUserPlanLevel(
+  userId: string
+): Promise<'free' | 'hobby' | 'professional'> {
+  const subscription = await getUserSubscriptionStatus(userId);
+
+  if (subscription.type === 'free' || !subscription.priceId) {
+    return 'free';
+  }
+
+  return getPlanLevelFromPriceId(subscription.priceId);
+}
 
 // 获取用户的订阅状态
 export async function getUserSubscriptionStatus(userId: string) {
@@ -19,6 +52,7 @@ export async function getUserSubscriptionStatus(userId: string) {
       type: payment.type,
       interval: payment.interval,
       status: payment.status,
+      priceId: payment.priceId,
       periodEnd: payment.periodEnd,
       cancelAtPeriodEnd: payment.cancelAtPeriodEnd,
       canceledAt: payment.canceledAt,
@@ -78,6 +112,7 @@ export async function getUserSubscriptionStatus(userId: string) {
     type: validSubscription.type,
     interval: validSubscription.interval,
     status: validSubscription.status,
+    priceId: validSubscription.priceId,
     isInGracePeriod,
     willEndOn: validSubscription.periodEnd,
     canceledAt: validSubscription.canceledAt,
@@ -103,7 +138,7 @@ export async function canUserUseAI(userId: string): Promise<{
   let timeFrameType: 'daily' | 'monthly';
   let nextResetTime: Date;
 
-  if (subscription.type === 'free') {
+  if (subscription.type === 'free' || !subscription.priceId) {
     // 免费用户：每天1次
     limit = AI_USAGE_LIMITS.FREE_USER_DAILY;
     timeFrame = new Date();
@@ -113,28 +148,39 @@ export async function canUserUseAI(userId: string): Promise<{
     // 下次重置时间（明天0点）
     nextResetTime = new Date(timeFrame);
     nextResetTime.setDate(nextResetTime.getDate() + 1);
-  } else if (subscription.interval === 'month') {
-    // 月费用户：每月500次
-    limit = AI_USAGE_LIMITS.MONTHLY_SUBSCRIBER;
-    timeFrame = new Date();
-    timeFrame.setDate(1); // 本月开始时间
-    timeFrame.setHours(0, 0, 0, 0);
-    timeFrameType = 'monthly';
-
-    // 下次重置时间（下月1号0点）
-    nextResetTime = new Date(timeFrame);
-    nextResetTime.setMonth(nextResetTime.getMonth() + 1);
   } else {
-    // 其他订阅类型暂时按月费处理
-    limit = AI_USAGE_LIMITS.MONTHLY_SUBSCRIBER;
-    timeFrame = new Date();
-    timeFrame.setDate(1);
-    timeFrame.setHours(0, 0, 0, 0);
-    timeFrameType = 'monthly';
+    // 付费用户：根据产品ID确定计划等级
+    const planLevel = getPlanLevelFromPriceId(subscription.priceId);
 
-    // 下次重置时间（下月1号0点）
-    nextResetTime = new Date(timeFrame);
-    nextResetTime.setMonth(nextResetTime.getMonth() + 1);
+    if (planLevel === 'hobby') {
+      limit = AI_USAGE_LIMITS.HOBBY_USER_MONTHLY;
+      timeFrame = new Date();
+      timeFrame.setDate(1); // 本月开始时间
+      timeFrame.setHours(0, 0, 0, 0);
+      timeFrameType = 'monthly';
+
+      // 下次重置时间（下月1号0点）
+      nextResetTime = new Date(timeFrame);
+      nextResetTime.setMonth(nextResetTime.getMonth() + 1);
+    } else if (planLevel === 'professional') {
+      limit = AI_USAGE_LIMITS.PROFESSIONAL_USER_MONTHLY;
+      timeFrame = new Date();
+      timeFrame.setDate(1); // 本月开始时间
+      timeFrame.setHours(0, 0, 0, 0);
+      timeFrameType = 'monthly';
+
+      // 下次重置时间（下月1号0点）
+      nextResetTime = new Date(timeFrame);
+      nextResetTime.setMonth(nextResetTime.getMonth() + 1);
+    } else {
+      // 未知产品ID按免费限制处理
+      limit = AI_USAGE_LIMITS.FREE_USER_DAILY;
+      timeFrame = new Date();
+      timeFrame.setHours(0, 0, 0, 0);
+      timeFrameType = 'daily';
+      nextResetTime = new Date(timeFrame);
+      nextResetTime.setDate(nextResetTime.getDate() + 1);
+    }
   }
 
   // 查询用户在时间范围内的使用次数

@@ -14,6 +14,7 @@ import { Crown, Sparkles, Zap } from 'lucide-react';
 interface AIUsageLimitCardProps {
   usedCount: number;
   totalLimit: number;
+  currentPlan?: 'free' | 'hobby' | 'professional';
   onUpgrade: () => void;
   onLearnMore: () => void;
   className?: string;
@@ -22,10 +23,40 @@ interface AIUsageLimitCardProps {
 export function AIUsageLimitCard({
   usedCount,
   totalLimit,
+  currentPlan = 'free',
   onUpgrade,
   onLearnMore,
   className,
 }: AIUsageLimitCardProps) {
+  // 根据当前计划获取升级建议
+  const getUpgradeInfo = () => {
+    switch (currentPlan) {
+      case 'free':
+        return {
+          targetPlan: 'Hobby',
+          price: '$15/month',
+          features: [
+            '500 AI requests per month',
+            'Email support (24h response)',
+            'Save unlimited diagrams',
+          ],
+        };
+      case 'hobby':
+        return {
+          targetPlan: 'Professional',
+          price: '$25/month',
+          features: [
+            '1000 AI requests per month',
+            'Priority support + technical help',
+            'Commercial use license',
+          ],
+        };
+      case 'professional':
+        return null; // 已是最高级
+    }
+  };
+
+  const upgradeInfo = getUpgradeInfo();
   return (
     <Card
       className={`w-full max-w-md mx-auto border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 ${className}`}
@@ -47,36 +78,44 @@ export function AIUsageLimitCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="bg-white/60 rounded-lg p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Crown className="h-4 w-4 text-amber-600" />
-            <span className="font-medium text-gray-900">Upgrade to Pro</span>
-          </div>
+        {upgradeInfo && (
+          <div className="bg-white/60 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Crown className="h-4 w-4 text-amber-600" />
+              <span className="font-medium text-gray-900">
+                Upgrade to {upgradeInfo.targetPlan}
+              </span>
+            </div>
 
-          <div className="space-y-2 text-sm text-gray-700">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-3 w-3 text-blue-500" />
-              <span>500 AI requests per month</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-3 w-3 text-blue-500" />
-              <span>Priority AI response</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-3 w-3 text-blue-500" />
-              <span>Advanced flowchart features</span>
+            <div className="space-y-2 text-sm text-gray-700">
+              {upgradeInfo.features.map((feature, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Sparkles className="h-3 w-3 text-blue-500" />
+                  <span>{feature}</span>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-2">
-          <Button
-            onClick={onUpgrade}
-            className="w-full font-normal bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-          >
-            <Crown className="mr-2 h-4 w-4" />
-            Upgrade to Pro Now
-          </Button>
+          {upgradeInfo ? (
+            <Button
+              onClick={onUpgrade}
+              className="w-full font-normal bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            >
+              <Crown className="mr-2 h-4 w-4" />
+              Upgrade to {upgradeInfo.targetPlan} Now
+            </Button>
+          ) : (
+            <Button
+              onClick={onLearnMore}
+              className="w-full font-normal bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+            >
+              <Crown className="mr-2 h-4 w-4" />
+              You're on the highest plan!
+            </Button>
+          )}
 
           <Button
             variant="outline"
@@ -87,11 +126,13 @@ export function AIUsageLimitCard({
           </Button>
         </div>
 
-        <div className="text-center">
-          <Badge variant="secondary" className="font-normal text-xs">
-            💡 Start from just $9.9/month
-          </Badge>
-        </div>
+        {upgradeInfo && (
+          <div className="text-center">
+            <Badge variant="secondary" className="font-normal text-xs">
+              💡 Start from just {upgradeInfo.price}
+            </Badge>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

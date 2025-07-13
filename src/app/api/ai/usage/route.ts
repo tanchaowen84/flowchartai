@@ -1,4 +1,8 @@
-import { canUserUseAI, getUserAIUsageStats } from '@/lib/ai-usage';
+import {
+  canUserUseAI,
+  getUserAIUsageStats,
+  getUserPlanLevel,
+} from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
@@ -24,16 +28,18 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    // 获取使用量统计和限制信息
-    const [stats, limits] = await Promise.all([
+    // 获取使用量统计、限制信息和计划类型
+    const [stats, limits, planLevel] = await Promise.all([
       getUserAIUsageStats(userId),
       canUserUseAI(userId),
+      getUserPlanLevel(userId),
     ]);
 
     return new Response(
       JSON.stringify({
         stats,
         limits,
+        planLevel,
       }),
       {
         status: 200,

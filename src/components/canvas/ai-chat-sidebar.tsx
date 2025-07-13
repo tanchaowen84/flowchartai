@@ -1309,6 +1309,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             <AIUsageLimitCard
               usedCount={usageData.usedCount}
               totalLimit={usageData.totalLimit}
+              currentPlan={usageData.subscriptionStatus}
               onUpgrade={() => {
                 setShowUsageLimitCard(false);
                 setShowPricingModal(true);

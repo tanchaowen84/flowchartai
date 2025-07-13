@@ -7,7 +7,7 @@ interface AIUsageData {
   usedCount: number;
   totalLimit: number;
   isLimitReached: boolean;
-  subscriptionStatus: 'free' | 'monthly' | 'yearly' | 'lifetime';
+  subscriptionStatus: 'free' | 'hobby' | 'professional';
   timeFrame?: 'daily' | 'monthly';
   nextResetTime?: Date;
   reason?: string;
@@ -66,7 +66,7 @@ async function fetchUsageDataCore(userId: string): Promise<AIUsageData> {
           : 0,
         totalLimit: responseData.limits?.limit || 0,
         isLimitReached: !responseData.limits?.canUse,
-        subscriptionStatus: 'free', // 可以根据实际响应数据调整
+        subscriptionStatus: responseData.planLevel || 'free',
         timeFrame: responseData.limits?.timeFrame,
         nextResetTime: responseData.limits?.nextResetTime
           ? new Date(responseData.limits.nextResetTime)

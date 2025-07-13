@@ -302,6 +302,7 @@ export function FlowchartsDashboard() {
             <AIUsageLimitCard
               usedCount={usageData.usedCount}
               totalLimit={usageData.totalLimit}
+              currentPlan={usageData.subscriptionStatus}
               onUpgrade={() => {
                 setShowUsageLimitCard(false);
                 setShowPricingModal(true);

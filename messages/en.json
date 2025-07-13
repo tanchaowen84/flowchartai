@@ -74,10 +74,10 @@
       "name": "Hobby",
       "description": "Great for personal projects and learning",
       "features": {
-        "feature-1": "50 AI requests per month",
+        "feature-1": "500 AI requests per month",
         "feature-2": "All flowchart templates",
         "feature-3": "Export to multiple formats",
-        "feature-4": "Email support",
+        "feature-4": "Email support (24h response)",
         "feature-5": "Save unlimited diagrams"
       },
       "limits": {
@@ -89,11 +89,11 @@
       "name": "Professional",
       "description": "Unlimited AI power for professionals and teams",
       "features": {
-        "feature-1": "500 AI requests per month",
+        "feature-1": "1000 AI requests per month",
         "feature-2": "Priority AI processing",
         "feature-3": "Advanced flowchart templates",
         "feature-4": "Real-time collaboration",
-        "feature-5": "Priority support",
+        "feature-5": "Priority support (48h response + technical help)",
         "feature-6": "Custom branding",
         "feature-7": "Advanced integrations"
       },
