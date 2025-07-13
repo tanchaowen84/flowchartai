@@ -87,58 +87,47 @@ export const websiteConfig: WebsiteConfig = {
         isFree: true,
         isLifetime: false,
       },
-      // ========== Stripe Configuration (Commented Out) ==========
-      // pro: {
-      //   id: 'pro',
-      //   prices: [
-      //     {
-      //       type: PaymentTypes.SUBSCRIPTION,
-      //       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY!,
-      //       amount: 990,
-      //       currency: 'USD',
-      //       interval: PlanIntervals.MONTH,
-      //     },
-      //     {
-      //       type: PaymentTypes.SUBSCRIPTION,
-      //       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_YEARLY!,
-      //       amount: 9900,
-      //       currency: 'USD',
-      //       interval: PlanIntervals.YEAR,
-      //     },
-      //   ],
-      //   isFree: false,
-      //   isLifetime: false,
-      //   recommended: true,
-      // },
-      // lifetime: {
-      //   id: 'lifetime',
-      //   prices: [
-      //     {
-      //       type: PaymentTypes.ONE_TIME,
-      //       priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LIFETIME!,
-      //       amount: 19900,
-      //       currency: 'USD',
-      //     },
-      //   ],
-      //   isFree: false,
-      //   isLifetime: true,
-      // },
-
-      // ========== Creem Configuration ==========
-      pro: {
-        id: 'pro',
+      hobby: {
+        id: 'hobby',
         prices: [
           {
             type: PaymentTypes.SUBSCRIPTION,
-            priceId: process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_PRO_MONTHLY!,
-            amount: 990,
+            priceId:
+              process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_MONTHLY || '',
+            amount: 1500, // $15.00
             currency: 'USD',
             interval: PlanIntervals.MONTH,
           },
           {
             type: PaymentTypes.SUBSCRIPTION,
-            priceId: process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_PRO_YEARLY!,
-            amount: 9900,
+            priceId:
+              process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_YEARLY || '',
+            amount: 9600, // $96.00
+            currency: 'USD',
+            interval: PlanIntervals.YEAR,
+          },
+        ],
+        isFree: false,
+        isLifetime: false,
+      },
+      professional: {
+        id: 'professional',
+        prices: [
+          {
+            type: PaymentTypes.SUBSCRIPTION,
+            priceId:
+              process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_MONTHLY ||
+              '',
+            amount: 2500, // $25.00
+            currency: 'USD',
+            interval: PlanIntervals.MONTH,
+          },
+          {
+            type: PaymentTypes.SUBSCRIPTION,
+            priceId:
+              process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_YEARLY ||
+              '',
+            amount: 14400, // $144.00
             currency: 'USD',
             interval: PlanIntervals.YEAR,
           },
@@ -146,19 +135,6 @@ export const websiteConfig: WebsiteConfig = {
         isFree: false,
         isLifetime: false,
         recommended: true,
-      },
-      lifetime: {
-        id: 'lifetime',
-        prices: [
-          {
-            type: PaymentTypes.ONE_TIME,
-            priceId: process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_LIFETIME!,
-            amount: 19900,
-            currency: 'USD',
-          },
-        ],
-        isFree: false,
-        isLifetime: true,
       },
     },
   },

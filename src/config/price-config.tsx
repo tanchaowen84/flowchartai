@@ -41,37 +41,40 @@ export function getPricePlans(): Record<string, PricePlan> {
     };
   }
 
-  if (priceConfig.plans.pro) {
-    plans.pro = {
-      ...priceConfig.plans.pro,
-      name: t('pro.name'),
-      description: t('pro.description'),
+  if (priceConfig.plans.hobby) {
+    plans.hobby = {
+      ...priceConfig.plans.hobby,
+      name: t('hobby.name'),
+      description: t('hobby.description'),
       features: [
-        t('pro.features.feature-1'),
-        t('pro.features.feature-2'),
-        t('pro.features.feature-3'),
-        t('pro.features.feature-4'),
-        t('pro.features.feature-5'),
+        t('hobby.features.feature-1'),
+        t('hobby.features.feature-2'),
+        t('hobby.features.feature-3'),
+        t('hobby.features.feature-4'),
+        t('hobby.features.feature-5'),
       ],
-      limits: [t('pro.limits.limit-1'), t('pro.limits.limit-2')],
+      limits: [t('hobby.limits.limit-1'), t('hobby.limits.limit-2')],
     };
   }
 
-  if (priceConfig.plans.lifetime) {
-    plans.lifetime = {
-      ...priceConfig.plans.lifetime,
-      name: t('lifetime.name'),
-      description: t('lifetime.description'),
+  if (priceConfig.plans.professional) {
+    plans.professional = {
+      ...priceConfig.plans.professional,
+      name: t('professional.name'),
+      description: t('professional.description'),
       features: [
-        t('lifetime.features.feature-1'),
-        t('lifetime.features.feature-2'),
-        t('lifetime.features.feature-3'),
-        t('lifetime.features.feature-4'),
-        t('lifetime.features.feature-5'),
-        t('lifetime.features.feature-6'),
-        t('lifetime.features.feature-7'),
+        t('professional.features.feature-1'),
+        t('professional.features.feature-2'),
+        t('professional.features.feature-3'),
+        t('professional.features.feature-4'),
+        t('professional.features.feature-5'),
+        t('professional.features.feature-6'),
+        t('professional.features.feature-7'),
       ],
-      limits: [],
+      limits: [
+        t('professional.limits.limit-1'),
+        t('professional.limits.limit-2'),
+      ],
     };
   }
 

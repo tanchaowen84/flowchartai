@@ -59,7 +59,7 @@
       "name": "Free",
       "description": "Perfect for getting started with AI flowcharts",
       "features": {
-        "feature-1": "5 AI requests per month",
+        "feature-1": "1 AI request per day",
         "feature-2": "Basic flowchart templates",
         "feature-3": "Export to PNG/SVG",
         "feature-4": "Community support"
@@ -70,32 +70,36 @@
         "limit-3": "Standard support"
       }
     },
-    "pro": {
-      "name": "Pro",
-      "description": "Unlimited AI power for professionals",
+    "hobby": {
+      "name": "Hobby",
+      "description": "Great for personal projects and learning",
+      "features": {
+        "feature-1": "50 AI requests per month",
+        "feature-2": "All flowchart templates",
+        "feature-3": "Export to multiple formats",
+        "feature-4": "Email support",
+        "feature-5": "Save unlimited diagrams"
+      },
+      "limits": {
+        "limit-1": "Personal use only",
+        "limit-2": "Standard processing speed"
+      }
+    },
+    "professional": {
+      "name": "Professional",
+      "description": "Unlimited AI power for professionals and teams",
       "features": {
         "feature-1": "500 AI requests per month",
         "feature-2": "Priority AI processing",
         "feature-3": "Advanced flowchart templates",
         "feature-4": "Real-time collaboration",
-        "feature-5": "Priority support"
+        "feature-5": "Priority support",
+        "feature-6": "Custom branding",
+        "feature-7": "Advanced integrations"
       },
       "limits": {
-        "limit-1": "Advanced integrations",
-        "limit-2": "Custom branding"
-      }
-    },
-    "lifetime": {
-      "name": "Lifetime",
-      "description": "One-time payment for unlimited access",
-      "features": {
-        "feature-1": "Unlimited AI requests",
-        "feature-2": "All Pro features included",
-        "feature-3": "Advanced AI models",
-        "feature-4": "Custom integrations",
-        "feature-5": "White-label solution",
-        "feature-6": "Custom branding",
-        "feature-7": "Lifetime updates"
+        "limit-1": "Commercial use allowed",
+        "limit-2": "Team collaboration features"
       }
     }
   },
