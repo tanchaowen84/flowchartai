@@ -1,4 +1,10 @@
 import BackButtonSmall from '@/components/shared/back-button-small';
+import { constructMetadata } from '@/lib/metadata';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = constructMetadata({
+  noIndex: true,
+});
 
 /**
  * auth layout is different from other public layouts,

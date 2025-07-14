@@ -1,4 +1,10 @@
+import { constructMetadata } from '@/lib/metadata';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+
+export const metadata: Metadata = constructMetadata({
+  noIndex: true,
+});
 
 /**
  * Catching unknown routes

@@ -1,6 +1,12 @@
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { constructMetadata } from '@/lib/metadata';
+import type { Metadata } from 'next';
 import type { PropsWithChildren } from 'react';
+
+export const metadata: Metadata = constructMetadata({
+  noIndex: true,
+});
 
 /**
  * inspired by dashboard-01

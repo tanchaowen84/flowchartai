@@ -20,6 +20,7 @@ export async function generateMetadata({
     title: pt('title') + ' | ' + t('title'),
     description: t('description'),
     canonicalUrl: getUrlWithLocale('/auth/login', locale),
+    noIndex: true,
   });
 }
 

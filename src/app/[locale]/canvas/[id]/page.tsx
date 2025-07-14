@@ -25,5 +25,9 @@ export async function generateMetadata({ params }: EditFlowchartPageProps) {
   return {
     title: 'Edit Flowchart - FlowChart AI',
     description: 'Edit your flowchart with AI assistance',
+    robots: {
+      index: false,
+      follow: false,
+    },
   };
 }

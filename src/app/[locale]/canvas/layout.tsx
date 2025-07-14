@@ -17,6 +17,7 @@ export async function generateMetadata({
     title: `${t('title')} - FlowChart AI`,
     description: t('description'),
     canonicalUrl: getUrlWithLocale('/canvas', locale),
+    noIndex: true,
   });
 }
 
