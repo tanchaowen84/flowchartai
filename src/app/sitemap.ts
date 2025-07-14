@@ -2,7 +2,6 @@ import { websiteConfig } from '@/config/website';
 import { getLocalePathname } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { source } from '@/lib/docs/source';
-import { allCategories, allPosts } from 'content-collections';
 import type { MetadataRoute } from 'next';
 import type { Locale } from 'next-intl';
 import { getBaseUrl } from '../lib/urls/urls';
@@ -16,15 +15,12 @@ function getEnabledStaticRoutes(): string[] {
   const baseRoutes = [
     '/',
     '/pricing',
-    '/blog',
     '/about',
     '/contact',
     '/changelog',
     '/privacy',
     '/terms',
     '/cookie',
-    '/auth/login',
-    '/auth/register',
   ];
 
   // 条件性添加页面路由
@@ -54,98 +50,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 使用动态路由列表
   const staticRoutes = getEnabledStaticRoutes();
 
-  // add static routes
+  // add static routes with different priorities
   sitemapList.push(
     ...staticRoutes.flatMap((route) => {
+      // Set different priorities based on page importance
+      let priority = 0.8; // default priority
+      let changeFrequency: 'daily' | 'weekly' | 'monthly' = 'weekly';
+
+      if (route === '/') {
+        priority = 1.0; // highest priority for homepage
+        changeFrequency = 'daily';
+      } else if (route === '/pricing') {
+        priority = 0.9; // high priority for key pages
+        changeFrequency = 'weekly';
+      } else if (route === '/about' || route === '/contact') {
+        priority = 0.7; // medium priority for info pages
+        changeFrequency = 'monthly';
+      } else if (
+        route.includes('/privacy') ||
+        route.includes('/terms') ||
+        route.includes('/cookie')
+      ) {
+        priority = 0.5; // lower priority for legal pages
+        changeFrequency = 'monthly';
+      }
+
       return routing.locales.map((locale) => ({
         url: getUrl(route, locale),
         lastModified: new Date(),
-        priority: 1,
-        changeFrequency: 'weekly' as const,
+        priority,
+        changeFrequency,
       }));
     })
-  );
-
-  // add categories
-  sitemapList.push(
-    ...allCategories.flatMap((category: { slug: string }) =>
-      routing.locales.map((locale) => ({
-        url: getUrl(`/blog/category/${category.slug}`, locale),
-        lastModified: new Date(),
-        priority: 0.8,
-        changeFrequency: 'weekly' as const,
-      }))
-    )
-  );
-
-  // add paginated blog list pages
-  routing.locales.forEach((locale) => {
-    const posts = allPosts.filter(
-      (post) => post.locale === locale && post.published
-    );
-    const totalPages = Math.max(
-      1,
-      Math.ceil(posts.length / websiteConfig.blog.paginationSize)
-    );
-    // /blog/page/[page] (from 2)
-    for (let page = 2; page <= totalPages; page++) {
-      sitemapList.push({
-        url: getUrl(`/blog/page/${page}`, locale),
-        lastModified: new Date(),
-        priority: 0.8,
-        changeFrequency: 'weekly' as const,
-      });
-    }
-  });
-
-  // add paginated category pages
-  routing.locales.forEach((locale) => {
-    const localeCategories = allCategories.filter(
-      (category) => category.locale === locale
-    );
-    localeCategories.forEach((category) => {
-      // posts in this category and locale
-      const postsInCategory = allPosts.filter(
-        (post) =>
-          post.locale === locale &&
-          post.published &&
-          post.categories.some((cat) => cat && cat.slug === category.slug)
-      );
-      const totalPages = Math.max(
-        1,
-        Math.ceil(postsInCategory.length / websiteConfig.blog.paginationSize)
-      );
-      // /blog/category/[slug] (first page)
-      sitemapList.push({
-        url: getUrl(`/blog/category/${category.slug}`, locale),
-        lastModified: new Date(),
-        priority: 0.8,
-        changeFrequency: 'weekly' as const,
-      });
-      // /blog/category/[slug]/page/[page] (from 2)
-      for (let page = 2; page <= totalPages; page++) {
-        sitemapList.push({
-          url: getUrl(`/blog/category/${category.slug}/page/${page}`, locale),
-          lastModified: new Date(),
-          priority: 0.8,
-          changeFrequency: 'weekly' as const,
-        });
-      }
-    });
-  });
-
-  // add posts (single post pages)
-  sitemapList.push(
-    ...allPosts.flatMap((post: { slugAsParams: string; locale: string }) =>
-      routing.locales
-        .filter((locale) => post.locale === locale)
-        .map((locale) => ({
-          url: getUrl(`/blog/${post.slugAsParams}`, locale),
-          lastModified: new Date(),
-          priority: 0.8,
-          changeFrequency: 'weekly' as const,
-        }))
-    )
   );
 
   // 条件性添加docs页面
