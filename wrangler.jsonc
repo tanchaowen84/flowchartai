@@ -41,6 +41,7 @@
     "NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_YEARLY": "",
     "DISABLE_IMAGE_OPTIMIZATION": "true",
     "NEXT_PUBLIC_DEMO_WEBSITE": "false",
-    "STORAGE_PUBLIC_URL": "https://cdn.flowchartai.org"
+    "STORAGE_PUBLIC_URL": "https://cdn.flowchartai.org",
+    "NEXT_PUBLIC_CLARITY_PROJECT_ID": "sf2f9w0hge"
   }
 }
