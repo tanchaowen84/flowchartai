@@ -146,7 +146,7 @@ export async function POST(req: Request) {
 
     // 3. 验证请求数据
     const body = await req.json();
-    const { messages, model = 'google/gemini-2.5-flash-preview-05-20' } = body;
+    const { messages, model = 'google/gemini-2.5-flash' } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -337,7 +337,7 @@ export async function POST(req: Request) {
       try {
         await recordAIUsage(userId, 'flowchart_generation', {
           tokensUsed: 0,
-          model: 'google/gemini-2.5-flash-preview-05-20',
+          model: 'google/gemini-2.5-flash',
           success: false,
           errorMessage: error.message,
           metadata: {},
