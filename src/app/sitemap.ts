@@ -2,6 +2,7 @@ import { websiteConfig } from '@/config/website';
 import { getLocalePathname } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { source } from '@/lib/docs/source';
+import { allPosts } from 'content-collections';
 import type { MetadataRoute } from 'next';
 import type { Locale } from 'next-intl';
 import { getBaseUrl } from '../lib/urls/urls';
@@ -21,6 +22,7 @@ function getEnabledStaticRoutes(): string[] {
     '/privacy',
     '/terms',
     '/cookie',
+    '/blog', // 添加博客主页
   ];
 
   // 条件性添加页面路由
@@ -63,6 +65,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       } else if (route === '/pricing') {
         priority = 0.9; // high priority for key pages
         changeFrequency = 'weekly';
+      } else if (route === '/blog') {
+        priority = 0.8; // high priority for blog main page
+        changeFrequency = 'daily';
       } else if (route === '/about' || route === '/contact') {
         priority = 0.7; // medium priority for info pages
         changeFrequency = 'monthly';
@@ -93,6 +98,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           url: getUrl(`/docs/${param.slug.join('/')}`, locale),
           lastModified: new Date(),
           priority: 0.8,
+          changeFrequency: 'weekly' as const,
+        }))
+      )
+    );
+  }
+
+  // 添加博客文章页面
+  const publishedPosts = allPosts.filter((post) => post.published);
+  if (publishedPosts.length > 0) {
+    sitemapList.push(
+      ...publishedPosts.flatMap((post) =>
+        routing.locales.map((locale) => ({
+          url: getUrl(`/blog/${post.slug}`, locale),
+          lastModified: new Date(post.date),
+          priority: 0.7,
           changeFrequency: 'weekly' as const,
         }))
       )
