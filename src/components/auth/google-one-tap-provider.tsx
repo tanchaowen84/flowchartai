@@ -41,10 +41,13 @@ export const GoogleOneTapProvider = ({
 
         await authClient.oneTap({
           fetchOptions: {
-            onSuccess: (context) => {
+            onSuccess: async (context) => {
               console.log('✅ Google One Tap login successful!', context);
-              // 使用router进行客户端导航，避免硬刷新
-              router.push('/dashboard');
+
+              // 重要：登录成功后需要刷新页面以更新session状态
+              // 因为Better Auth的session需要通过页面刷新来同步客户端状态
+              console.log('🔄 Refreshing page to sync session...');
+              window.location.href = '/dashboard';
             },
             onError: (context) => {
               console.error('❌ Google One Tap login error:', context);
