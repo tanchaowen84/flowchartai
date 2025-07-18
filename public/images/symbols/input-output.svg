@@ -1,0 +1,5 @@
+<svg width="120" height="60" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Input/Output Symbol (Parallelogram) -->
+  <polygon points="20,15 110,15 100,45 10,45" fill="#8b5cf6" stroke="#7c3aed" stroke-width="2"/>
+  <text x="60" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Input/Output</text>
+</svg>

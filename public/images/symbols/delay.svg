@@ -1,0 +1,5 @@
+<svg width="120" height="60" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Delay Symbol (D-shape) -->
+  <path d="M20,15 Q70,15 70,30 Q70,45 20,45 L20,15 Z" fill="#ec4899" stroke="#db2777" stroke-width="2"/>
+  <text x="45" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Delay</text>
+</svg>

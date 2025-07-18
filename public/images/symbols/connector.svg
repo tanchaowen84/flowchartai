@@ -1,0 +1,5 @@
+<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Connector Symbol (Circle) -->
+  <circle cx="30" cy="30" r="25" fill="#ef4444" stroke="#dc2626" stroke-width="2"/>
+  <text x="30" y="37" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">A</text>
+</svg>

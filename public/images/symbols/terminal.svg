@@ -1,0 +1,5 @@
+<svg width="120" height="60" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Terminal Symbol (Oval) -->
+  <ellipse cx="60" cy="30" rx="50" ry="25" fill="#10b981" stroke="#059669" stroke-width="2"/>
+  <text x="60" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Start/End</text>
+</svg>

@@ -1,0 +1,5 @@
+<svg width="120" height="80" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Document Symbol -->
+  <path d="M20,10 L100,10 L100,55 Q100,65 90,65 Q80,60 70,65 Q60,60 50,65 Q40,60 30,65 Q20,60 20,55 Z" fill="#06b6d4" stroke="#0891b2" stroke-width="2"/>
+  <text x="60" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Document</text>
+</svg>

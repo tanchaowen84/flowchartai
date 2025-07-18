@@ -1,0 +1,7 @@
+<svg width="120" height="60" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Predefined Process Symbol (Rectangle with double lines) -->
+  <rect x="10" y="15" width="100" height="30" rx="3" fill="#6366f1" stroke="#4f46e5" stroke-width="2"/>
+  <line x1="20" y1="15" x2="20" y2="45" stroke="#4f46e5" stroke-width="2"/>
+  <line x1="100" y1="15" x2="100" y2="45" stroke="#4f46e5" stroke-width="2"/>
+  <text x="60" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Subprocess</text>
+</svg>

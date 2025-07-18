@@ -1,0 +1,10 @@
+<svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+  <!-- Flow Line (Arrow) -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#374151"/>
+    </marker>
+  </defs>
+  <line x1="10" y1="20" x2="100" y2="20" stroke="#374151" stroke-width="3" marker-end="url(#arrowhead)"/>
+  <text x="55" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#374151">Flow Direction</text>
+</svg>

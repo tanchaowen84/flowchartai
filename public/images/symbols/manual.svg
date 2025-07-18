@@ -1,0 +1,5 @@
+<svg width="120" height="60" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Manual Operation Symbol (Inverted Trapezoid) -->
+  <polygon points="30,15 90,15 100,45 20,45" fill="#f97316" stroke="#ea580c" stroke-width="2"/>
+  <text x="60" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Manual</text>
+</svg>

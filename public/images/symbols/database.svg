@@ -1,0 +1,9 @@
+<svg width="120" height="80" viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Database Symbol (Cylinder) -->
+  <ellipse cx="60" cy="15" rx="40" ry="10" fill="#84cc16" stroke="#65a30d" stroke-width="2"/>
+  <rect x="20" y="15" width="80" height="50" fill="#84cc16" stroke="none"/>
+  <ellipse cx="60" cy="65" rx="40" ry="10" fill="#84cc16" stroke="#65a30d" stroke-width="2"/>
+  <line x1="20" y1="15" x2="20" y2="65" stroke="#65a30d" stroke-width="2"/>
+  <line x1="100" y1="15" x2="100" y2="65" stroke="#65a30d" stroke-width="2"/>
+  <text x="60" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Database</text>
+</svg>

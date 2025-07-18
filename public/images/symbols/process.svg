@@ -1,0 +1,5 @@
+<svg width="120" height="60" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Process Symbol (Rectangle) -->
+  <rect x="10" y="15" width="100" height="30" rx="3" fill="#3b82f6" stroke="#2563eb" stroke-width="2"/>
+  <text x="60" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Process</text>
+</svg>

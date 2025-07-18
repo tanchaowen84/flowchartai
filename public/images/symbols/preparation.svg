@@ -1,0 +1,5 @@
+<svg width="120" height="70" viewBox="0 0 120 70" xmlns="http://www.w3.org/2000/svg">
+  <!-- Preparation Symbol (Hexagon) -->
+  <polygon points="30,35 45,15 75,15 90,35 75,55 45,55" fill="#a855f7" stroke="#9333ea" stroke-width="2"/>
+  <text x="60" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Preparation</text>
+</svg>
