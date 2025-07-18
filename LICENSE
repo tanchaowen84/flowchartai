@@ -1,41 +1,21 @@
-MkSaaS License
+MIT License
 
-Personal, Team, or Organization License
+Copyright (c) 2025 FlowChart AI
 
-MkSaaS grants you an ongoing, non-exclusive license to use the software components and templates included in the SaaS Starter Kit.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-The license permits usage by a single individual, team, or organization (the Licensee) and does not transfer to additional individuals, teams, or organizations without explicit permission.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-You can:
-
-- Use MkSaaS to create unlimited end products.
-- Modify MkSaaS components to create derivative works, subject to this license.
-- Use MkSaaS to create projects for unlimited clients.
-- Use MkSaaS to create end products sold to end users.
-- Use MkSaaS to build and run SaaS applications where end users interact with your end product.
-
-You cannot:
-
-- Redistribute MkSaaS’s components or templates, even if modified, separately from an end product.
-- Share your access to MkSaaS with anyone outside your team or organization without explicit permission.
-- Use MkSaaS to create products that compete with MkSaaS or provide a SaaS starter kit in conflict with MkSaaS’s business.
-
-Example Usage
-
-Examples of permitted usage:
-
-- Creating personal, team, or organizational websites or applications.
-- Building commercial SaaS applications or web apps for clients.
-
-Examples of prohibited usage:
-
-- Creating a repository of MkSaaS (components) and sharing or selling it.
-- Making a derivative product (e.g. starter kit) and offering it for sale or free.
-
-Enforcement and Liability
-
-MkSaaS reserves the right to revoke licenses in case of a material breach of this agreement. The liability of MkSaaS is limited to the refund of the license fee. This agreement is governed by the laws of Switzerland.
-
-Questions?
-
-Unsure if your use case is covered by the license? Email us at support@MkSaaS.com with your questions.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

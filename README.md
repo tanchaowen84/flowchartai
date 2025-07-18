@@ -1,309 +1,431 @@
-# FlowChart AI
+<div align="center">
+  <img src="public/logo.png" alt="FlowChart AI Logo" width="120" height="120">
 
-Create beautiful flowcharts with AI assistance.
+  # FlowChart AI
 
-An AI-powered flowchart generator built with Next.js, featuring Excalidraw canvas integration, AI assistance, and collaborative editing capabilities.
+  **Transform Ideas into Professional Flowcharts with AI**
 
-## Recent Updates (Latest)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38bdf8)](https://tailwindcss.com/)
 
-### FlowChart AI Integration (2024-12-19)
-- ✅ Integrated Excalidraw canvas for flowchart creation
-- ✅ Created dedicated canvas page at `/canvas`
-- ✅ Updated hero section to redirect to canvas
-- ✅ Modified branding from MkSaaS to FlowChart AI
-- ✅ Added full-screen canvas layout
-- ✅ Implemented immersive canvas experience (no header/footer)
-- ✅ Optimized for pure drawing focus and user engagement
-- ✅ Prepared foundation for AI integration (coming soon)
+  [🌐 Live Demo](https://flowchartai.org) • [📖 Documentation](#documentation) • [🚀 Self-Host](#self-hosting-guide) • [💬 Discord](https://discord.gg/Pfdyhqqu)
+</div>
 
-## Original MkSaaS Template
+---
 
-This project is built on the MkSaaS template foundation.
+## 🎯 What is FlowChart AI?
 
-Make AI SaaS in a weekend.
+FlowChart AI is an **open-source, AI-powered flowchart generator** that transforms natural language descriptions into professional, editable diagrams. Built with modern web technologies, it combines the power of AI with an intuitive drag-and-drop interface to make flowchart creation effortless.
 
-The complete Next.js boilerplate for building profitable SaaS, with auth, payments, i18n, newsletter, dashboard, blog, docs, blocks, themes, SEO and more.
+### ✨ Key Features
 
-## Author
+- **🤖 AI-Powered Generation**: Describe your process in plain language, get a professional flowchart instantly
+- **🎨 Interactive Canvas**: Built on Excalidraw for smooth, collaborative editing experience
+- **💾 Personal Workspace**: Save, organize, and manage all your diagrams in one place
+- **🔄 Version Control**: Track changes and manage diagram versions
+- **📤 Multiple Export Formats**: Export to Excalidraw, PNG, SVG, and PDF (coming soon)
+- **🌍 Multi-language Support**: Create flowcharts in any language you're comfortable with
+- **📱 Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **🔒 Privacy-First**: Self-hostable with complete data control
 
-This project is created by [Fox](https://x.com/indie_maker_fox), the founder of [MkSaaS](https://mksaas.com) and [Mkdirs](https://mkdirs.com). The official X account for [MkSaaS](https://mksaas.com) is [@mksaascom](https://x.com/mksaascom), you can follow this account for the updates about MkSaaS.
+### 🎬 See It In Action
 
-## Documentation
+![FlowChart AI Demo](https://cdn.flowchartai.org/static/demo.mp4)
 
-The documentation is available on the [website](https://mksaas.com/docs). It includes guides, tutorials, and detailed explanations of the code. I designed it to be as beginner-friendly as possible, so you can start making money from day one.
+*From idea to flowchart in seconds - no design skills required*
 
-If you found anything that could be improved, please let me know.
+## 🚀 Quick Start
 
-## Links
+### Option 1: Use Our Hosted Version
+Visit [flowchartai.org](https://flowchartai.org) and start creating flowcharts immediately. Free tier includes 1 AI generation per day.
 
-- 🔥 website: [mksaas.com](https://mksaas.com)
-- 🌐 demo: [demo.mksaas.com](https://demo.mksaas.com)
-- 📚 documentation: [mksaas.com/docs](https://mksaas.com/docs)
-- 🗓️ roadmap: [mksaas roadmap](https://mksaas.link/roadmap)
-- 👨‍💻 discord: [mksaas.link/discord](https://mksaas.link/discord)
-- 📹 video (WIP): [mksaas.link/youtube](https://mksaas.link/youtube)
+### Option 2: Self-Host (Recommended for Privacy)
+Follow our [Self-Hosting Guide](#self-hosting-guide) below to run FlowChart AI on your own infrastructure.
 
-## Repositories
+## 🛠️ Technology Stack
 
-By default, you should have access to all four repositories. If you find that you're unable to access any of them, please don't hesitate to reach out to me, and I'll assist you in resolving the issue.
+FlowChart AI is built with modern, production-ready technologies:
 
-- [mksaas-template (ready)](https://github.com/MkSaaSHQ/mksaas-template): https://demo.mksaas.com
-- [mksaas-blog (ready)](https://github.com/MkSaaSHQ/mksaas-blog): https://mksaas.me
-- [mksaas-haitang (ready)](https://github.com/MkSaaSHQ/mksaas-haitang): https://haitang.app
-- [mksaas-app (WIP)](https://github.com/MkSaaSHQ/mksaas-app): https://mksaas.app
+- **Frontend**: Next.js 15, React 19, TypeScript 5
+- **Styling**: Tailwind CSS 4, Radix UI components
+- **Canvas**: Excalidraw integration with Mermaid support
+- **AI**: OpenRouter API (supports multiple AI models)
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Better Auth (Google, GitHub OAuth)
+- **Payments**: Creem integration for subscriptions
+- **Storage**: Cloudflare R2 / AWS S3 compatible
+- **Deployment**: Vercel, Cloudflare Workers, or self-hosted
 
-## Notice
+## 🎯 Use Cases
 
-> If you have any questions, please [submit an issue](https://github.com/MkSaaSHQ/mksaas-template/issues/new), or contact me at [support@mksaas.com](mailto:support@mksaas.com).
+FlowChart AI is perfect for:
 
-> If you want to receive notifications whenever code changes, please click `Watch` button in the top right.
+- **📊 Business Process Mapping**: Document workflows, decision trees, and operational procedures
+- **💻 Software Architecture**: Design system flows, API integrations, and database relationships
+- **📚 Education & Training**: Create learning materials, concept maps, and curriculum flows
+- **🚀 Startup Planning**: Visualize business models, user journeys, and go-to-market strategies
+- **📋 Project Management**: Plan project timelines, resource allocation, and team workflows
+- **🔬 Research & Analysis**: Map out research processes, data flows, and analytical frameworks
 
-> When submitting any content to the issues or discussions of the repository, please use **English** as the main Language, so that everyone can read it and help you, thank you for your supports.
+## 🏠 Self-Hosting Guide
 
-## License
+### Prerequisites
 
-For any details on the license, please refer to the [License](LICENSE) file.
+Before you begin, ensure you have:
 
-# Feature Toggle Control System
+- **Node.js 18+** and **pnpm** installed
+- **PostgreSQL database** (local or cloud)
+- **OpenRouter API key** for AI functionality
+- **Google/GitHub OAuth apps** for authentication
+- **Cloudflare R2** or **AWS S3** for file storage (optional)
 
-## Implementation (2025-06-16)
+### 1. Clone and Install
 
-### 1. Configuration-Based Feature Control
-- ✅ Added `enableDocsPage` feature toggle in `src/config/website.tsx`
-- ✅ Added `enableAIPages` feature toggle in `src/config/website.tsx`
-- ✅ Added `enableMagicUIPage` feature toggle in `src/config/website.tsx`
-- ✅ Added `enableBlocksPages` feature toggle in `src/config/website.tsx`
-- ✅ Extended `FeaturesConfig` type definition in `src/types/index.d.ts`
-- ✅ Set docs page to disabled by default (`enableDocsPage: false`)
-- ✅ Set AI pages to disabled by default (`enableAIPages: false`)
-- ✅ Set MagicUI page to disabled by default (`enableMagicUIPage: false`)
-- ✅ Set blocks pages to disabled by default (`enableBlocksPages: false`)
+```bash
+# Clone the repository
+git clone https://github.com/tanchaowen84/flowchartai.git
+cd flowchartai
 
-### 2. Route-Level Control
-- ✅ Implemented `notFound()` check in `src/app/[locale]/docs/layout.tsx`
-- ✅ Implemented `notFound()` check in `src/app/[locale]/(marketing)/ai/layout.tsx`
-- ✅ Implemented `notFound()` check in `src/app/[locale]/(marketing)/(pages)/magicui/page.tsx`
-- ✅ Implemented `notFound()` check in `src/app/[locale]/(marketing)/blocks/[category]/layout.tsx`
-- ✅ Docs pages return standard 404 when feature is disabled
-- ✅ AI pages return standard 404 when feature is disabled
-- ✅ MagicUI page returns standard 404 when feature is disabled
-- ✅ Blocks pages return standard 404 when feature is disabled
-- ✅ SEO-friendly approach - pages truly "don't exist" when disabled
+# Install dependencies
+pnpm install
+```
 
-### 3. Navigation Control
-- ✅ Modified `src/config/navbar-config.tsx` for conditional docs link display
-- ✅ AI navigation links already commented out in navbar
-- ✅ MagicUI navigation links already commented out in navbar (in blocks menu)
-- ✅ Blocks navigation links already commented out in navbar
-- ✅ Modified `src/config/footer-config.tsx` for conditional docs link in footer
-- ✅ No AI links found in footer (confirmed clean)
-- ✅ No MagicUI links found in footer (confirmed clean)
-- ✅ No blocks links found in footer (confirmed clean)
-- ✅ Links only appear when respective features are enabled
+### 2. Environment Setup
 
-### 4. SEO and Sitemap Control
-- ✅ Updated `src/app/sitemap.ts` with dynamic route generation
-- ✅ Docs pages excluded from sitemap when feature is disabled
-- ✅ AI pages excluded from sitemap when feature is disabled
-- ✅ MagicUI page excluded from sitemap when feature is disabled
-- ✅ Blocks pages excluded from sitemap when feature is disabled
-- ✅ Search engines won't discover disabled pages
+```bash
+# Copy environment template
+cp .env.local.example .env.local
+```
 
-### 5. Technical Implementation
-- **Dual Control Strategy**: Route-level blocking + Link-level hiding
-- **Zero Code Deletion**: All page files remain intact
-- **Configuration Driven**: Single toggle controls entire feature
-- **SEO Optimized**: No 404 errors affecting search rankings
+Edit `.env.local` with your configuration:
 
-### 6. Current Status
-- 🔒 **Docs Feature**: DISABLED (`enableDocsPage: false`)
-  - ❌ Navigation links hidden
-  - ❌ Footer links hidden  
-  - ❌ Direct access returns 404
-  - ❌ Excluded from sitemap
-  - ✅ Code files preserved
+```env
+# Database (Required)
+DATABASE_URL="postgresql://username:password@localhost:5432/flowchartai"
 
-- 🔒 **AI Features**: DISABLED (`enableAIPages: false`)
-  - ❌ Navigation links hidden (already commented)
-  - ❌ Direct access to /ai/* returns 404
-  - ❌ Excluded from sitemap
-  - ✅ Code files preserved
-  - ✅ Covers all AI pages: text, image, video, audio
+# Authentication (Required)
+BETTER_AUTH_SECRET="your-random-secret-key"
+GOOGLE_CLIENT_ID="your-google-oauth-client-id"
+GOOGLE_CLIENT_SECRET="your-google-oauth-client-secret"
 
-- 🔒 **MagicUI Feature**: DISABLED (`enableMagicUIPage: false`)
-  - ❌ Navigation links hidden (already commented)
-  - ❌ Direct access to /magicui returns 404
-  - ❌ Excluded from sitemap
-  - ✅ Code files preserved
-  - ✅ Single showcase page with multiple UI components
+# AI Service (Required)
+OPENROUTER_API_KEY="your-openrouter-api-key"
 
-- 🔒 **Blocks Features**: DISABLED (`enableBlocksPages: false`)
-  - ❌ Navigation links hidden (already commented)
-  - ❌ Direct access to /blocks/* returns 404
-  - ❌ Excluded from sitemap
-  - ✅ Code files preserved
-  - ✅ Covers all blocks categories: hero-section, features, pricing, testimonials, etc.
+# Storage (Optional - for file uploads)
+STORAGE_REGION="auto"
+STORAGE_ENDPOINT="https://your-account.r2.cloudflarestorage.com"
+STORAGE_ACCESS_KEY_ID="your-r2-access-key"
+STORAGE_SECRET_ACCESS_KEY="your-r2-secret-key"
+STORAGE_BUCKET_NAME="flowchart-ai"
+STORAGE_PUBLIC_URL="https://cdn.yourdomain.com"
 
-### 7. Usage
-To enable docs feature:
+# Email (Optional - for notifications)
+RESEND_API_KEY="your-resend-api-key"
+
+# Base URL
+NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+```
+
+### 3. Database Setup
+
+```bash
+# Generate database schema
+pnpm db:generate
+
+# Run migrations
+pnpm db:migrate
+
+# (Optional) Open database studio
+pnpm db:studio
+```
+
+### 4. Configure Services
+
+#### OpenRouter API (Required for AI)
+1. Sign up at [OpenRouter](https://openrouter.ai/)
+2. Create an API key
+3. Add to `OPENROUTER_API_KEY` in `.env.local`
+
+#### Google OAuth (Required for Authentication)
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials
+5. Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
+6. Add client ID and secret to `.env.local`
+
+#### Cloudflare R2 (Optional for File Storage)
+1. Create R2 bucket in Cloudflare dashboard
+2. Generate R2 API tokens
+3. Configure custom domain for public access
+4. Add credentials to `.env.local`
+
+### 5. Run Development Server
+
+```bash
+# Start development server
+pnpm dev
+```
+
+Visit `http://localhost:3000` to see your FlowChart AI instance!
+
+### 6. Production Deployment
+
+#### Deploy to Vercel (Recommended)
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
+
+# Set environment variables in Vercel dashboard
+# Configure custom domain (optional)
+```
+
+#### Deploy to Your Own Server
+
+```bash
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+### 7. Configuration Options
+
+#### Subscription Plans (Optional)
+If you want to offer paid plans, configure Creem:
+
+```env
+# Creem Payment (Optional)
+CREEM_API_KEY="your-creem-api-key"
+CREEM_API_URL="https://api.creem.io"
+CREEM_WEBHOOK_SECRET="your-webhook-secret"
+
+# Product IDs for different plans
+NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_MONTHLY="prod_xxx"
+NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_YEARLY="prod_xxx"
+NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_MONTHLY="prod_xxx"
+NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_YEARLY="prod_xxx"
+```
+
+#### Feature Toggles
+Customize which features are enabled in `src/config/website.tsx`:
+
 ```typescript
-// src/config/website.tsx
 features: {
-  enableDocsPage: true,  // Enable docs functionality
+  enableDocsPage: false,        // Documentation pages
+  enableAIPages: false,         // AI showcase pages
+  enableUpgradeCard: true,      // Upgrade prompts
+  enableDiscordWidget: false,   // Discord integration
 }
 ```
 
-To enable AI features:
+## 🔧 Customization
+
+### Branding
+- Replace `public/logo.png` with your logo
+- Update `src/config/website.tsx` for site metadata
+- Modify `messages/en.json` for text content
+
+### AI Models
+FlowChart AI supports multiple AI providers through OpenRouter:
+- Google Gemini (default)
+- OpenAI GPT models
+- Anthropic Claude
+- And many more
+
+Change the model in `src/app/api/ai/chat/flowchart/route.ts`:
+
 ```typescript
-// src/config/website.tsx
-features: {
-  enableAIPages: true,   // Enable AI functionality
-}
+const model = 'google/gemini-2.5-flash'; // Change to your preferred model
 ```
 
-To enable MagicUI feature:
+### Styling
+- Built with Tailwind CSS 4
+- Customize themes in `tailwind.config.js`
+- Component styles in `src/components/ui/`
+
+## 📊 Usage Limits
+
+### Free Tier (Self-Hosted)
+- **Unlimited** flowchart creation and editing
+- **1 AI generation per day** per user (configurable)
+- **Unlimited** exports and sharing
+
+### Paid Tiers (If Enabled)
+- **Hobby**: 500 AI generations/month
+- **Professional**: 1000 AI generations/month
+
+Limits are configurable in `src/lib/ai-usage.ts`:
+
 ```typescript
-// src/config/website.tsx
-features: {
-  enableMagicUIPage: true,   // Enable MagicUI functionality
-}
+export const AI_USAGE_LIMITS = {
+  FREE_USER_DAILY: 1,           // Change daily limit
+  HOBBY_USER_MONTHLY: 500,      // Change hobby limit
+  PROFESSIONAL_USER_MONTHLY: 1000, // Change pro limit
+} as const;
 ```
 
-To enable blocks features:
-```typescript
-// src/config/website.tsx
-features: {
-  enableBlocksPages: true,   // Enable blocks functionality
-}
+## 🤝 Contributing
+
+We welcome contributions from the community! Here's how you can help:
+
+### Ways to Contribute
+
+- 🐛 **Report Bugs**: [Open an issue](https://github.com/tanchaowen84/flowchartai/issues) with detailed reproduction steps
+- 💡 **Feature Requests**: Share your ideas for new features or improvements
+- 🔧 **Code Contributions**: Submit pull requests for bug fixes or new features
+- 📖 **Documentation**: Help improve our documentation and guides
+- 🌍 **Translations**: Add support for new languages
+
+### Development Setup
+
+```bash
+# Fork the repository and clone your fork
+git clone https://github.com/YOUR_USERNAME/flowchartai.git
+cd flowchartai
+
+# Install dependencies
+pnpm install
+
+# Create a feature branch
+git checkout -b feature/your-feature-name
+
+# Make your changes and test thoroughly
+pnpm dev
+
+# Commit your changes
+git commit -m "feat: add your feature description"
+
+# Push to your fork and create a pull request
+git push origin feature/your-feature-name
 ```
 
-To disable features:
-```typescript
-// src/config/website.tsx
-features: {
-  enableDocsPage: false, // Disable docs functionality
-  enableAIPages: false,  // Disable AI functionality
-  enableMagicUIPage: false,  // Disable MagicUI functionality
-  enableBlocksPages: false,  // Disable blocks functionality
-}
+### Code Style
+
+- Use **TypeScript** for all new code
+- Follow **ESLint** and **Prettier** configurations
+- Write **meaningful commit messages** following conventional commits
+- Add **JSDoc comments** for public functions
+- Ensure **responsive design** for UI changes
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### Database Connection Issues
+```bash
+# Check if PostgreSQL is running
+pg_isready
+
+# Verify connection string format
+DATABASE_URL="postgresql://username:password@host:port/database"
 ```
 
-This system can be extended to control any page or feature in the template while maintaining code integrity and providing excellent SEO performance.
+#### AI Generation Not Working
+- Verify OpenRouter API key is valid
+- Check API quota and billing status
+- Ensure model is available (try `google/gemini-2.5-flash`)
 
-# Creem Payment Integration Updates
+#### Authentication Issues
+- Verify OAuth redirect URIs match exactly
+- Check client ID and secret are correct
+- Ensure OAuth apps are enabled and published
 
-## Recent Fixes (2025-06-14)
+#### Build Errors
+```bash
+# Clear Next.js cache
+rm -rf .next
 
-### 1. Customer Portal Implementation
-- ✅ Fixed Creem customer portal API response parsing
-- ✅ Changed from `data.url` to `data.customer_portal_link` to match Creem API
-- ✅ Enhanced debugging for portal creation process
+# Clear node modules and reinstall
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 
-### 2. Webhook Processing Improvements  
-- ✅ Added comprehensive webhook debugging
-- ✅ Enhanced signature verification with detailed logging
-- ✅ Added handling for empty webhook bodies (common with ngrok/proxy setups)
-- ✅ Improved error categorization and logging
+# Regenerate database types
+pnpm db:generate
+```
 
-### 3. Technical Details
-- **Customer Portal**: Creem API returns `{"customer_portal_link": "https://..."}` format
-- **Webhook Signatures**: Using `creem-signature` header with HMAC-SHA256 verification
-- **Empty Body Handling**: Gracefully skip processing empty webhook requests (test/proxy requests)
+### Getting Help
 
-### 4. Known Issues Resolved
-- ❌ ~~Customer portal returning empty URL~~ → ✅ Fixed API response parsing
-- ❌ ~~Webhook signature verification failures~~ → ✅ Added empty body detection
-- ❌ ~~Frontend compatibility issues~~ → ✅ Maintained backward compatibility
+- 📖 Check our [documentation](#documentation)
+- 💬 Join our [Discord community](https://discord.gg/Pfdyhqqu)
+- 🐛 [Open an issue](https://github.com/tanchaowen84/flowchartai/issues) on GitHub
+- 📧 Email us at [support@flowchartai.org](mailto:support@flowchartai.org)
 
-## Development Notes
-- All webhook events are properly logged with detailed debugging information
-- Signature verification includes comprehensive error reporting
-- Empty webhook bodies are handled gracefully to prevent false errors
+## 🔒 Security
 
-# Legal Policy Documents Compliance Review
+### Reporting Security Issues
 
-## Privacy Policy Upgrade (85/100 Score)
-**Date**: 2025-01-27
-**Status**: ✅ Completed
+If you discover a security vulnerability, please email us at [support@flowchartai.org](mailto:support@flowchartai.org) instead of opening a public issue.
 
-Completely rewrote the privacy policy from 30/100 to 85/100 compliance score:
+### Security Features
 
-**Key Improvements**:
-- **GDPR Compliance**: Added legal basis, data subject rights, retention periods
-- **Technical Stack Alignment**: Specific coverage of Creem, AI services, Plausible analytics
-- **International Compliance**: CCPA, UK GDPR, other jurisdictions
-- **User Rights**: Detailed rights explanation and exercise procedures
-- **Security Measures**: Comprehensive technical and organizational safeguards
+- **Authentication**: Secure OAuth integration with major providers
+- **Data Encryption**: All data encrypted in transit and at rest
+- **API Security**: Rate limiting and request validation
+- **Privacy**: No tracking, minimal data collection
+- **Self-Hosting**: Complete data control and privacy
 
-**Major Sections Added**:
-- Data subject rights (access, deletion, portability, rectification)
-- International data transfers and safeguards
-- Data retention periods and deletion procedures
-- Children's privacy protection (under 16)
-- Automated decision-making disclosures
-- Contact information and complaint procedures
+## 📄 License
 
-## Cookie Policy Upgrade (85/100 Score)
-**Date**: 2025-01-27
-**Status**: ✅ Completed
+FlowChart AI is open source software licensed under the [MIT License](LICENSE).
 
-Completely rewrote the cookie policy from 25/100 to 85/100 compliance score:
+```
+MIT License
 
-**Key Improvements**:
-- **Detailed Cookie Tables**: Comprehensive categorization of all cookies used
-- **Third-Party Integration Details**: Specific information about Google/GitHub login, Creem payments
-- **Technical Stack Alignment**: Covers Better Auth, Plausible analytics, AI services
-- **International Compliance**: EU, UK, California, and other jurisdictions
-- **Consent Management**: Clear procedures for cookie consent and management
+Copyright (c) 2025 FlowChart AI
 
-**Cookie Categories Covered**:
-- Strictly Necessary (Better Auth sessions, CSRF, language)
-- Third-Party Authentication (Google, GitHub with privacy policy links)
-- Payment Processing (Creem with Singapore data location)
-- Functional (theme, dashboard layouts - consent required)
-- Analytics (Plausible self-hosted - consent required)
-- AI Services (OpenRouter, Fal.ai, Replicate)
-- Email Services (Resend tracking - optional)
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-## Terms of Service Upgrade (85/100 Score)
-**Date**: 2025-01-27
-**Status**: ✅ Completed
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-Completely rewrote the Terms of Service from 40/100 to 85/100 compliance score:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
-**Key Improvements**:
-- **SaaS-Specific Terms**: Comprehensive subscription, billing, and service terms
-- **14-Day Refund Policy**: Clear money-back guarantee for new subscribers
-- **AI Services Integration**: Detailed terms for AI content generation and ownership
-- **Technical Stack Alignment**: Covers Creem payments, OpenRouter, Fal.ai, Replicate
-- **Data Ownership**: Clear user data ownership and portability rights
-- **International Compliance**: Global jurisdiction coverage and dispute resolution
+## 🙏 Acknowledgments
 
-**Major Sections Added**:
-- Subscription Plans and Billing (monthly/annual cycles, Creem integration)
-- Refund Policy (14-day guarantee, exclusions, pro-rated refunds)
-- AI Services and Content Generation (ownership, commercial use, limitations)
-- User Content and Data (complete ownership, portability, security)
-- Third-Party Services (authentication, payments, AI providers)
-- Acceptable Use Policy (permitted uses, prohibited activities)
-- Account Termination (user/company termination procedures)
-- Disclaimers and Liability Limitations (service disclaimers, maximum liability)
+FlowChart AI is built on the shoulders of amazing open source projects:
 
-**Compliance Features**:
-- International commercial law compliance
-- Consumer protection regulations
-- DMCA copyright protection
-- Data protection and privacy integration
-- Professional legal structure and language
+- **[Excalidraw](https://excalidraw.com/)** - The amazing drawing canvas that powers our editor
+- **[Next.js](https://nextjs.org/)** - The React framework for production
+- **[Tailwind CSS](https://tailwindcss.com/)** - The utility-first CSS framework
+- **[Radix UI](https://www.radix-ui.com/)** - Low-level UI primitives
+- **[Drizzle ORM](https://orm.drizzle.team/)** - TypeScript ORM for SQL databases
+- **[Better Auth](https://www.better-auth.com/)** - Modern authentication library
 
-**Excluded by User Request**:
-- SLA (Service Level Agreement) - to be confirmed later
-- Enterprise customer terms - not needed initially
+Special thanks to the [MkSaaS](https://mksaas.com) template that provided the foundation for this project.
 
-## Legal Compliance Summary
-- **Privacy Policy**: 30/100 → 85/100 (+55 points improvement)
-- **Cookie Policy**: 25/100 → 85/100 (+60 points improvement)  
-- **Terms of Service**: 40/100 → 85/100 (+45 points improvement)
-- **Overall Risk Level**: High Risk → Low Risk
-- **International Compliance**: ✅ EU, UK, California, Global
-- **Technical Stack Coverage**: ✅ All services properly documented
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=tanchaowen84/flowchartai&type=Date)](https://star-history.com/#tanchaowen84/flowchartai&Date)
+
+---
+
+<div align="center">
+  <p>Made with ❤️ by the FlowChart AI team</p>
+  <p>
+    <a href="https://flowchartai.org">Website</a> •
+    <a href="https://github.com/tanchaowen84/flowchartai">GitHub</a> •
+    <a href="https://discord.gg/Pfdyhqqu">Discord</a> •
+    <a href="https://x.com/tanchaowen84">Twitter</a>
+  </p>
+</div>
+
