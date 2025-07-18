@@ -46,6 +46,7 @@ export const websiteConfig: WebsiteConfig = {
   auth: {
     enableGoogleLogin: true,
     enableGithubLogin: false,
+    enableGoogleOneTap: true,
   },
   i18n: {
     defaultLocale: 'en',

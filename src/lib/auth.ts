@@ -6,7 +6,7 @@ import { sendEmail } from '@/mail';
 import { subscribe } from '@/newsletter';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { admin } from 'better-auth/plugins';
+import { admin, oneTap } from 'better-auth/plugins';
 import { parse as parseCookies } from 'cookie';
 import type { Locale } from 'next-intl';
 import { getBaseUrl, getUrlWithLocaleInCallbackUrl } from './urls/urls';
@@ -143,6 +143,9 @@ export const auth = betterAuth({
       bannedUserMessage:
         'You have been banned from this application. Please contact support if you believe this is an error.',
     }),
+    // https://www.better-auth.com/docs/plugins/one-tap
+    // Google One Tap integration
+    oneTap(),
   ],
   onAPIError: {
     // https://www.better-auth.com/docs/reference/options#onapierror

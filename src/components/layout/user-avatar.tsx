@@ -16,9 +16,12 @@ interface UserAvatarProps extends AvatarProps {
  * @returns The user avatar component
  */
 export function UserAvatar({ name, image, ...props }: UserAvatarProps) {
+  // 确保只有有效的图片URL才传递给src
+  const validImageSrc = image && image.trim() !== '' ? image : undefined;
+
   return (
     <Avatar {...props}>
-      <AvatarImage alt={name} title={name} src={image ?? undefined} />
+      <AvatarImage alt={name} title={name} src={validImageSrc} />
       <AvatarFallback>
         <span className="sr-only">{name}</span>
         <User2Icon className="size-4" />

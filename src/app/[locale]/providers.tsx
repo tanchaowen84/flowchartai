@@ -1,5 +1,6 @@
 'use client';
 
+import { GoogleOneTapProvider } from '@/components/auth/google-one-tap-provider';
 import { ActiveThemeProvider } from '@/components/layout/active-theme-provider';
 import { PaymentProvider } from '@/components/layout/payment-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -33,7 +34,9 @@ export function Providers({ children }: PropsWithChildren) {
       <ActiveThemeProvider>
         <RootProvider theme={theme}>
           <TooltipProvider>
-            <PaymentProvider>{children}</PaymentProvider>
+            <PaymentProvider>
+              <GoogleOneTapProvider>{children}</GoogleOneTapProvider>
+            </PaymentProvider>
           </TooltipProvider>
         </RootProvider>
       </ActiveThemeProvider>
