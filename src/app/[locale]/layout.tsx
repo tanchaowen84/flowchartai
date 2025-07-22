@@ -7,6 +7,7 @@ import {
 } from '@/assets/fonts';
 import AffonsoScript from '@/components/affiliate/affonso';
 import PromotekitScript from '@/components/affiliate/promotekit';
+import { AdSense } from '@/components/analytics/adsense';
 import { TailwindIndicator } from '@/components/layout/tailwind-indicator';
 import { routing } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,7 @@ export default async function LocaleLayout({
   return (
     <html suppressHydrationWarning lang={locale}>
       <head>
+        <AdSense />
         <AffonsoScript />
         <PromotekitScript />
       </head>
