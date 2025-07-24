@@ -496,8 +496,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
               loadScene: false,
               export: {
                 saveFileToDisk: true,
-                // Enable all export formats in the default export dialog
-                renderCustomUI: () => null, // We use custom MainMenu items instead
               },
               saveToActiveFile: true,
               saveAsImage: true, // Enable "Save as image" button
