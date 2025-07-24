@@ -763,7 +763,7 @@
         },
         "item-4": {
           "title": "Export & Integrate Anywhere",
-          "description": "Export your diagrams in Excalidraw format for editing or backup. Support for PNG, SVG, and PDF exports is coming soon to broaden your sharing and presentation options."
+          "description": "Export your diagrams in multiple formats: PNG for presentations, SVG for web use, and Excalidraw format for future editing. Copy directly to clipboard for quick sharing. All export options are easily accessible from the main menu."
         }
       }
     },
@@ -822,7 +822,7 @@
         },
         "item-2": {
           "question": "What formats can I export my diagrams to?",
-          "answer": "Currently, we support exporting flowcharts in Excalidraw format only. In future updates, we plan to add support for PDF, PNG, and SVG formats."
+          "answer": "You can export your flowcharts in multiple formats: PNG (high-quality images), SVG (scalable vector graphics), and Excalidraw format (for re-editing). You can also copy diagrams directly to your clipboard. Access export options from the main menu (hamburger icon) in the top-left corner."
         },
         "item-3": {
           "question": "Can I manage my flowcharts and access them later?",

@@ -1,6 +1,12 @@
 'use client';
 
-import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
+import {
+  Excalidraw,
+  MainMenu,
+  exportToBlob,
+  exportToClipboard,
+  exportToSvg,
+} from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { UserButton } from '@/components/layout/user-button';
@@ -14,7 +20,15 @@ import type {
   ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
 } from '@excalidraw/excalidraw/types';
-import { Edit, Loader2, User } from 'lucide-react';
+import {
+  Copy,
+  Download,
+  Edit,
+  FileImage,
+  FileText,
+  Loader2,
+  User,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import AiChatSidebar from './ai-chat-sidebar';
@@ -167,6 +181,162 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       handleTitleEditSave();
     } else if (e.key === 'Escape') {
       handleTitleEditCancel();
+    }
+  };
+
+  // Export functions
+  const handleExportPNG = async () => {
+    if (!excalidrawAPI || !isAPIReady) return;
+
+    try {
+      const elements = excalidrawAPI.getSceneElements();
+      const appState = excalidrawAPI.getAppState();
+      const files = excalidrawAPI.getFiles();
+
+      if (!elements || elements.length === 0) {
+        alert('Canvas is empty. Please draw something before exporting.');
+        return;
+      }
+
+      const blob = await exportToBlob({
+        elements,
+        appState: {
+          ...appState,
+          exportBackground: true,
+          exportWithDarkMode: false,
+        },
+        files,
+        mimeType: 'image/png',
+        quality: 0.92,
+        exportPadding: 20,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${currentTitle || 'flowchart'}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting PNG:', error);
+      alert('Failed to export PNG. Please try again.');
+    }
+  };
+
+  const handleExportSVG = async () => {
+    if (!excalidrawAPI || !isAPIReady) return;
+
+    try {
+      const elements = excalidrawAPI.getSceneElements();
+      const appState = excalidrawAPI.getAppState();
+      const files = excalidrawAPI.getFiles();
+
+      if (!elements || elements.length === 0) {
+        alert('Canvas is empty. Please draw something before exporting.');
+        return;
+      }
+
+      const svg = await exportToSvg({
+        elements,
+        appState: {
+          ...appState,
+          exportBackground: true,
+          exportWithDarkMode: false,
+        },
+        files,
+        exportPadding: 20,
+      });
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([svgData], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${currentTitle || 'flowchart'}.svg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting SVG:', error);
+      alert('Failed to export SVG. Please try again.');
+    }
+  };
+
+  const handleExportJSON = async () => {
+    if (!excalidrawAPI || !isAPIReady) return;
+
+    try {
+      const elements = excalidrawAPI.getSceneElements();
+      const appState = excalidrawAPI.getAppState();
+      const files = excalidrawAPI.getFiles();
+
+      if (!elements || elements.length === 0) {
+        alert('Canvas is empty. Please draw something before exporting.');
+        return;
+      }
+
+      // Filter out runtime properties that shouldn't be saved
+      const { collaborators, ...cleanAppState } = appState;
+
+      const exportData = {
+        type: 'excalidraw',
+        version: 2,
+        source: 'https://excalidraw.com',
+        elements,
+        appState: cleanAppState,
+        files,
+      };
+
+      const jsonData = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${currentTitle || 'flowchart'}.excalidraw`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting JSON:', error);
+      alert('Failed to export JSON. Please try again.');
+    }
+  };
+
+  const handleCopyToClipboard = async (format: 'png' | 'svg' | 'json') => {
+    if (!excalidrawAPI || !isAPIReady) return;
+
+    try {
+      const elements = excalidrawAPI.getSceneElements();
+      const appState = excalidrawAPI.getAppState();
+      const files = excalidrawAPI.getFiles();
+
+      if (!elements || elements.length === 0) {
+        alert('Canvas is empty. Please draw something before copying.');
+        return;
+      }
+
+      await exportToClipboard({
+        elements,
+        appState: {
+          ...appState,
+          exportBackground: true,
+          exportWithDarkMode: false,
+        },
+        files,
+        type: format,
+        quality: 0.92,
+      });
+
+      alert(`${format.toUpperCase()} copied to clipboard!`);
+    } catch (error) {
+      console.error(`Error copying ${format} to clipboard:`, error);
+      alert(
+        `Failed to copy ${format.toUpperCase()} to clipboard. Please try again.`
+      );
     }
   };
 
@@ -326,14 +496,52 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
               loadScene: false,
               export: {
                 saveFileToDisk: true,
+                // Enable all export formats in the default export dialog
+                renderCustomUI: () => null, // We use custom MainMenu items instead
               },
               saveToActiveFile: true,
+              saveAsImage: true, // Enable "Save as image" button
             },
             dockedSidebarBreakpoint: 0, // Hide the default library sidebar
           }}
         >
           <MainMenu>
             <MainMenu.Item onSelect={handleGoHome}>Back To Home</MainMenu.Item>
+
+            {/* Export Options Group */}
+            <MainMenu.Group title="Export">
+              <MainMenu.Item
+                onSelect={handleExportPNG}
+                icon={<FileImage className="h-4 w-4" />}
+              >
+                Export as PNG
+              </MainMenu.Item>
+              <MainMenu.Item
+                onSelect={handleExportSVG}
+                icon={<FileText className="h-4 w-4" />}
+              >
+                Export as SVG
+              </MainMenu.Item>
+              <MainMenu.Item
+                onSelect={handleExportJSON}
+                icon={<Download className="h-4 w-4" />}
+              >
+                Export as Excalidraw
+              </MainMenu.Item>
+              <MainMenu.Item
+                onSelect={() => handleCopyToClipboard('png')}
+                icon={<Copy className="h-4 w-4" />}
+              >
+                Copy PNG to Clipboard
+              </MainMenu.Item>
+              <MainMenu.Item
+                onSelect={() => handleCopyToClipboard('svg')}
+                icon={<Copy className="h-4 w-4" />}
+              >
+                Copy SVG to Clipboard
+              </MainMenu.Item>
+            </MainMenu.Group>
+
             {/* Custom Social Links */}
             {websiteConfig.metadata.social?.github && (
               <MainMenu.Item
@@ -353,7 +561,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
                 Discord
               </MainMenu.Item>
             )}
-            <MainMenu.DefaultItems.Export />
           </MainMenu>
         </Excalidraw>
       </div>
