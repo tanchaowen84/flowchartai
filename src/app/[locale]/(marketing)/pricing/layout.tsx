@@ -16,6 +16,7 @@ export async function generateMetadata({
     title: pt('title') + ' | ' + t('title'),
     description: pt('description'),
     canonicalUrl: getUrlWithLocale('/pricing', locale),
+    noIndex: true,
   });
 }
 

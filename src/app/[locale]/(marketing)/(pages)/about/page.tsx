@@ -24,6 +24,7 @@ export async function generateMetadata({
     title: pt('title') + ' | ' + t('title'),
     description: pt('description'),
     canonicalUrl: getUrlWithLocale('/about', locale),
+    noIndex: true,
   });
 }
 

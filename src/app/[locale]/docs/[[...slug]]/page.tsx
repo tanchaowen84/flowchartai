@@ -48,6 +48,7 @@ export async function generateMetadata({ params }: DocPageProps) {
     title: `${page.data.title} | ${t('title')}`,
     description: page.data.description,
     canonicalUrl: getUrlWithLocale(`/docs/${page.slugs.join('/')}`, locale),
+    noIndex: true,
   });
 }
 

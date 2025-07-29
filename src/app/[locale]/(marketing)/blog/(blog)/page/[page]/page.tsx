@@ -38,6 +38,7 @@ export async function generateMetadata({ params }: BlogListPageProps) {
     title: `${pt('title')} | ${t('title')}`,
     description: pt('description'),
     canonicalUrl: getUrlWithLocale(canonicalPath, locale),
+    noIndex: true,
   });
 }
 
