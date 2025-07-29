@@ -31,6 +31,7 @@ import {
   UserPlusIcon,
   UsersIcon,
   WandSparklesIcon,
+  WrenchIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -123,6 +124,13 @@ export function getNavbarLinks(): NestedMenuItem[] {
           description: t('pages.items.contact.description'),
           icon: <MailIcon className="size-4 shrink-0" />,
           href: Routes.Contact,
+          external: false,
+        },
+        {
+          title: t('pages.items.tools.title'),
+          description: t('pages.items.tools.description'),
+          icon: <WrenchIcon className="size-4 shrink-0" />,
+          href: Routes.Tools,
           external: false,
         },
         {
