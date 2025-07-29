@@ -3,6 +3,7 @@ import { getUrlWithLocale } from '@/lib/urls/urls';
 import type { Metadata } from 'next';
 import type { Locale } from 'next-intl';
 import { FlowchartMakerHero } from './components/flowchart-maker-hero';
+import { SEOContent } from './components/seo-content';
 
 /**
  * Generate metadata for flowchart maker AI tool page
@@ -15,7 +16,7 @@ export async function generateMetadata({
   const { locale } = await params;
 
   return constructMetadata({
-    title: 'AI Flowchart Maker - Create Professional Flowcharts Instantly',
+    title: 'Flowchart Maker AI,Create Professional Flowcharts Instantly',
     description:
       'Create professional flowcharts instantly with AI. Just describe your process and watch it come to life. No design skills required.',
     canonicalUrl: getUrlWithLocale('/tools/flowchart-maker-ai', locale),
@@ -24,5 +25,10 @@ export async function generateMetadata({
 }
 
 export default async function FlowchartMakerAIPage() {
-  return <FlowchartMakerHero />;
+  return (
+    <>
+      <FlowchartMakerHero />
+      <SEOContent />
+    </>
+  );
 }
