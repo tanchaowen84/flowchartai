@@ -25,17 +25,21 @@ export async function generateMetadata({
   });
 }
 
-// Tools data (simple list)
+// Tools data (with one-line descriptions)
 const tools = [
   {
     id: 'flowchart-maker-ai',
     title: 'AI Flowchart Maker',
     href: '/tools/flowchart-maker-ai',
+    description:
+      'Create professional flowcharts instantly — describe your process and get clean diagrams. No design skills required.',
   },
   {
     id: 'ai-flowchart-generator',
     title: 'AI Flowchart Generator',
     href: '/tools/ai-flowchart-generator',
+    description:
+      'Turn plain text into clear, editable flowcharts in seconds with smart auto‑layout and standard symbols.',
   },
 ];
 
@@ -44,17 +48,31 @@ export default async function ToolsPage() {
 
   return (
     <Container className="py-16 px-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-semibold mb-8">AI Tools</h1>
-        <ul className="space-y-3 list-disc pl-6">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-semibold">AI Tools</h1>
+          <p className="mt-2 text-muted-foreground">
+            Share your ideas and let our AI tools generate helpful outputs with
+            one click.
+          </p>
+        </div>
+
+        <div className="divide-y border-y">
           {tools.map((tool) => (
-            <li key={tool.id}>
-              <LocaleLink href={tool.href} className="text-primary underline">
-                {tool.title}
-              </LocaleLink>
-            </li>
+            <div key={tool.id} className="py-5">
+              <h2 className="text-xl font-medium">
+                <LocaleLink href={tool.href} className="text-primary underline">
+                  {tool.title}
+                </LocaleLink>
+              </h2>
+              {tool.description ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {tool.description}
+                </p>
+              ) : null}
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </Container>
   );
