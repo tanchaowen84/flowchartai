@@ -1,88 +1,167 @@
 import Container from '@/components/layout/container';
+import { HeaderSection } from '@/components/layout/header-section';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import seoData from '../data/seo-content.json';
 
 export function SEOContent() {
   const { seo } = seoData;
 
   return (
-    <Container className="py-16 px-4">
-      <div className="max-w-4xl mx-auto space-y-16">
-        {/* What is it Section */}
-        <section>
-          <h2 className="text-3xl font-bold mb-8">{seo.whatIsIt.title}</h2>
-          <p className="text-lg leading-relaxed text-muted-foreground">{seo.whatIsIt.content}</p>
+    <Container className="py-20 px-4">
+      <div className="mx-auto max-w-6xl space-y-24">
+        {/* Intro / What is it */}
+        <section className="px-4">
+          <HeaderSection
+            id="what-is"
+            title={seo.whatIsIt.title}
+            titleAs="h2"
+            subtitleAs="p"
+            description={seo.whatIsIt.content}
+            descriptionAs="p"
+            className="mb-8"
+          />
         </section>
 
-        {/* Why choose Section */}
-        <section>
-          <h2 className="text-3xl font-bold mb-8">{seo.whyChoose.title}</h2>
-          <p className="text-lg leading-relaxed text-muted-foreground mb-8">{seo.whyChoose.content}</p>
-          <div className="space-y-8">
+        {/* Why choose - cards grid */}
+        <section className="px-4">
+          <HeaderSection
+            id="why-choose"
+            title={seo.whyChoose.title}
+            titleAs="h2"
+            description={seo.whyChoose.content}
+            descriptionAs="p"
+            className="mb-8"
+          />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {seo.whyChoose.points.map((p, i) => (
-              <div key={i}>
-                <h3 className="text-2xl font-semibold mb-4">{p.title}</h3>
-                <p className="text-lg leading-relaxed text-muted-foreground">{p.description}</p>
-              </div>
+              <Card key={i} className="h-full">
+                <CardHeader>
+                  <CardTitle className="text-xl">{p.title}</CardTitle>
+                  <CardDescription className="text-base leading-relaxed">
+                    {p.description}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
             ))}
           </div>
         </section>
 
-        {/* How it Works Section */}
-        <section>
-          <h2 className="text-3xl font-bold mb-8">{seo.howItWorks.title}</h2>
-          <p className="text-lg leading-relaxed text-muted-foreground mb-8">{seo.howItWorks.content}</p>
-          <div className="space-y-8">
+        {/* How it works - steps list in cards */}
+        <section className="px-4">
+          <HeaderSection
+            id="how-it-works"
+            title={seo.howItWorks.title}
+            titleAs="h2"
+            description={seo.howItWorks.content}
+            descriptionAs="p"
+            className="mb-8"
+          />
+          <div className="grid gap-6 md:grid-cols-2">
             {seo.howItWorks.steps.map((step, index) => (
-              <div key={index}>
-                <h3 className="text-2xl font-semibold mb-4">{step.title}</h3>
-                <p className="text-lg leading-relaxed text-muted-foreground">{step.description}</p>
-              </div>
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-xl">{step.title}</CardTitle>
+                  <CardDescription className="text-base leading-relaxed">
+                    {step.description}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
             ))}
           </div>
         </section>
 
-        {/* Use Cases Section */}
-        <section>
-          <h2 className="text-3xl font-bold mb-8">{seo.useCases.title}</h2>
-          <p className="text-lg leading-relaxed text-muted-foreground mb-8">{seo.useCases.content}</p>
-          <div className="space-y-8">
+        {/* Use cases - simple bordered list */}
+        <section className="px-4">
+          <HeaderSection
+            id="use-cases"
+            title={seo.useCases.title}
+            titleAs="h2"
+            description={seo.useCases.content}
+            descriptionAs="p"
+            className="mb-6"
+          />
+          <div className="grid gap-4">
             {seo.useCases.cases.map((useCase, index) => (
-              <div key={index}>
-                <h3 className="text-2xl font-semibold mb-4">{useCase.title}</h3>
-                <p className="text-lg leading-relaxed text-muted-foreground">{useCase.description}</p>
-              </div>
+              <Card key={index} className="border-dashed">
+                <CardHeader>
+                  <CardTitle className="text-xl">{useCase.title}</CardTitle>
+                  <CardDescription className="text-base leading-relaxed">
+                    {useCase.description}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
             ))}
           </div>
         </section>
 
-        {/* Features Section */}
-        <section>
-          <h2 className="text-3xl font-bold mb-8">{seo.features.title}</h2>
-          <p className="text-lg leading-relaxed text-muted-foreground mb-8">{seo.features.content}</p>
-          <div className="space-y-8">
+        {/* Features - cards grid */}
+        <section className="px-4">
+          <HeaderSection
+            id="features"
+            title={seo.features.title}
+            titleAs="h2"
+            description={seo.features.content}
+            descriptionAs="p"
+            className="mb-8"
+          />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {seo.features.features.map((feature, index) => (
-              <div key={index}>
-                <h3 className="text-2xl font-semibold mb-4">{feature.title}</h3>
-                <p className="text-lg leading-relaxed text-muted-foreground">{feature.description}</p>
-              </div>
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  <CardDescription className="text-base leading-relaxed">
+                    {feature.description}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
             ))}
           </div>
         </section>
 
-        {/* FAQ Section */}
-        <section>
-          <h2 className="text-3xl font-bold mb-8">{seo.faq.title}</h2>
-          <div className="space-y-8">
+        {/* FAQ - accordion */}
+        <section className="px-4">
+          <HeaderSection
+            id="faq"
+            title={seo.faq.title}
+            titleAs="h2"
+            className="mb-6"
+          />
+          <Accordion
+            type="single"
+            collapsible
+            className="w-full rounded-2xl border px-6 py-2"
+          >
             {seo.faq.questions.map((faq, index) => (
-              <div key={index}>
-                <h3 className="text-2xl font-semibold mb-4">{faq.question}</h3>
-                <p className="text-lg leading-relaxed text-muted-foreground">{faq.answer}</p>
-              </div>
+              <AccordionItem
+                key={index}
+                value={`item-${index}`}
+                className="border-dashed"
+              >
+                <AccordionTrigger className="text-left text-base">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         </section>
       </div>
     </Container>
   );
 }
-
