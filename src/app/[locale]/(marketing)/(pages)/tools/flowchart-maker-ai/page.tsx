@@ -20,7 +20,7 @@ export async function generateMetadata({
     description:
       'Create professional flowcharts instantly with AI. Just describe your process and watch it come to life. No design skills required.',
     canonicalUrl: getUrlWithLocale('/tools/flowchart-maker-ai', locale),
-    noIndex: true,
+    noIndex: false,
   });
 }
 
