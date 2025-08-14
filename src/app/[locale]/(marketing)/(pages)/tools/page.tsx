@@ -41,6 +41,20 @@ const tools = [
     description:
       'Turn plain text into clear, editable flowcharts in seconds with smart auto‑layout and standard symbols.',
   },
+  {
+    id: 'flowchart-ai-generator',
+    title: 'Flowchart AI Generator',
+    href: '/tools/flowchart-ai-generator',
+    description:
+      'Generate flowcharts from plain text with AI — clear, editable, and fast.',
+  },
+  {
+    id: 'ai-agent-flowchart',
+    title: 'Flowchart AI Agent',
+    href: '/tools/ai-agent-flowchart',
+    description:
+      'Intelligent process collaboration through conversational AI — your autonomous assistant for enterprise workflow modeling.',
+  },
 ];
 
 export default async function ToolsPage() {
