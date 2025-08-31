@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: BlogPageProps) {
   const pt = await getTranslations({ locale, namespace: 'BlogPage' });
   const canonicalPath = '/blog';
   return constructMetadata({
-    title: `${pt('title')} | ${t('title')}`,
+    title: pt('title'),
     description: pt('description'),
     canonicalUrl: getUrlWithLocale(canonicalPath, locale),
     noIndex: true,

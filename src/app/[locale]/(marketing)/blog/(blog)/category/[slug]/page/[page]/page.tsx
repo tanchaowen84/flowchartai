@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: BlogCategoryPageProps) {
   const t = await getTranslations({ locale, namespace: 'Metadata' });
   const canonicalPath = `/blog/category/${slug}/page/${page}`;
   return constructMetadata({
-    title: `${category.name} | ${t('title')}`,
+    title: category.name,
     description: category.description,
     canonicalUrl: getUrlWithLocale(canonicalPath, locale),
   });
