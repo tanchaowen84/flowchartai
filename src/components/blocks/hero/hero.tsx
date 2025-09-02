@@ -145,6 +145,25 @@ export default function HeroSection() {
               <Ripple />
 
               <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
+                {/* BetaList badge */}
+                <div className="mt-4 flex items-center justify-center">
+                  <a
+                    href="https://betalist.com/startups/flowchart-ai?utm_campaign=badge-flowchart-ai&utm_medium=badge&utm_source=badge-featured"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="FlowChart AI featured on BetaList"
+                    className="inline-block"
+                  >
+                    <img
+                      src="https://betalist.com/badges/featured?id=129021&theme=color"
+                      alt="FlowChart AI - From idea to flowchart in one prompt — powered by smart AI | BetaList"
+                      width={156}
+                      height={54}
+                      style={{ width: 156, height: 54 }}
+                    />
+                  </a>
+                </div>
+
                 {/* title */}
                 <h1 className="mt-8 text-balance text-5xl font-bricolage-grotesque lg:mt-16 xl:text-[5rem]">
                   {t('title')}
