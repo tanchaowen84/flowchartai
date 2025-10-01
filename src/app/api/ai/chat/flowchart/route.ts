@@ -146,7 +146,11 @@ export async function POST(req: Request) {
 
     // 3. 验证请求数据
     const body = await req.json();
-    const { messages, model = 'google/gemini-2.5-flash' } = body;
+    const {
+      messages,
+      model = 'google/gemini-2.5-flash',
+      aiContext,
+    } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -164,7 +168,40 @@ export async function POST(req: Request) {
       content: generateSystemPrompt(),
     };
 
-    const fullMessages = [systemMessage, ...messages];
+    const contextMessages = [] as Array<{ role: 'system' | 'assistant'; content: string }>;
+
+    if (aiContext?.canvasSnapshot) {
+      const snapshotSummary = {
+        nodes: aiContext.canvasSnapshot.nodes?.map((node: any) => ({
+          id: node.id,
+          type: node.type,
+          text: node.text,
+          aiGenerated: node.aiGenerated,
+        })),
+        edges: aiContext.canvasSnapshot.edges?.map((edge: any) => ({
+          id: edge.id,
+          from: edge.fromElement,
+          to: edge.toElement,
+          label: edge.label,
+          aiGenerated: edge.aiGenerated,
+        })),
+        metadata: aiContext.canvasSnapshot.metadata,
+        description: aiContext.canvasSnapshot.description,
+      };
+      contextMessages.push({
+        role: 'system',
+        content: `Current canvas snapshot (JSON):\n${JSON.stringify(snapshotSummary, null, 2)}`,
+      });
+    }
+
+    if (aiContext?.lastMermaid?.code) {
+      contextMessages.push({
+        role: 'system',
+        content: `Previous AI-generated Mermaid (may be outdated if user modified canvas):\n\n\`\`\`mermaid\n${aiContext.lastMermaid.code}\n\`\`\``,
+      });
+    }
+
+    const fullMessages = [systemMessage, ...contextMessages, ...messages];
 
     // 5. 调用 OpenRouter API
     const openai = createOpenAIClient();

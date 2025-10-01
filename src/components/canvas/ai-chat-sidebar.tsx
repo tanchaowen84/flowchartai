@@ -422,6 +422,24 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
+  interface CanvasNodeSnapshot {
+    id: string;
+    type: string;
+    text?: string;
+    position: { x: number; y: number };
+    size: { width: number; height: number };
+    aiGenerated?: boolean;
+  }
+
+  interface CanvasEdgeSnapshot {
+    id: string;
+    type: string;
+    fromElement?: string | null;
+    toElement?: string | null;
+    label?: string;
+    aiGenerated?: boolean;
+  }
+
   const getCanvasState = () => {
     if (!excalidrawAPI) return null;
 
@@ -430,48 +448,39 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       const appState = excalidrawAPI.getAppState();
       const files = excalidrawAPI.getFiles();
 
-      // 构建精简的画布状态，只包含AI需要的关键信息
-      const canvasState = {
-        // 元素信息 - 只包含非删除的元素的关键属性
-        elements: elements.map((element) => {
-          const baseElement = {
+      const nodes: CanvasNodeSnapshot[] = [];
+      const edges: CanvasEdgeSnapshot[] = [];
+
+      elements.forEach((element) => {
+        const baseNode = {
+          id: element.id,
+          type: element.type,
+          position: { x: element.x, y: element.y },
+          size: { width: element.width ?? 0, height: element.height ?? 0 },
+          aiGenerated: Boolean(element.customData?.aiGenerated),
+        };
+
+        if (element.type === 'arrow') {
+          edges.push({
             id: element.id,
             type: element.type,
-            x: element.x,
-            y: element.y,
-            width: element.width,
-            height: element.height,
-          };
+            fromElement: 'startBinding' in element ? element.startBinding?.elementId : undefined,
+            toElement: 'endBinding' in element ? element.endBinding?.elementId : undefined,
+            label: 'text' in element ? element.text : undefined,
+            aiGenerated: Boolean(element.customData?.aiGenerated),
+          });
+        } else {
+          nodes.push({
+            ...baseNode,
+            text: 'text' in element ? element.text : undefined,
+          });
+        }
+      });
 
-          // 类型安全地添加特定元素的属性
-          if (element.type === 'text' && 'text' in element) {
-            return { ...baseElement, text: element.text };
-          }
-
-          if (
-            element.type === 'arrow' &&
-            'startBinding' in element &&
-            'endBinding' in element
-          ) {
-            return {
-              ...baseElement,
-              startBinding: element.startBinding,
-              endBinding: element.endBinding,
-            };
-          }
-
-          if (element.type === 'frame' && 'children' in element) {
-            return {
-              ...baseElement,
-              children: element.children,
-              name: 'name' in element ? element.name : undefined,
-            };
-          }
-
-          return baseElement;
-        }),
-
-        // 应用状态 - 只包含重要的视图信息
+      // 构建精简的画布状态，只包含AI需要的关键信息
+      const canvasState = {
+        nodes,
+        edges,
         appState: {
           viewBackgroundColor: appState.viewBackgroundColor,
           scrollX: appState.scrollX,
@@ -486,7 +495,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         // 文件数量统计（不传递实际文件数据以节省带宽）
         filesCount: Object.keys(files).length,
 
-        // 场景元数据
         metadata: {
           elementsCount: elements.length,
           hasImages: Object.keys(files).length > 0,
@@ -499,6 +507,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         // AI流程图上下文信息
         existingMermaid: extractExistingMermaidCode([...elements]),
         hasAiFlowchart: hasExistingAiFlowchart([...elements]),
+        description: generateAICanvasDescription(elements),
       };
 
       return canvasState;
@@ -507,6 +516,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       return null;
     }
   };
+
+  const canvasContextRef = useRef<{
+    lastMermaid?: {
+      code: string;
+      generatedAt: number;
+    };
+  }>({});
 
   const addFlowchartToCanvas = async (
     mermaidCode: string,
@@ -580,6 +596,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             ? 'Previous AI flowchart replaced with updated version.'
             : 'Your AI-generated flowchart has been added to the canvas.';
       }
+
+      canvasContextRef.current.lastMermaid = {
+        code: mermaidCode,
+        generatedAt: Date.now(),
+      };
 
       toast({
         title: toastTitle,
@@ -766,6 +787,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   // 处理AI对话的核心函数，支持工具调用的递归处理
   const processAIConversation = async (conversationMessages: any[]) => {
+    const canvasSnapshot = getCanvasState();
+
     const response = await fetch('/api/ai/chat/flowchart', {
       method: 'POST',
       headers: {
@@ -773,6 +796,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       },
       body: JSON.stringify({
         messages: conversationMessages,
+        aiContext: {
+          canvasSnapshot,
+          lastMermaid: canvasContextRef.current.lastMermaid,
+        },
       }),
       signal: abortControllerRef.current?.signal,
     });
