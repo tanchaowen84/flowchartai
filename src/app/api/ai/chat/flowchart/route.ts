@@ -46,33 +46,14 @@ const flowchartTool = {
   },
 };
 
-// 画布状态分析工具定义
-const canvasAnalysisTool = {
-  type: 'function' as const,
-  function: {
-    name: 'get_canvas_state',
-    description:
-      'Get detailed analysis of current canvas elements, including user modifications and all elements on the canvas. Use this to understand what is currently drawn before making modifications.',
-    parameters: {
-      type: 'object',
-      properties: {},
-      required: [],
-    },
-  },
-};
-
 // 系统提示词
 function generateSystemPrompt() {
   return `You are FlowChart AI, an expert at creating flowcharts using Mermaid syntax.
 
-AVAILABLE TOOLS:
-- generate_flowchart: Create or update flowcharts using Mermaid syntax
-- get_canvas_state: Get detailed analysis of current canvas elements (use this to understand what's currently drawn)
-
 CORE RULES:
-- If user asks to create, generate, draw, make, design, or modify a flowchart/diagram → use generate_flowchart tool
-- If you need to understand the current canvas state → use get_canvas_state tool first
-- If user asks to analyze, describe, or explain the canvas → use get_canvas_state tool and provide natural, conversational analysis
+- There is exactly one tool available: **generate_flowchart**
+- If user asks to create, generate, draw, make, design, or modify a flowchart/diagram → use generate_flowchart
+- Use the provided canvas context (nodes, edges, metadata, last Mermaid) to understand the current diagram before generating anything new；不要再请求其他工具
 - For general questions or chat → respond normally with text
 - Always generate valid Mermaid syntax when using the flowchart tool
 - Keep flowcharts clear, well-structured, and easy to understand
@@ -172,19 +153,8 @@ export async function POST(req: Request) {
 
     if (aiContext?.canvasSnapshot) {
       const snapshotSummary = {
-        nodes: aiContext.canvasSnapshot.nodes?.map((node: any) => ({
-          id: node.id,
-          type: node.type,
-          text: node.text,
-          aiGenerated: node.aiGenerated,
-        })),
-        edges: aiContext.canvasSnapshot.edges?.map((edge: any) => ({
-          id: edge.id,
-          from: edge.fromElement,
-          to: edge.toElement,
-          label: edge.label,
-          aiGenerated: edge.aiGenerated,
-        })),
+        nodes: aiContext.canvasSnapshot.nodes,
+        edges: aiContext.canvasSnapshot.edges,
         metadata: aiContext.canvasSnapshot.metadata,
         description: aiContext.canvasSnapshot.description,
       };
@@ -213,7 +183,7 @@ export async function POST(req: Request) {
     const completion = await openai.chat.completions.create({
       model: model,
       messages: fullMessages,
-      tools: [flowchartTool, canvasAnalysisTool],
+      tools: [flowchartTool],
       tool_choice: 'auto',
       temperature: 0.7,
       stream: true,

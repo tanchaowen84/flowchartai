@@ -899,9 +899,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               }
             } else if (data.type === 'done' || data === '[DONE]') {
               break;
-            } else if (data.type === 'tool-calls-needed') {
-              // AI需要工具调用，我们需要处理这些调用然后继续对话
-              pendingToolCalls = data.toolCalls || [];
             }
           } catch (e) {
             // Skip invalid JSON lines
@@ -913,30 +910,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     // 处理待处理的工具调用
     if (pendingToolCalls.length > 0) {
-      const toolResults = await Promise.all(
-        pendingToolCalls.map(async (toolCall) => {
-          if (toolCall.toolName === 'get_canvas_state') {
-            // 获取画布状态
-            const canvasState = excalidrawAPI ? getCanvasState() : null;
-            const canvasDescription = canvasState?.elements
-              ? generateAICanvasDescription(canvasState.elements)
-              : 'The canvas is currently empty with no elements.';
-
-            return {
-              tool_call_id: toolCall.toolCallId,
-              role: 'tool',
-              content: canvasDescription,
-            };
-          }
-          return null;
-        })
-      );
-
-      // 过滤掉null结果
-      const validToolResults = toolResults.filter((result) => result !== null);
-
-      if (validToolResults.length > 0) {
-        // 构建包含工具调用结果的新消息历史，然后递归调用
+      if (pendingToolCalls.length > 0) {
         const updatedMessages = [
           ...conversationMessages,
           {
@@ -951,10 +925,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               },
             })),
           },
-          ...validToolResults,
         ];
 
-        // 递归处理，继续对话
         return await processAIConversation(updatedMessages);
       }
     }
