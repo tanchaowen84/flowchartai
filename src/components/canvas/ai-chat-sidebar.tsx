@@ -587,12 +587,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       });
 
       // Show appropriate toast message based on mode and context
-      let toastTitle: string;
-      let toastDescription: string;
-
-      toastTitle =
+      const toastTitle =
         aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
-      toastDescription =
+      const toastDescription =
         aiElementsCount > 0
           ? 'Previous AI flowchart replaced with updated version.'
           : 'Your AI-generated flowchart has been added to the canvas.';
