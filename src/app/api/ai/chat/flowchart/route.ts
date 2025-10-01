@@ -47,29 +47,39 @@ const flowchartTool = {
 };
 
 // 系统提示词
-function generateSystemPrompt() {
+function generateSystemPrompt(canvasSummary?: string, lastMermaid?: string) {
+  const contextSection = [
+    canvasSummary
+      ? `CURRENT CANVAS SNAPSHOT (JSON):\n${canvasSummary}`
+      : 'CURRENT CANVAS SNAPSHOT: none provided',
+    lastMermaid
+      ? `LATEST AI MERMAID (may be outdated if user edited manually):\n\n\`\`\`mermaid\n${lastMermaid}\n\`\`\``
+      : 'LATEST AI MERMAID: none recorded',
+  ].join('\n\n');
+
   return `You are FlowChart AI, an expert at creating flowcharts using Mermaid syntax.
+
+${contextSection}
 
 CORE RULES:
 - There is exactly one tool available: **generate_flowchart**
-- If user asks to create, generate, draw, make, design, or modify a flowchart/diagram → use generate_flowchart
-- Use the provided canvas context (nodes, edges, metadata, last Mermaid) to understand the current diagram before generating anything new；不要再请求其他工具
-- For general questions or chat → respond normally with text
-- Always generate valid Mermaid syntax when using the flowchart tool
-- Keep flowcharts clear, well-structured, and easy to understand
+- When user asks to create/generate/modify a flowchart → call generate_flowchart
+- Use the provided canvas snapshot and previous Mermaid to understand the current diagram BEFORE generating anything new；不要再请求其他工具
+- Follow the requested mode if supplied ("replace" to overwrite existing AI elements, "extend" to build onto the current flowchart); if mode is absent, infer it from user intent and canvas state
+- For general chat or explanations → respond以普通文本
+- Always output valid Mermaid syntax via generate_flowchart; keep结构清晰、语义准确
 
 IMPORTANT RESPONSE GUIDELINES:
-- When generating flowcharts, DO NOT show or mention Mermaid code in your response
-- Focus on explaining what the flowchart represents and its purpose
-- The flowchart will be automatically added to the canvas - you don't need to tell users how to add it
-- Provide natural, conversational explanations about the process or workflow you created
-- Ask users if they want any modifications or improvements
+- 当调用 generate_flowchart 时，不要在回复里直接展示 Mermaid 代码，只需解释内容
+- 清晰说明新增或更新的节点/分支，并提示用户可继续改动
+- 确保生成的流程图遵守用户明确的约束（命名/节点数量/流程步骤等）
 
-FLOWCHART GENERATION MODES:
-- **replace**: Clear existing AI elements and create new flowchart (when starting fresh)
-- **extend**: Add to or modify existing flowchart (when building on current content)
+MODE BEHAVIOR:
+- **replace**: 用户想要重建或替换已有流程 → 清除旧的 AI 元素并重新生成完整流程
+- **extend**: 用户想在现有流程基础上添加/修改 → 保留现有节点，仅增量新增或更新相关部分
+- 如果画布不存在 AI 节点或提示明确要求 "全新"，请选择 replace；若画布已有 AI 节点且用户描述为“新增/扩展/在…基础上”，则倾向 extend
 
-Be helpful, clear, and educational in all your responses!`;
+Be helpful, clear, and educational in all responses.`;
 }
 
 export async function POST(req: Request) {
@@ -144,30 +154,33 @@ export async function POST(req: Request) {
     }
 
     // 4. 准备消息
+    const snapshotSummary = aiContext?.canvasSnapshot
+      ? JSON.stringify(
+          {
+            nodes: aiContext.canvasSnapshot.nodes,
+            edges: aiContext.canvasSnapshot.edges,
+            metadata: aiContext.canvasSnapshot.metadata,
+            description: aiContext.canvasSnapshot.description,
+          },
+          null,
+          2
+        )
+      : undefined;
+
     const systemMessage = {
-      role: 'system',
-      content: generateSystemPrompt(),
+      role: 'system' as const,
+      content: generateSystemPrompt(
+        snapshotSummary,
+        aiContext?.lastMermaid?.code || undefined
+      ),
     };
 
-    const contextMessages = [] as Array<{ role: 'system' | 'assistant'; content: string }>;
+    const contextMessages: Array<{ role: 'system' | 'assistant'; content: string }> = [];
 
-    if (aiContext?.canvasSnapshot) {
-      const snapshotSummary = {
-        nodes: aiContext.canvasSnapshot.nodes,
-        edges: aiContext.canvasSnapshot.edges,
-        metadata: aiContext.canvasSnapshot.metadata,
-        description: aiContext.canvasSnapshot.description,
-      };
+    if (aiContext?.requestedMode) {
       contextMessages.push({
         role: 'system',
-        content: `Current canvas snapshot (JSON):\n${JSON.stringify(snapshotSummary, null, 2)}`,
-      });
-    }
-
-    if (aiContext?.lastMermaid?.code) {
-      contextMessages.push({
-        role: 'system',
-        content: `Previous AI-generated Mermaid (may be outdated if user modified canvas):\n\n\`\`\`mermaid\n${aiContext.lastMermaid.code}\n\`\`\``,
+        content: `Requested mode from UI: ${aiContext.requestedMode}`,
       });
     }
 

@@ -788,6 +788,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   // 处理AI对话的核心函数，支持工具调用的递归处理
   const processAIConversation = async (conversationMessages: any[]) => {
     const canvasSnapshot = getCanvasState();
+    const inferredMode = mode;
 
     const response = await fetch('/api/ai/chat/flowchart', {
       method: 'POST',
@@ -799,6 +800,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         aiContext: {
           canvasSnapshot,
           lastMermaid: canvasContextRef.current.lastMermaid,
+          requestedMode: inferredMode,
         },
       }),
       signal: abortControllerRef.current?.signal,
