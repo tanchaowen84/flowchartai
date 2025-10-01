@@ -466,13 +466,19 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             type: element.type,
             fromElement: 'startBinding' in element ? element.startBinding?.elementId : undefined,
             toElement: 'endBinding' in element ? element.endBinding?.elementId : undefined,
-            label: 'text' in element ? element.text : undefined,
+            label:
+              'text' in element
+                ? (element as any).text
+                : undefined,
             aiGenerated: Boolean(element.customData?.aiGenerated),
           });
         } else {
           nodes.push({
             ...baseNode,
-            text: 'text' in element ? element.text : undefined,
+            text:
+              'text' in element
+                ? (element as any).text
+                : undefined,
           });
         }
       });
@@ -507,7 +513,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         // AI流程图上下文信息
         existingMermaid: extractExistingMermaidCode([...elements]),
         hasAiFlowchart: hasExistingAiFlowchart([...elements]),
-        description: generateAICanvasDescription(elements),
+        description: generateAICanvasDescription([...elements]),
       };
 
       return canvasState;
@@ -557,16 +563,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       const currentElements = [...excalidrawAPI.getSceneElements()];
       const aiElementsCount = countAiGeneratedElements(currentElements);
 
-      let newElements: any[];
-
-      if (mode === 'replace') {
-        // Replace mode: remove existing AI elements and add new ones
-        const elementsWithoutAi = removeAiGeneratedElements(currentElements);
-        newElements = [...elementsWithoutAi, ...result.elements];
-      } else {
-        // Extend mode: keep all existing elements and add new ones
-        newElements = [...currentElements, ...result.elements];
-      }
+      // 覆盖式落地：移除旧的 AI 元素，再添加最新生成的元素
+      const elementsWithoutAi = removeAiGeneratedElements(currentElements);
+      const newElements = [...elementsWithoutAi, ...result.elements];
 
       // Update the scene with new elements (capture for undo/redo)
       excalidrawAPI.updateScene({
@@ -584,18 +583,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       let toastTitle: string;
       let toastDescription: string;
 
-      if (mode === 'extend') {
-        toastTitle = 'Flowchart extended!';
-        toastDescription =
-          'New elements have been added to your existing flowchart.';
-      } else {
-        toastTitle =
-          aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
-        toastDescription =
-          aiElementsCount > 0
-            ? 'Previous AI flowchart replaced with updated version.'
-            : 'Your AI-generated flowchart has been added to the canvas.';
-      }
+      toastTitle = aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
+      toastDescription =
+        aiElementsCount > 0
+          ? 'Previous AI flowchart replaced with updated version.'
+          : 'Your AI-generated flowchart has been added to the canvas.';
 
       canvasContextRef.current.lastMermaid = {
         code: mermaidCode,
@@ -788,7 +780,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   // 处理AI对话的核心函数，支持工具调用的递归处理
   const processAIConversation = async (conversationMessages: any[]) => {
     const canvasSnapshot = getCanvasState();
-    const inferredMode = mode;
+    const inferredMode = canvasSnapshot?.hasAiFlowchart ? 'extend' : 'replace';
 
     const response = await fetch('/api/ai/chat/flowchart', {
       method: 'POST',
