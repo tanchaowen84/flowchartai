@@ -35,13 +35,18 @@ export const GoogleOneTapProvider = ({
 
     console.log('✅ Conditions met, initializing Better Auth One Tap...');
 
+    if (typeof (authClient as any).oneTap !== 'function') {
+      console.warn('⚠️ authClient.oneTap is not available, skipping initialization');
+      return;
+    }
+
     const initializeOneTap = async () => {
       try {
         console.log('🎯 Calling Better Auth oneTap...');
 
-        await authClient.oneTap({
+        await (authClient as any).oneTap({
           fetchOptions: {
-            onSuccess: async (context) => {
+            onSuccess: async (context: any) => {
               console.log('✅ Google One Tap login successful!', context);
 
               // 重要：登录成功后需要刷新页面以更新session状态
@@ -49,13 +54,13 @@ export const GoogleOneTapProvider = ({
               console.log('🔄 Refreshing page to sync session...');
               window.location.href = '/dashboard';
             },
-            onError: (context) => {
+            onError: (context: any) => {
               console.error('❌ Google One Tap login error:', context);
               // 如果One Tap失败，重定向到普通登录页面
               router.push('/auth/login');
             },
           },
-          onPromptNotification: (notification) => {
+          onPromptNotification: (notification: any) => {
             console.log('📢 One Tap prompt notification:', notification);
             if (notification.isNotDisplayed?.()) {
               console.log(
