@@ -46,7 +46,7 @@ export const websiteConfig: WebsiteConfig = {
   auth: {
     enableGoogleLogin: true,
     enableGithubLogin: false,
-    enableGoogleOneTap: true,
+    enableGoogleOneTap: false, // 暂时禁用以解决 FedCM 兼容性问题
   },
   i18n: {
     defaultLocale: 'en',

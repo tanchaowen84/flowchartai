@@ -35,7 +35,8 @@ export function Providers({ children }: PropsWithChildren) {
         <RootProvider theme={theme}>
           <TooltipProvider>
             <PaymentProvider>
-              <GoogleOneTapProvider>{children}</GoogleOneTapProvider>
+              {/* GoogleOneTapProvider 暂时禁用以解决 FedCM 兼容性问题 */}
+              {children}
             </PaymentProvider>
           </TooltipProvider>
         </RootProvider>

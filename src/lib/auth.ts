@@ -144,8 +144,8 @@ export const auth = betterAuth({
         'You have been banned from this application. Please contact support if you believe this is an error.',
     }),
     // https://www.better-auth.com/docs/plugins/one-tap
-    // Google One Tap integration
-    oneTap(),
+    // Google One Tap integration - 暂时禁用以解决 FedCM 兼容性问题
+    // oneTap(),
   ],
   onAPIError: {
     // https://www.better-auth.com/docs/reference/options#onapierror
