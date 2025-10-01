@@ -137,11 +137,7 @@ export async function POST(req: Request) {
 
     // 3. 验证请求数据
     const body = await req.json();
-    const {
-      messages,
-      model = 'google/gemini-2.5-flash',
-      aiContext,
-    } = body;
+    const { messages, model = 'google/gemini-2.5-flash', aiContext } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -175,7 +171,10 @@ export async function POST(req: Request) {
       ),
     };
 
-    const contextMessages: Array<{ role: 'system' | 'assistant'; content: string }> = [];
+    const contextMessages: Array<{
+      role: 'system' | 'assistant';
+      content: string;
+    }> = [];
 
     if (aiContext?.requestedMode) {
       contextMessages.push({

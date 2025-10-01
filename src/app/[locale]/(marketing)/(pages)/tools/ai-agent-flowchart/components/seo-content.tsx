@@ -1,7 +1,17 @@
 import Container from '@/components/layout/container';
 import { HeaderSection } from '@/components/layout/header-section';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import seoData from '../data/seo-content.json';
 
 export function SEOContent() {
@@ -97,15 +107,30 @@ export function SEOContent() {
 
         {/* FAQ Section */}
         <section className="px-4">
-          <HeaderSection id="faq" title={seo.faq.title} titleAs="h2" className="mb-6" />
-          <Accordion type="single" collapsible className="w-full rounded-2xl border px-6 py-2">
+          <HeaderSection
+            id="faq"
+            title={seo.faq.title}
+            titleAs="h2"
+            className="mb-6"
+          />
+          <Accordion
+            type="single"
+            collapsible
+            className="w-full rounded-2xl border px-6 py-2"
+          >
             {seo.faq.questions.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border-dashed">
+              <AccordionItem
+                key={index}
+                value={`item-${index}`}
+                className="border-dashed"
+              >
                 <AccordionTrigger className="text-left text-base">
                   {faq.question}
                 </AccordionTrigger>
                 <AccordionContent>
-                  <p className="text-base text-muted-foreground leading-relaxed">{faq.answer}</p>
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    {faq.answer}
+                  </p>
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -115,4 +140,3 @@ export function SEOContent() {
     </Container>
   );
 }
-

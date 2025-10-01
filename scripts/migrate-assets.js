@@ -94,7 +94,7 @@ async function uploadFile(s3Client, file) {
     });
 
     await s3Client.send(command);
-    
+
     return {
       success: true,
       file: file.remotePath,
@@ -116,7 +116,11 @@ async function uploadFile(s3Client, file) {
 function getCacheControl(filePath) {
   if (filePath.includes('favicon') || filePath.includes('logo')) {
     return 'public, max-age=86400'; // 1天
-  } else if (filePath.endsWith('.svg') || filePath.endsWith('.png') || filePath.endsWith('.jpg')) {
+  } else if (
+    filePath.endsWith('.svg') ||
+    filePath.endsWith('.png') ||
+    filePath.endsWith('.jpg')
+  ) {
     return 'public, max-age=2592000'; // 30天
   } else {
     return 'public, max-age=3600'; // 1小时
@@ -131,7 +135,9 @@ function formatSize(bytes) {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return (
+    Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  );
 }
 
 /**
@@ -154,7 +160,7 @@ async function main() {
     // 获取所有文件
     console.log('📁 扫描 public 目录...');
     const files = getAllFiles(publicDir);
-    
+
     console.log(`发现 ${files.length} 个文件`);
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
     console.log(`总大小: ${formatSize(totalSize)}\n`);
@@ -162,7 +168,9 @@ async function main() {
     // 显示文件列表
     console.log('📋 文件列表:');
     files.forEach((file, index) => {
-      console.log(`${index + 1}. ${file.remotePath} (${formatSize(file.size)})`);
+      console.log(
+        `${index + 1}. ${file.remotePath} (${formatSize(file.size)})`
+      );
     });
 
     console.log('\n🔄 开始上传...\n');
@@ -174,7 +182,9 @@ async function main() {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      process.stdout.write(`[${i + 1}/${files.length}] 上传 ${file.remotePath}... `);
+      process.stdout.write(
+        `[${i + 1}/${files.length}] 上传 ${file.remotePath}... `
+      );
 
       const result = await uploadFile(s3Client, file);
       results.push(result);
@@ -196,16 +206,17 @@ async function main() {
     if (failCount > 0) {
       console.log('\n❌ 失败的文件:');
       results
-        .filter(r => !r.success)
-        .forEach(r => console.log(`  - ${r.file}: ${r.error}`));
+        .filter((r) => !r.success)
+        .forEach((r) => console.log(`  - ${r.file}: ${r.error}`));
     }
 
     if (successCount > 0) {
       console.log('\n🎉 迁移完成！');
-      console.log(`💡 现在可以通过 https://cdn.flowchartai.org/static/ 访问这些文件`);
+      console.log(
+        `💡 现在可以通过 https://cdn.flowchartai.org/static/ 访问这些文件`
+      );
       console.log(`💡 例如: https://cdn.flowchartai.org/static/logo.png`);
     }
-
   } catch (error) {
     console.error('❌ 迁移过程中出现错误:', error.message);
     process.exit(1);

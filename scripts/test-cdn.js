@@ -93,8 +93,6 @@ async function testExistingAssets() {
   return results;
 }
 
-
-
 /**
  * 测试 CDN 域名解析
  */
@@ -117,7 +115,9 @@ async function testCDNDomain() {
       });
       return true;
     } else if (result.statusCode === 404) {
-      console.log('⚠️  CDN 域名解析成功，但文件未找到 (这是正常的，因为还没迁移)');
+      console.log(
+        '⚠️  CDN 域名解析成功，但文件未找到 (这是正常的，因为还没迁移)'
+      );
       console.log('状态码:', result.statusCode);
       return true; // 域名解析是成功的
     } else {
@@ -127,7 +127,10 @@ async function testCDNDomain() {
       return false;
     }
   } catch (error) {
-    if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+    if (
+      error.message.includes('ENOTFOUND') ||
+      error.message.includes('getaddrinfo')
+    ) {
       console.log('❌ CDN 域名解析失败 - DNS 配置问题');
       console.log('错误:', error.message);
       return false;
@@ -149,8 +152,10 @@ async function main() {
     console.log('� 第一步：测试当前 Workers 静态资源服务');
     const assetResults = await testExistingAssets();
 
-    const workersSuccess = assetResults.filter(r => r.workersSuccess).length;
-    console.log(`\n📊 Workers 资源测试结果: ${workersSuccess}/${assetResults.length} 成功`);
+    const workersSuccess = assetResults.filter((r) => r.workersSuccess).length;
+    console.log(
+      `\n📊 Workers 资源测试结果: ${workersSuccess}/${assetResults.length} 成功`
+    );
 
     // 2. 测试 CDN 域名配置
     console.log('\n📋 第二步：测试 CDN 域名配置');
@@ -158,7 +163,9 @@ async function main() {
 
     // 3. 总结和建议
     console.log('\n📊 测试结果总结:');
-    console.log(`当前 Workers 静态资源: ${workersSuccess > 0 ? '✅ 正常' : '❌ 异常'}`);
+    console.log(
+      `当前 Workers 静态资源: ${workersSuccess > 0 ? '✅ 正常' : '❌ 异常'}`
+    );
     console.log(`CDN 域名配置: ${cdnDomainSuccess ? '✅ 正常' : '❌ 异常'}`);
 
     if (cdnDomainSuccess && workersSuccess > 0) {

@@ -103,7 +103,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
+  const [isStreamingResponse, setIsStreamingResponse] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
@@ -115,6 +115,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const streamingMessageIdRef = useRef<string | null>(null);
 
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
@@ -158,7 +159,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, currentAssistantMessage]);
+  }, [messages]);
 
   // Initialize textarea height on mount and when input changes
   useEffect(() => {
@@ -214,7 +215,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setMessages((prev) => [...prev, userMessage]);
     setInput(''); // Clear input after sending
     setIsLoading(true);
-    setCurrentAssistantMessage('');
+    setIsStreamingResponse(true);
 
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
@@ -273,7 +274,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       };
 
       setMessages((prev) => [...prev, errorMessage]);
-      setCurrentAssistantMessage('');
 
       toast({
         title: 'Error',
@@ -283,6 +283,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
+      setIsStreamingResponse(false);
+      streamingMessageIdRef.current = null;
     }
   };
 
@@ -464,21 +466,21 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           edges.push({
             id: element.id,
             type: element.type,
-            fromElement: 'startBinding' in element ? element.startBinding?.elementId : undefined,
-            toElement: 'endBinding' in element ? element.endBinding?.elementId : undefined,
-            label:
-              'text' in element
-                ? (element as any).text
+            fromElement:
+              'startBinding' in element
+                ? element.startBinding?.elementId
                 : undefined,
+            toElement:
+              'endBinding' in element
+                ? element.endBinding?.elementId
+                : undefined,
+            label: 'text' in element ? (element as any).text : undefined,
             aiGenerated: Boolean(element.customData?.aiGenerated),
           });
         } else {
           nodes.push({
             ...baseNode,
-            text:
-              'text' in element
-                ? (element as any).text
-                : undefined,
+            text: 'text' in element ? (element as any).text : undefined,
           });
         }
       });
@@ -583,7 +585,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       let toastTitle: string;
       let toastDescription: string;
 
-      toastTitle = aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
+      toastTitle =
+        aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
       toastDescription =
         aiElementsCount > 0
           ? 'Previous AI flowchart replaced with updated version.'
@@ -700,7 +703,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       return [];
     });
     setIsLoading(true);
-    setCurrentAssistantMessage('');
+    setIsStreamingResponse(true);
 
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
@@ -764,7 +767,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       };
 
       setMessages((prev) => [...prev, errorMessage]);
-      setCurrentAssistantMessage('');
 
       toast({
         title: 'Error',
@@ -774,6 +776,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;
+      setIsStreamingResponse(false);
+      streamingMessageIdRef.current = null;
     }
   };
 
@@ -803,7 +807,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         // Handle rate limit errors specifically
         const errorData = await response.json().catch(() => ({}));
         if (errorData.isGuest) {
-          // Create a custom error with guest flag
           const guestError = new Error(
             errorData.message ||
               'Guest users can only use AI once per month. Please sign up for more requests.'
@@ -812,7 +815,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           throw guestError;
         }
 
-        // Check if this is a daily limit error for registered users
         if (errorData.usageInfo?.timeFrame === 'daily') {
           console.log('🔄 Detected daily limit error:', errorData.usageInfo);
           const dailyLimitError = new Error(
@@ -835,110 +837,160 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       throw new Error('No response body');
     }
 
+    const textDecoder = new TextDecoder();
+    const streamingMessageId = `assistant_${Date.now()}_${Math.random()
+      .toString(36)
+      .slice(2)}`;
+    let messageCreated = false;
     let accumulatedContent = '';
     let isFlowchartGenerated = false;
     let mermaidCode = '';
     let flowchartMode: 'replace' | 'extend' = 'replace';
-    let pendingToolCalls: any[] = [];
+    const pendingToolCalls: any[] = [];
+
+    const ensureStreamingMessage = () => {
+      if (messageCreated) return;
+      messageCreated = true;
+      streamingMessageIdRef.current = streamingMessageId;
+      const timestamp = new Date();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: streamingMessageId,
+          content: '',
+          role: 'assistant',
+          timestamp,
+          isFlowchart: false,
+        },
+      ]);
+    };
+
+    const updateStreamingMessage = (updater: (prev: Message) => Message) => {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === streamingMessageId ? updater(msg) : msg))
+      );
+    };
+
+    const setStreamingContent = (content: string) => {
+      ensureStreamingMessage();
+      accumulatedContent = content;
+      updateStreamingMessage((msg) => ({
+        ...msg,
+        content,
+      }));
+    };
+
+    const appendStreamingContent = (delta: string) => {
+      if (!delta) return;
+      const nextContent = accumulatedContent + delta;
+      setStreamingContent(nextContent);
+    };
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = new TextDecoder().decode(value);
+      const chunk = textDecoder.decode(value);
       const lines = chunk.split('\n');
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
+        if (!line.startsWith('data: ')) continue;
 
-            if (data.type === 'text' || data.type === 'content') {
-              accumulatedContent += data.content;
-              setCurrentAssistantMessage(accumulatedContent);
-            } else if (data.type === 'tool-call') {
-              // Handle different tool calls
-              if (data.toolName === 'generate_flowchart') {
-                mermaidCode = data.args.mermaid_code;
-                flowchartMode = data.args.mode || 'replace';
-                isFlowchartGenerated = true;
+        try {
+          const data = JSON.parse(line.slice(6));
 
-                // Add a simple message indicating flowchart generation (without showing code)
-                const modeText =
-                  flowchartMode === 'extend'
-                    ? 'Extending flowchart...'
-                    : 'Generating flowchart...';
-                accumulatedContent += `\n\n🎨 ${modeText}`;
-                setCurrentAssistantMessage(accumulatedContent);
-              } else if (data.toolName === 'get_canvas_state') {
-                // Handle canvas state request - get state from frontend
-                accumulatedContent += '\n\n🔍 Analyzing current canvas...';
-                setCurrentAssistantMessage(accumulatedContent);
+          if (data.type === 'text' || data.type === 'content') {
+            appendStreamingContent(data.content ?? '');
+          } else if (data.type === 'tool-call') {
+            if (data.toolName === 'generate_flowchart') {
+              mermaidCode = data.args.mermaid_code;
+              flowchartMode = data.args.mode || 'replace';
+              isFlowchartGenerated = true;
 
-                // 收集工具调用，稍后处理
-                pendingToolCalls.push({
-                  toolCallId: data.toolCallId,
-                  toolName: data.toolName,
-                  args: data.args,
-                });
-              }
-            } else if (data.type === 'tool-result') {
-              // Tool execution result
-              console.log('Tool result:', data.result);
-            } else if (data.type === 'finish') {
-              // Final complete message
-              if (!accumulatedContent.trim()) {
-                accumulatedContent = data.content;
-                setCurrentAssistantMessage(accumulatedContent);
-              }
-            } else if (data.type === 'done' || data === '[DONE]') {
-              break;
+              const modeText =
+                flowchartMode === 'extend'
+                  ? 'Extending flowchart...'
+                  : 'Generating flowchart...';
+              appendStreamingContent(`\n\n🎨 ${modeText}`);
+            } else if (data.toolName === 'get_canvas_state') {
+              appendStreamingContent('\n\n🔍 Analyzing current canvas...');
+              pendingToolCalls.push({
+                toolCallId: data.toolCallId,
+                toolName: data.toolName,
+                args: data.args,
+              });
             }
-          } catch (e) {
-            // Skip invalid JSON lines
-            console.warn('Failed to parse SSE data:', line);
+          } else if (data.type === 'tool-result') {
+            console.log('Tool result:', data.result);
+          } else if (data.type === 'finish') {
+            if (!accumulatedContent.trim() && data.content) {
+              setStreamingContent(data.content);
+            }
+          } else if (data.type === 'done' || data === '[DONE]') {
+            break;
           }
+        } catch (error) {
+          console.warn('Failed to parse SSE data:', line);
         }
       }
     }
 
-    // 处理待处理的工具调用
     if (pendingToolCalls.length > 0) {
-      if (pendingToolCalls.length > 0) {
-        const updatedMessages = [
-          ...conversationMessages,
-          {
-            role: 'assistant',
-            content: accumulatedContent,
-            tool_calls: pendingToolCalls.map((tc) => ({
-              id: tc.toolCallId,
-              type: 'function',
-              function: {
-                name: tc.toolName,
-                arguments: JSON.stringify(tc.args),
-              },
-            })),
-          },
-        ];
-
-        return await processAIConversation(updatedMessages);
+      if (messageCreated) {
+        setMessages((prev) =>
+          prev.filter((message) => message.id !== streamingMessageId)
+        );
       }
+      streamingMessageIdRef.current = null;
+
+      const updatedMessages = [
+        ...conversationMessages,
+        {
+          role: 'assistant',
+          content: accumulatedContent,
+          tool_calls: pendingToolCalls.map((tc) => ({
+            id: tc.toolCallId,
+            type: 'function',
+            function: {
+              name: tc.toolName,
+              arguments: JSON.stringify(tc.args),
+            },
+          })),
+        },
+      ];
+
+      return await processAIConversation(updatedMessages);
     }
 
-    // Create final assistant message
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      content: accumulatedContent,
-      role: 'assistant',
-      timestamp: new Date(),
-      isFlowchart: isFlowchartGenerated,
-      mermaidCode: isFlowchartGenerated ? mermaidCode : undefined,
-    };
+    if (messageCreated) {
+      updateStreamingMessage((msg) => ({
+        ...msg,
+        content: accumulatedContent,
+        isFlowchart: isFlowchartGenerated,
+        mermaidCode: isFlowchartGenerated ? mermaidCode : undefined,
+        timestamp: new Date(),
+      }));
+    } else if (accumulatedContent.trim().length > 0) {
+      streamingMessageIdRef.current = null;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          content: accumulatedContent,
+          role: 'assistant',
+          timestamp: new Date(),
+          isFlowchart: isFlowchartGenerated,
+          mermaidCode: isFlowchartGenerated ? mermaidCode : undefined,
+        },
+      ]);
+    }
 
-    setMessages((prev) => [...prev, aiMessage]);
-    setCurrentAssistantMessage('');
+    if (!accumulatedContent.trim() && !isFlowchartGenerated && messageCreated) {
+      setMessages((prev) =>
+        prev.filter((message) => message.id !== streamingMessageId)
+      );
+    }
 
-    // If a flowchart was generated, add it to the canvas
     if (isFlowchartGenerated && mermaidCode) {
       console.log('🎨 Attempting to add flowchart to canvas:', {
         mermaidCode: mermaidCode.substring(0, 100) + '...',
@@ -960,7 +1012,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       setIsLoading(false);
-      setCurrentAssistantMessage('');
+      setIsStreamingResponse(false);
+      streamingMessageIdRef.current = null;
     }
   };
 
@@ -972,8 +1025,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     // 清空对话历史
     setMessages([]);
-    setCurrentAssistantMessage('');
     setInput('');
+    setIsStreamingResponse(false);
+    streamingMessageIdRef.current = null;
 
     // 显示提示信息
     toast({
@@ -1148,20 +1202,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 </div>
               ))}
 
-              {/* Current streaming message */}
-              {isLoading && currentAssistantMessage && (
-                <div className="max-w-full">
-                  <div className="leading-relaxed">
-                    {renderFormattedText(currentAssistantMessage)}
-                  </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className="h-1 w-1 bg-blue-500 rounded-full animate-pulse" />
-                  </div>
-                </div>
-              )}
-
-              {/* Loading indicator when no current message */}
-              {isLoading && !currentAssistantMessage && (
+              {/* Typing indicator before streaming starts */}
+              {isStreamingResponse && !streamingMessageIdRef.current && (
                 <div className="max-w-full">
                   <div className="flex items-center gap-1 py-2">
                     <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
