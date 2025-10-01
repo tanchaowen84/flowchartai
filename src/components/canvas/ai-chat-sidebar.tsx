@@ -554,7 +554,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       const result = await convertMermaidToExcalidraw(mermaidCode);
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to convert flowchart');
+        const conversionError = new Error(
+          result.error || 'Failed to convert flowchart'
+        );
+        (conversionError as any).details = result.details;
+        (conversionError as any).mermaid = mermaidCode;
+        throw conversionError;
       }
 
       if (!result.elements) {
@@ -603,14 +608,37 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       });
     } catch (error) {
       console.error('Error adding flowchart to canvas:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred.';
+      const errorDetails =
+        error instanceof Error && (error as any).details
+          ? (error as any).details
+          : null;
+      const mermaidSnippet =
+        error instanceof Error && (error as any).mermaid
+          ? (error as any).mermaid
+          : undefined;
+
+      const combinedDescription = errorDetails
+        ? `${errorMessage}${errorDetails.startsWith('(') ? ' ' : ': '}${errorDetails}`
+        : errorMessage;
+
       toast({
         title: 'Failed to add flowchart',
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred.',
+        description: combinedDescription,
         variant: 'destructive',
       });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `flowchart-error-${Date.now()}`,
+          role: 'assistant',
+          content:
+            'The flowchart could not be rendered. Please try again or ask me to simplify the diagram.',
+          timestamp: new Date(),
+        },
+      ]);
     }
   };
 
