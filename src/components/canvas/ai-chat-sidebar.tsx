@@ -1308,7 +1308,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   }}
                   onKeyDown={handleKeyPress}
                   disabled={isLoading}
-                  className="min-h-[32px] max-h-[120px] resize-none border-0 focus-visible:ring-0 shadow-none bg-transparent placeholder:text-gray-400 text-black text-sm px-0 py-1 leading-5 overflow-y-auto"
+                  className="min-h-[32px] max-h-[120px] resize-none border-0 focus-visible:ring-0 shadow-none bg-transparent dark:bg-white placeholder:text-gray-400 text-black text-sm px-0 py-1 leading-5 overflow-y-auto"
                   style={{
                     height: '32px',
                     wordWrap: 'break-word',

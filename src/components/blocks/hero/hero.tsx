@@ -42,33 +42,37 @@ export default function HeroSection() {
   const inputClassName = useMemo(() => {
     return cn(
       // 基础样式
-      'w-full h-16 text-lg px-6 pr-16 rounded-2xl border-2 text-black placeholder:text-gray-400',
-      'transition-all duration-300 ease-in-out',
+      "w-full h-16 text-lg px-6 pr-16 rounded-2xl border-2 bg-background text-foreground placeholder:text-muted-foreground",
+      "transition-all duration-300 ease-in-out",
+      // 暗夜模式适配
+      "dark:bg-zinc-800 dark:text-white dark:placeholder:text-zinc-400 dark:border-zinc-700",
       // 聚焦状态
-      isFocused && 'border-primary shadow-lg shadow-primary/20 scale-[1.02]',
-      !isFocused && 'border-border hover:border-primary/50',
+      isFocused &&
+        "border-primary shadow-lg shadow-primary/20 scale-[1.02] dark:border-primary dark:shadow-primary/20",
+      !isFocused &&
+        "border-border hover:border-primary/50 dark:border-zinc-700 dark:hover:border-primary/50",
       // 加载状态
-      isLoading && 'opacity-50 cursor-not-allowed'
+      isLoading && "opacity-50 cursor-not-allowed"
     );
   }, [isFocused, isLoading]);
 
   const buttonClassName = useMemo(() => {
     return cn(
       // 基础样式
-      'absolute right-2 top-1/2 -translate-y-1/2',
-      'h-12 w-12 rounded-full',
-      'transition-all duration-300 ease-in-out',
+      "absolute right-2 top-1/2 -translate-y-1/2",
+      "h-12 w-12 rounded-full",
+      "transition-all duration-300 ease-in-out",
       // 状态样式
       input.trim() && !isLoading
-        ? 'bg-primary hover:bg-primary/90 scale-100'
-        : 'bg-muted-foreground/20 scale-90'
+        ? "bg-primary hover:bg-primary/90 scale-100"
+        : "bg-muted-foreground/20 scale-90"
     );
   }, [input, isLoading]);
 
   const iconClassName = useMemo(() => {
     return cn(
-      'h-5 w-5 transition-transform duration-300',
-      isLoading ? 'animate-pulse' : 'group-hover:translate-x-0.5'
+      "h-5 w-5 transition-transform duration-300",
+      isLoading ? "animate-pulse" : "group-hover:translate-x-0.5"
     );
   }, [isLoading]);
 
@@ -149,8 +153,8 @@ export default function HeroSection() {
                 <div className="mt-6 flex flex-col items-center gap-2 text-center">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                     </span>
                     <span>Discord server is now live!</span>
                   </div>
