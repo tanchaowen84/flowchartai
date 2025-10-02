@@ -42,7 +42,7 @@ export default function HeroSection() {
   const inputClassName = useMemo(() => {
     return cn(
       // 基础样式
-      'w-full h-16 text-lg px-6 pr-16 rounded-2xl border-2',
+      'w-full h-16 text-lg px-6 pr-16 rounded-2xl border-2 text-black placeholder:text-gray-400',
       'transition-all duration-300 ease-in-out',
       // 聚焦状态
       isFocused && 'border-primary shadow-lg shadow-primary/20 scale-[1.02]',
