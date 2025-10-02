@@ -73,9 +73,9 @@
     },
     "hobby": {
       "name": "Hobby",
-      "description": "Great for individuals who need more AI requests and light technical assistance.",
+      "description": "Great for individuals who need AI-powered flowchart generation on a budget.",
       "features": {
-        "feature-1": "500 AI requests per month",
+        "feature-1": "100 AI requests per month",
         "feature-2": "Full access to AI agent for generation and editing",
         "feature-3": "Unlimited diagram storage",
         "feature-4": "Text and image input supported",
@@ -89,9 +89,9 @@
     },
     "professional": {
       "name": "Professional",
-      "description": "Perfect for power users and professionals who want faster response and priority support.",
+      "description": "Perfect for power users and professionals who want unlimited AI access and priority support.",
       "features": {
-        "feature-1": "1000 AI requests per month",
+        "feature-1": "Unlimited AI requests",
         "feature-2": "Priority AI processing",
         "feature-3": "Unlimited diagram storage",
         "feature-4": "Real-time AI-assisted editing",

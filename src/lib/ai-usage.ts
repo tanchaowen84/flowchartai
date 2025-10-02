@@ -5,8 +5,8 @@ import { and, eq, gte, sql } from 'drizzle-orm';
 // AI使用量限制配置
 export const AI_USAGE_LIMITS = {
   FREE_USER_DAILY: 1, // 免费用户每天1次
-  HOBBY_USER_MONTHLY: 500, // Hobby用户每月500次
-  PROFESSIONAL_USER_MONTHLY: 1000, // Professional用户每月1000次
+  HOBBY_USER_MONTHLY: 100, // Hobby用户每月100次
+  PROFESSIONAL_USER_MONTHLY: 9999, // Professional用户每月9999次（无限制）
 } as const;
 
 // 通过Creem产品ID识别计划等级

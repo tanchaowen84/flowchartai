@@ -34,9 +34,9 @@ export function AIUsageLimitCard({
       case 'free':
         return {
           targetPlan: 'Hobby',
-          price: '$15/month',
+          price: '$8/month',
           features: [
-            '500 AI requests per month',
+            '100 AI requests per month',
             'Email support (24h response)',
             'Save unlimited diagrams',
           ],
@@ -44,9 +44,9 @@ export function AIUsageLimitCard({
       case 'hobby':
         return {
           targetPlan: 'Professional',
-          price: '$25/month',
+          price: '$12/month',
           features: [
-            '1000 AI requests per month',
+            'Unlimited AI requests',
             'Priority support + technical help',
             'Commercial use license',
           ],

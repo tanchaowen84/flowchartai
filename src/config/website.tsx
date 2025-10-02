@@ -95,7 +95,7 @@ export const websiteConfig: WebsiteConfig = {
             type: PaymentTypes.SUBSCRIPTION,
             priceId:
               process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_MONTHLY || '',
-            amount: 1500, // $15.00
+            amount: 800, // $8.00
             currency: 'USD',
             interval: PlanIntervals.MONTH,
           },
@@ -103,7 +103,7 @@ export const websiteConfig: WebsiteConfig = {
             type: PaymentTypes.SUBSCRIPTION,
             priceId:
               process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_YEARLY || '',
-            amount: 9600, // $96.00
+            amount: 6000, // $60.00
             currency: 'USD',
             interval: PlanIntervals.YEAR,
           },
@@ -120,7 +120,7 @@ export const websiteConfig: WebsiteConfig = {
             priceId:
               process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_MONTHLY ||
               '',
-            amount: 2500, // $25.00
+            amount: 1200, // $12.00
             currency: 'USD',
             interval: PlanIntervals.MONTH,
           },
@@ -129,7 +129,7 @@ export const websiteConfig: WebsiteConfig = {
             priceId:
               process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_PROFESSIONAL_YEARLY ||
               '',
-            amount: 14400, // $144.00
+            amount: 9600, // $96.00
             currency: 'USD',
             interval: PlanIntervals.YEAR,
           },
