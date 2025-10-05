@@ -137,9 +137,31 @@ function countImagesInMessages(messages: any[]): number {
   return count;
 }
 
+function extractJsonFromContent(rawContent: string): string {
+  const trimmed = rawContent.trim();
+
+  if (trimmed.startsWith('```')) {
+    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fencedMatch?.[1]) {
+      return fencedMatch[1].trim();
+    }
+  }
+
+  return trimmed;
+}
+
+function normalizeMermaidCode(mermaid: string): string {
+  return mermaid
+    .trim()
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/"/g, "'");
+}
+
 export async function POST(req: Request) {
   let userId: string | null = null;
   let isGuestUser = false;
+  let requestedMode: AiAssistantMode = TEXT_MODE;
 
   try {
     // 1. 身份验证 - 支持guest用户
@@ -218,7 +240,7 @@ export async function POST(req: Request) {
         )
       : undefined;
 
-    const requestedMode = getRequestedMode(aiContext);
+    requestedMode = getRequestedMode(aiContext);
 
     // 5. 调用 OpenRouter API
     const openai = createOpenAIClient();
@@ -306,6 +328,19 @@ export async function POST(req: Request) {
         );
       }
 
+      const normalizedJson = extractJsonFromContent(responseText);
+
+      if (!normalizedJson) {
+        await recordImageUsage(false, 'Model returned empty response');
+        return new Response(
+          JSON.stringify({ error: 'Model returned empty response' }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
       let parsedResult: {
         mermaid?: string;
         title?: string;
@@ -313,7 +348,7 @@ export async function POST(req: Request) {
       };
 
       try {
-        parsedResult = JSON.parse(responseText);
+        parsedResult = JSON.parse(normalizedJson);
       } catch (error) {
         console.error('Failed to parse image flowchart JSON:', responseText);
         await recordImageUsage(false, 'Failed to parse AI response as JSON');
@@ -345,6 +380,8 @@ export async function POST(req: Request) {
         ? `Generated from image: ${parsedResult.title}`
         : 'Generated flowchart from image';
 
+      const mermaidCode = normalizeMermaidCode(parsedResult.mermaid);
+
       const encoder = new TextEncoder();
       const summaryContent = parsedResult.notes
         ? parsedResult.notes
@@ -363,7 +400,7 @@ export async function POST(req: Request) {
             toolCallId: `image-flowchart-${Date.now()}`,
             toolName: 'generate_flowchart',
             args: {
-              mermaid_code: parsedResult.mermaid,
+              mermaid_code: mermaidCode,
               mode: 'replace',
               description,
             },
