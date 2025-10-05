@@ -36,7 +36,9 @@ export const GoogleOneTapProvider = ({
     console.log('✅ Conditions met, initializing Better Auth One Tap...');
 
     if (typeof (authClient as any).oneTap !== 'function') {
-      console.warn('⚠️ authClient.oneTap is not available, skipping initialization');
+      console.warn(
+        '⚠️ authClient.oneTap is not available, skipping initialization'
+      );
       return;
     }
 

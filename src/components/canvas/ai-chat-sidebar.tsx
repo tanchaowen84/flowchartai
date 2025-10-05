@@ -24,6 +24,11 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import { useGuestAIUsage } from '@/hooks/use-guest-ai-usage';
 import { toast } from '@/hooks/use-toast';
 import { useLocalePathname } from '@/i18n/navigation';
+import {
+  AI_ASSISTANT_MODES,
+  type AiAssistantMode,
+  DEFAULT_AI_ASSISTANT_MODE,
+} from '@/lib/ai-modes';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
 import {
   createImageThumbnail,
@@ -110,6 +115,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [dailyLimitUsageInfo, setDailyLimitUsageInfo] = useState<any>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [aiMode, setAiMode] = useState<AiAssistantMode>(
+    DEFAULT_AI_ASSISTANT_MODE
+  );
   const hasAutoSentRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -606,7 +614,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } catch (error) {
       console.error('Error adding flowchart to canvas:', error);
       const errorMessage =
-        error instanceof Error ? error.message : 'An unexpected error occurred.';
+        error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred.';
       const errorDetails =
         error instanceof Error && (error as any).details
           ? (error as any).details
@@ -822,6 +832,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           canvasSnapshot,
           lastMermaid: canvasContextRef.current.lastMermaid,
           requestedMode: inferredMode,
+          mode: aiMode,
         },
       }),
       signal: abortControllerRef.current?.signal,
@@ -1157,6 +1168,39 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             >
               <X className="h-4 w-4" />
             </Button>
+          </div>
+        </div>
+
+        {/* Mode Switch */}
+        <div className="px-4 pb-2">
+          <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 border border-gray-200">
+            {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
+              (mode) => {
+                const isActive = aiMode === mode;
+                const { label, description } = AI_ASSISTANT_MODES[mode];
+                return (
+                  <Button
+                    key={mode}
+                    type="button"
+                    size="sm"
+                    variant={isActive ? 'default' : 'ghost'}
+                    className={
+                      isActive
+                        ? 'h-8 px-3'
+                        : 'h-8 px-3 text-gray-600 hover:text-gray-900'
+                    }
+                    onClick={() => setAiMode(mode)}
+                  >
+                    <div className="flex flex-col items-start leading-tight">
+                      <span className="text-xs font-medium">{label}</span>
+                      <span className="text-[10px] text-gray-500">
+                        {description}
+                      </span>
+                    </div>
+                  </Button>
+                );
+              }
+            )}
           </div>
         </div>
 
