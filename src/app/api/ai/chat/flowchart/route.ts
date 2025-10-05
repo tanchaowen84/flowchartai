@@ -122,19 +122,26 @@ function getRequestedMode(aiContext: any): AiAssistantMode {
   return mode === IMAGE_MODE ? IMAGE_MODE : TEXT_MODE;
 }
 
-function countImagesInMessages(messages: any[]): number {
-  let count = 0;
-  for (const message of messages) {
-    const content = message?.content;
-    if (Array.isArray(content)) {
-      for (const part of content) {
-        if (part?.type === 'image_url' && part.image_url?.url) {
-          count += 1;
-        }
+function countImagesInLatestUserMessage(messages: any[]): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message?.role !== 'user') continue;
+
+    const content = message.content;
+    if (!Array.isArray(content)) {
+      return 0;
+    }
+
+    let count = 0;
+    for (const part of content) {
+      if (part?.type === 'image_url' && part.image_url?.url) {
+        count += 1;
       }
     }
+    return count;
   }
-  return count;
+
+  return 0;
 }
 
 function extractJsonFromContent(rawContent: string): string {
@@ -246,7 +253,7 @@ export async function POST(req: Request) {
     const openai = createOpenAIClient();
 
     if (requestedMode === IMAGE_MODE) {
-      const imageCount = countImagesInMessages(messages);
+      const imageCount = countImagesInLatestUserMessage(messages);
 
       if (imageCount === 0) {
         return new Response(
