@@ -304,7 +304,7 @@ export default function HeroSection() {
 
                 {/* input form with mode selection */}
                 <div className="mt-12 flex flex-col items-center justify-center gap-3">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-muted px-1.5 py-1 text-sm shadow-lg border border-border/60">
+                  <div className="inline-flex items-center gap-3 rounded-full bg-muted px-3 py-2 text-sm shadow-lg border border-border/60">
                     {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
                       (mode) => {
                         const isActive = selectedMode === mode;
@@ -315,7 +315,7 @@ export default function HeroSection() {
                             type="button"
                             onClick={() => setSelectedMode(mode)}
                             className={cn(
-                              'rounded-full px-4 py-1.5 text-sm font-medium transition-all',
+                              'rounded-full px-6 py-2 text-base font-medium transition-all',
                               isActive
                                 ? 'bg-primary text-white shadow-md'
                                 : 'text-muted-foreground hover:text-foreground'
