@@ -242,7 +242,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     // Create user message with the provided text
     const mimeMatch = homepageImage?.base64?.match(/^data:(.*?);/);
     const mimeType = mimeMatch?.[1] || 'image/png';
-    const filename = homepageImage?.filename || `uploaded-image.${mimeType.split('/')[1] || 'png'}`;
+    const filename =
+      homepageImage?.filename ||
+      `uploaded-image.${mimeType.split('/')[1] || 'png'}`;
 
     let messageContent: string | MessageContent[] = trimmed;
     let messageImages: { file: File; thumbnail: string; base64: string }[] = [];
@@ -735,7 +737,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   const handleSendMessage = async () => {
     if (
-      (selectedImages.length === 0 && !input.trim() && !canvasContextRef.current.homepageImage) ||
+      (selectedImages.length === 0 &&
+        !input.trim() &&
+        !canvasContextRef.current.homepageImage) ||
       isLoading
     ) {
       return;
@@ -772,7 +776,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     // Prepare message content
-    let messageContent: string | MessageContent[] | undefined;
+    let messageContent: string | MessageContent[] = input.trim();
     let messageImages: { file: File; thumbnail: string; base64: string }[] = [];
 
     const homepageImage = canvasContextRef.current.homepageImage;
@@ -812,7 +816,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } else if (homepageImage && aiMode === 'image_to_flowchart') {
       const mimeMatch = homepageImage.base64.match(/^data:(.*?);/);
       const mimeType = mimeMatch?.[1] || 'image/png';
-      const filename = homepageImage.filename || `uploaded-image.${mimeType.split('/')[1] || 'png'}`;
+      const filename =
+        homepageImage.filename ||
+        `uploaded-image.${mimeType.split('/')[1] || 'png'}`;
       messageImages = [
         {
           file: new File([], filename, { type: mimeType }),
@@ -837,10 +843,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           },
         },
       ];
-    }
-
-    if (!messageContent || (typeof messageContent === 'string' && !messageContent)) {
-      messageContent = input.trim();
     }
 
     const userMessageId = Date.now().toString();

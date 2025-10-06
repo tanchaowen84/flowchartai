@@ -17,8 +17,8 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
 import { useLocalePathname } from '@/i18n/navigation';
 import {
-  DEFAULT_AI_ASSISTANT_MODE,
   type AiAssistantMode,
+  DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
 import type {
   ExcalidrawImperativeAPI,
@@ -98,14 +98,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState<string>('Untitled');
   const [autoInput, setAutoInput] = useState<string>('');
-  const [autoImagePayload, setAutoImagePayload] = useState<
-    | {
-        base64: string;
-        thumbnail?: string;
-        filename?: string;
-      }
-    | null
-  >(null);
+  const [autoImagePayload, setAutoImagePayload] = useState<{
+    base64: string;
+    thumbnail?: string;
+    filename?: string;
+  } | null>(null);
   const [shouldAutoGenerate, setShouldAutoGenerate] = useState(false);
   const [initialMode, setInitialMode] = useState<AiAssistantMode>(
     DEFAULT_AI_ASSISTANT_MODE

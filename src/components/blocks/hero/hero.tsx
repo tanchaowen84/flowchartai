@@ -6,22 +6,29 @@ import { Input } from '@/components/ui/input';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import {
   AI_ASSISTANT_MODES,
-  DEFAULT_AI_ASSISTANT_MODE,
   type AiAssistantMode,
+  DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
 import {
+  MAX_FILE_SIZE,
   createImageThumbnail,
   encodeImageToBase64,
   formatFileSize,
   isValidImageFile,
-  MAX_FILE_SIZE,
 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
-import { Camera, Send, UploadCloud, Trash2 } from 'lucide-react';
+import { Camera, Send, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ChangeEvent, DragEvent, useCallback, useMemo, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  type DragEvent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 
 export default function HeroSection() {
@@ -210,7 +217,9 @@ export default function HeroSection() {
                 'flowchart_auto_image',
                 JSON.stringify({
                   base64,
-                  thumbnail: imagePreview ?? (await createImageThumbnail(imageFile, 320, 200)),
+                  thumbnail:
+                    imagePreview ??
+                    (await createImageThumbnail(imageFile, 320, 200)),
                   filename: imageFile.name,
                 })
               );
@@ -235,7 +244,9 @@ export default function HeroSection() {
                 'flowchart_auto_image',
                 JSON.stringify({
                   base64,
-                  thumbnail: imagePreview ?? (await createImageThumbnail(imageFile, 320, 200)),
+                  thumbnail:
+                    imagePreview ??
+                    (await createImageThumbnail(imageFile, 320, 200)),
                   filename: imageFile.name,
                 })
               );
@@ -352,11 +363,11 @@ export default function HeroSection() {
                           )}
                         >
                           {imagePreview ? (
-                            <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border bg-white shadow-sm">
+                            <div className="relative flex h-56 w-full max-w-xl items-center justify-center overflow-hidden rounded-2xl border bg-white shadow-sm">
                               <img
                                 src={imagePreview}
                                 alt="Preview"
-                                className="w-full object-cover"
+                                className="max-h-full max-w-full object-contain"
                               />
                               <button
                                 type="button"
@@ -376,7 +387,8 @@ export default function HeroSection() {
                                   Drag & drop or upload a flowchart image
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  Supported formats: JPG, PNG, WEBP, GIF. Max size {formatFileSize(MAX_FILE_SIZE)}.
+                                  Supported formats: JPG, PNG, WEBP, GIF. Max
+                                  size {formatFileSize(MAX_FILE_SIZE)}.
                                 </p>
                               </div>
                               <div className="flex flex-col items-center gap-2">
@@ -390,7 +402,9 @@ export default function HeroSection() {
                                   <Camera className="h-4 w-4" /> Upload image
                                 </Button>
                                 {imageError && (
-                                  <p className="text-xs text-red-500">{imageError}</p>
+                                  <p className="text-xs text-red-500">
+                                    {imageError}
+                                  </p>
                                 )}
                               </div>
                             </>
