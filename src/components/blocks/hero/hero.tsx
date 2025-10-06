@@ -304,7 +304,7 @@ export default function HeroSection() {
 
                 {/* input form with mode selection */}
                 <div className="mt-12 flex flex-col items-center justify-center gap-3">
-                  <div className="flex items-center gap-2 rounded-full bg-muted px-1.5 py-1 text-sm shadow-lg border border-border/60 max-w-2xl w-full justify-center">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-muted px-1.5 py-1 text-sm shadow-lg border border-border/60">
                     {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
                       (mode) => {
                         const isActive = selectedMode === mode;
