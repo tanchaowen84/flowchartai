@@ -93,6 +93,11 @@ interface AiChatSidebarProps {
   shouldAutoGenerate?: boolean;
   onAutoGenerateComplete?: () => void;
   initialMode?: AiAssistantMode;
+  initialImage?: {
+    base64: string;
+    thumbnail?: string;
+    filename?: string;
+  } | null;
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
@@ -106,6 +111,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   shouldAutoGenerate,
   onAutoGenerateComplete,
   initialMode,
+  initialImage,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -182,6 +188,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   }, [initialMode]);
 
+  useEffect(() => {
+    if (initialImage) {
+      canvasContextRef.current.homepageImage = initialImage;
+    } else {
+      canvasContextRef.current.homepageImage = undefined;
+    }
+  }, [initialImage]);
+
   // Auto-adjust textarea height when input changes
   useEffect(() => {
     adjustTextareaHeight();
@@ -189,7 +203,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   // Auto-send function that bypasses input state
   const handleAutoSendMessage = async (messageText: string) => {
-    if ((!messageText.trim() && !canvasContextRef.current.homepageImage) || isLoading) {
+    const homepageImage = canvasContextRef.current.homepageImage;
+    const trimmed = messageText.trim();
+
+    if ((!trimmed && !homepageImage) || isLoading) {
       return;
     }
 
@@ -223,15 +240,53 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     // Create user message with the provided text
+    const mimeMatch = homepageImage?.base64?.match(/^data:(.*?);/);
+    const mimeType = mimeMatch?.[1] || 'image/png';
+    const filename = homepageImage?.filename || `uploaded-image.${mimeType.split('/')[1] || 'png'}`;
+
+    let messageContent: string | MessageContent[] = trimmed;
+    let messageImages: { file: File; thumbnail: string; base64: string }[] = [];
+
+    if (homepageImage && aiMode === 'image_to_flowchart') {
+      messageImages = [
+        {
+          file: new File([], filename, { type: mimeType }),
+          thumbnail: homepageImage.thumbnail || homepageImage.base64,
+          base64: homepageImage.base64,
+        },
+      ];
+      messageContent = [
+        ...(trimmed
+          ? [
+              {
+                type: 'text' as const,
+                text: trimmed,
+              },
+            ]
+          : []),
+        {
+          type: 'image_url' as const,
+          image_url: {
+            url: homepageImage.base64,
+          },
+        },
+      ];
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: messageText,
+      content: messageContent,
       role: 'user',
       timestamp: new Date(),
+      images: messageImages.length > 0 ? messageImages : undefined,
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput(''); // Clear input after sending
+    setInput('');
+    if (homepageImage && aiMode === 'image_to_flowchart') {
+      canvasContextRef.current.homepageImage = undefined;
+      localStorage.removeItem('flowchart_auto_image');
+    }
     setIsLoading(true);
     setIsStreamingResponse(true);
 
@@ -245,7 +300,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           role: msg.role,
           content: typeof msg.content === 'string' ? msg.content : msg.content,
         })),
-        // Add current user message
         {
           role: 'user',
           content: userMessage.content,
@@ -308,22 +362,26 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   // Handle auto-generation from homepage - ONLY ONCE
   useEffect(() => {
+    const hasHomepageImage = !!canvasContextRef.current.homepageImage;
+    const normalizedAutoInput = autoInput ?? '';
+
     if (
       shouldAutoGenerate &&
-      autoInput &&
+      (normalizedAutoInput || hasHomepageImage) &&
       isOpen &&
       isAPIReady &&
       !hasAutoSentRef.current
     ) {
       hasAutoSentRef.current = true; // Immediately mark as sent to prevent any duplicates
-      setInput(autoInput);
+      setInput(normalizedAutoInput);
 
       console.log(
         '🚀 Auto-sending message now that API is ready:',
-        autoInput.substring(0, 50) + '...',
+        normalizedAutoInput.substring(0, 50) + '...',
         {
           shouldAutoGenerate,
-          hasAutoInput: !!autoInput,
+          hasAutoInput: Boolean(normalizedAutoInput),
+          hasHomepageImage,
           isOpen,
           isAPIReady,
           hasAutoSent: hasAutoSentRef.current,
@@ -333,7 +391,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       // Small delay to ensure component is fully loaded
       setTimeout(async () => {
         try {
-          await handleAutoSendMessage(autoInput);
+          await handleAutoSendMessage(normalizedAutoInput);
 
           // 🔧 只有在自动发送成功后才清除localStorage
           localStorage.removeItem('flowchart_auto_generate');
@@ -352,7 +410,15 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   // 🔧 备用机制：如果API初始化很慢，提供一个超时重试
   useEffect(() => {
-    if (shouldAutoGenerate && autoInput && isOpen && !hasAutoSentRef.current) {
+    const hasHomepageImage = !!canvasContextRef.current.homepageImage;
+    const normalizedAutoInput = autoInput ?? '';
+
+    if (
+      shouldAutoGenerate &&
+      (normalizedAutoInput || hasHomepageImage) &&
+      isOpen &&
+      !hasAutoSentRef.current
+    ) {
       // 如果5秒后API还没准备好，尝试强制发送
       const timeoutId = setTimeout(() => {
         if (!hasAutoSentRef.current) {
@@ -362,10 +428,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           if (isAPIReady) {
             // API现在准备好了，正常发送
             hasAutoSentRef.current = true;
-            setInput(autoInput);
+            setInput(normalizedAutoInput);
             setTimeout(async () => {
               try {
-                await handleAutoSendMessage(autoInput);
+                await handleAutoSendMessage(normalizedAutoInput);
                 localStorage.removeItem('flowchart_auto_generate');
                 localStorage.removeItem('flowchart_auto_input');
                 localStorage.removeItem('flowchart_auto_mode');
@@ -553,8 +619,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     };
     homepageImage?: {
       base64: string;
-      thumbnail: string;
-      filename: string;
+      thumbnail?: string;
+      filename?: string;
     };
   }>({});
 
@@ -706,8 +772,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     // Prepare message content
-    let messageContent: string | MessageContent[];
+    let messageContent: string | MessageContent[] | undefined;
     let messageImages: { file: File; thumbnail: string; base64: string }[] = [];
+
+    const homepageImage = canvasContextRef.current.homepageImage;
 
     if (selectedImages.length > 0) {
       // Convert images to base64 and create message content array
@@ -741,12 +809,43 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }
 
       messageContent = contentArray;
-    } else {
+    } else if (homepageImage && aiMode === 'image_to_flowchart') {
+      const mimeMatch = homepageImage.base64.match(/^data:(.*?);/);
+      const mimeType = mimeMatch?.[1] || 'image/png';
+      const filename = homepageImage.filename || `uploaded-image.${mimeType.split('/')[1] || 'png'}`;
+      messageImages = [
+        {
+          file: new File([], filename, { type: mimeType }),
+          thumbnail: homepageImage.thumbnail || homepageImage.base64,
+          base64: homepageImage.base64,
+        },
+      ];
+
+      messageContent = [
+        ...(input.trim()
+          ? [
+              {
+                type: 'text' as const,
+                text: input.trim(),
+              },
+            ]
+          : []),
+        {
+          type: 'image_url' as const,
+          image_url: {
+            url: homepageImage.base64,
+          },
+        },
+      ];
+    }
+
+    if (!messageContent || (typeof messageContent === 'string' && !messageContent)) {
       messageContent = input.trim();
     }
 
+    const userMessageId = Date.now().toString();
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: userMessageId,
       content: messageContent,
       role: 'user',
       timestamp: new Date(),
@@ -760,6 +859,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       prev.forEach((url) => URL.revokeObjectURL(url));
       return [];
     });
+    if (homepageImage && aiMode === 'image_to_flowchart') {
+      canvasContextRef.current.homepageImage = undefined;
+      localStorage.removeItem('flowchart_auto_image');
+    }
     setIsLoading(true);
     setIsStreamingResponse(true);
 
@@ -767,18 +870,18 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     abortControllerRef.current = new AbortController();
 
     try {
-      await processAIConversation([
-        // 发送完整的对话历史以提供上下文
+      const conversationPayload: any[] = [
         ...messages.map((msg) => ({
           role: msg.role,
           content: typeof msg.content === 'string' ? msg.content : msg.content,
         })),
-        // 添加当前用户消息
         {
           role: 'user',
           content: userMessage.content,
         },
-      ]);
+      ];
+
+      await processAIConversation(conversationPayload);
 
       // Mark guest usage after successful AI response
       if (!currentUser) {

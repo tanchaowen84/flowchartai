@@ -98,6 +98,14 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState<string>('Untitled');
   const [autoInput, setAutoInput] = useState<string>('');
+  const [autoImagePayload, setAutoImagePayload] = useState<
+    | {
+        base64: string;
+        thumbnail?: string;
+        filename?: string;
+      }
+    | null
+  >(null);
   const [shouldAutoGenerate, setShouldAutoGenerate] = useState(false);
   const [initialMode, setInitialMode] = useState<AiAssistantMode>(
     DEFAULT_AI_ASSISTANT_MODE
@@ -352,6 +360,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     const autoGenerate = localStorage.getItem('flowchart_auto_generate');
     const autoInputContent = localStorage.getItem('flowchart_auto_input');
     const storedMode = localStorage.getItem('flowchart_auto_mode');
+    const autoImage = localStorage.getItem('flowchart_auto_image');
     const autoMode: AiAssistantMode = storedMode
       ? (storedMode as AiAssistantMode)
       : DEFAULT_AI_ASSISTANT_MODE;
@@ -360,10 +369,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       setInitialMode(autoMode);
     }
 
-    if (autoGenerate === 'true' && autoInputContent) {
-      const autoImage = localStorage.getItem('flowchart_auto_image');
+    const hasAutoInput = autoInputContent !== null;
+    const hasAutoImage = !!autoImage;
 
-      setAutoInput(autoInputContent);
+    if (autoGenerate === 'true' && (hasAutoInput || hasAutoImage)) {
+      setAutoInput(autoInputContent ?? '');
       setShouldAutoGenerate(true);
       setIsSidebarOpen(true);
 
@@ -371,13 +381,10 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         try {
           const imagePayload = JSON.parse(autoImage) as {
             base64: string;
-            thumbnail: string;
-            filename: string;
+            thumbnail?: string;
+            filename?: string;
           };
-          canvasContextRef.current = {
-            ...canvasContextRef.current,
-            homepageImage: imagePayload,
-          };
+          setAutoImagePayload(imagePayload);
           console.log('🖼️ Loaded homepage image payload');
         } catch (err) {
           console.error('Failed to parse homepage image payload', err);
@@ -385,8 +392,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       }
 
       console.log('🚀 Auto-generation setup from homepage:', {
-        autoInput: autoInputContent.substring(0, 50) + '...',
+        autoInput: (autoInputContent ?? '').substring(0, 50) + '...',
         autoMode,
+        hasImage: hasAutoImage,
         willAutoGenerate: true,
       });
     } else if (storedMode) {
@@ -631,10 +639,13 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         autoInput={autoInput}
         shouldAutoGenerate={shouldAutoGenerate}
         initialMode={initialMode}
+        initialImage={autoImagePayload}
         onAutoGenerateComplete={() => {
           setAutoInput('');
+          setAutoImagePayload(null);
           setShouldAutoGenerate(false);
           localStorage.removeItem('flowchart_auto_mode');
+          localStorage.removeItem('flowchart_auto_image');
         }}
       />
     </div>

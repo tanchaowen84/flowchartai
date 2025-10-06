@@ -206,7 +206,14 @@ export default function HeroSection() {
           if (imageFile) {
             try {
               const base64 = await encodeImageToBase64(imageFile);
-              localStorage.setItem('flowchart_auto_image', base64);
+              localStorage.setItem(
+                'flowchart_auto_image',
+                JSON.stringify({
+                  base64,
+                  thumbnail: imagePreview ?? (await createImageThumbnail(imageFile, 320, 200)),
+                  filename: imageFile.name,
+                })
+              );
             } catch (error) {
               console.error('Failed to encode image:', error);
               toast.error('Failed to prepare image. Please try again.');
@@ -224,7 +231,14 @@ export default function HeroSection() {
           if (imageFile) {
             try {
               const base64 = await encodeImageToBase64(imageFile);
-              localStorage.setItem('flowchart_auto_image', base64);
+              localStorage.setItem(
+                'flowchart_auto_image',
+                JSON.stringify({
+                  base64,
+                  thumbnail: imagePreview ?? (await createImageThumbnail(imageFile, 320, 200)),
+                  filename: imageFile.name,
+                })
+              );
             } catch (error) {
               console.error('Failed to encode image:', error);
               toast.error('Failed to prepare image. Please try again.');
