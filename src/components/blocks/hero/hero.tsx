@@ -25,6 +25,7 @@ import {
   type ChangeEvent,
   type DragEvent,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -47,6 +48,7 @@ export default function HeroSection() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const modeSectionRef = useRef<HTMLDivElement | null>(null);
 
   // 使用useCallback稳定函数引用
   const handleInputChange = useCallback(
@@ -63,6 +65,24 @@ export default function HeroSection() {
   const handleBlur = useCallback(() => {
     setIsFocused(false);
   }, []);
+
+  useEffect(() => {
+    if (
+      selectedMode === 'image_to_flowchart' &&
+      typeof window !== 'undefined'
+    ) {
+      const scrollWithOffset = () => {
+        const target = modeSectionRef.current;
+        if (!target) return;
+        const { top } = target.getBoundingClientRect();
+        const desiredTop = window.scrollY + top - 140;
+        window.scrollTo({ top: Math.max(desiredTop, 0), behavior: 'smooth' });
+      };
+
+      const timeoutId = window.setTimeout(scrollWithOffset, 60);
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [selectedMode]);
 
   // 使用useMemo缓存className计算结果
   const inputClassName = useMemo(() => {
@@ -303,7 +323,10 @@ export default function HeroSection() {
                 </p>
 
                 {/* input form with mode selection */}
-                <div className="mt-12 flex flex-col items-center justify-center gap-3">
+                <div
+                  ref={modeSectionRef}
+                  className="mt-12 flex flex-col items-center justify-center gap-3"
+                >
                   <div className="inline-flex items-center gap-3 rounded-full bg-muted px-3 py-2 text-sm shadow-lg border border-border/60">
                     {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
                       (mode) => {
