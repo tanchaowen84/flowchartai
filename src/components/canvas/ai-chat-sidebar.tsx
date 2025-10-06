@@ -1171,39 +1171,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           </div>
         </div>
 
-        {/* Mode Switch */}
-        <div className="px-4 pb-2">
-          <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 border border-gray-200">
-            {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
-              (mode) => {
-                const isActive = aiMode === mode;
-                const { label, description } = AI_ASSISTANT_MODES[mode];
-                return (
-                  <Button
-                    key={mode}
-                    type="button"
-                    size="sm"
-                    variant={isActive ? 'default' : 'ghost'}
-                    className={
-                      isActive
-                        ? 'h-8 px-3'
-                        : 'h-8 px-3 text-gray-600 hover:text-gray-900'
-                    }
-                    onClick={() => setAiMode(mode)}
-                  >
-                    <div className="flex flex-col items-start leading-tight">
-                      <span className="text-xs font-medium">{label}</span>
-                      <span className="text-[10px] text-gray-500">
-                        {description}
-                      </span>
-                    </div>
-                  </Button>
-                );
-              }
-            )}
-          </div>
-        </div>
-
         {/* Guest Usage Indicator */}
         {!currentUser && (
           <div className="px-4 pb-4">
@@ -1330,6 +1297,34 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             onChange={(e) => handleImageSelect(e.target.files)}
             className="hidden"
           />
+
+          {/* Mode Switch */}
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 border border-gray-200">
+              {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
+                (mode) => {
+                  const isActive = aiMode === mode;
+                  const { label } = AI_ASSISTANT_MODES[mode];
+                  return (
+                    <Button
+                      key={mode}
+                      type="button"
+                      size="sm"
+                      variant={isActive ? 'default' : 'ghost'}
+                      className={
+                        isActive
+                          ? 'h-8 px-4'
+                          : 'h-8 px-4 text-gray-600 hover:text-gray-900'
+                      }
+                      onClick={() => setAiMode(mode)}
+                    >
+                      <span className="text-xs font-medium">{label}</span>
+                    </Button>
+                  );
+                }
+              )}
+            </div>
+          </div>
 
           <div className="bg-white rounded-xl shadow-lg border border-gray-200/50 p-3 mx-2">
             <div className="flex items-end space-x-3">

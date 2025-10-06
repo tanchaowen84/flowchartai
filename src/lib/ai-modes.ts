@@ -5,12 +5,12 @@ export const AI_ASSISTANT_MODES: Record<
   { label: string; description: string }
 > = {
   text_to_flowchart: {
-    label: '文本生成',
-    description: '根据你的描述生成流程图',
+    label: 'Text to Flowchart',
+    description: '',
   },
   image_to_flowchart: {
-    label: '图片生成',
-    description: '从流程图图片提取并生成可编辑流程图',
+    label: 'Image to Flowchart',
+    description: '',
   },
 };
 
