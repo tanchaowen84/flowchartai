@@ -256,184 +256,179 @@ export async function POST(req: Request) {
       const imageCount = countImagesInLatestUserMessage(messages);
 
       if (imageCount === 0) {
-        return new Response(
-          JSON.stringify({
-            error: 'No image found for image_to_flowchart mode',
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
+        console.warn(
+          'Image mode request received without images. Falling back to text mode.'
         );
-      }
-
-      if (imageCount > 1) {
-        return new Response(
-          JSON.stringify({
-            error: 'Only one image is supported for image_to_flowchart mode',
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      const recordImageUsage = async (
-        success: boolean,
-        errorMessage?: string
-      ) => {
-        if (isGuestUser) {
-          await recordGuestAIUsage(req, 'flowchart_generation', success);
-        } else {
-          await recordAIUsage(userId!, 'flowchart_generation', {
-            tokensUsed: 0,
-            model: model,
-            success,
-            errorMessage,
-            metadata: {
-              messageCount: messages.length,
-              mode: requestedMode,
-            },
-          });
+        requestedMode = TEXT_MODE;
+      } else {
+        if (imageCount > 1) {
+          return new Response(
+            JSON.stringify({
+              error: 'Only one image is supported for image_to_flowchart mode',
+            }),
+            {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
         }
-      };
 
-      const completion = await openai.chat.completions.create({
-        model: model,
-        messages: [
-          {
-            role: 'system' as const,
-            content: IMAGE_TO_FLOWCHART_PROMPT,
-          },
-          ...messages,
-        ],
-        temperature: 0.3,
-        stream: false,
-      });
-
-      const rawContent = completion.choices[0]?.message?.content;
-
-      let responseText = '';
-      if (Array.isArray(rawContent)) {
-        responseText = rawContent
-          .map((item) => (item?.type === 'text' ? item.text : ''))
-          .join('')
-          .trim();
-      } else if (typeof rawContent === 'string') {
-        responseText = rawContent.trim();
-      }
-
-      if (!responseText) {
-        await recordImageUsage(false, 'Model returned empty response');
-        return new Response(
-          JSON.stringify({ error: 'Model returned empty response' }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
+        const recordImageUsage = async (
+          success: boolean,
+          errorMessage?: string
+        ) => {
+          if (isGuestUser) {
+            await recordGuestAIUsage(req, 'flowchart_generation', success);
+          } else {
+            await recordAIUsage(userId!, 'flowchart_generation', {
+              tokensUsed: 0,
+              model: model,
+              success,
+              errorMessage,
+              metadata: {
+                messageCount: messages.length,
+                mode: requestedMode,
+              },
+            });
           }
-        );
-      }
+        };
 
-      const normalizedJson = extractJsonFromContent(responseText);
-
-      if (!normalizedJson) {
-        await recordImageUsage(false, 'Model returned empty response');
-        return new Response(
-          JSON.stringify({ error: 'Model returned empty response' }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      let parsedResult: {
-        mermaid?: string;
-        title?: string;
-        notes?: string;
-      };
-
-      try {
-        parsedResult = JSON.parse(normalizedJson);
-      } catch (error) {
-        console.error('Failed to parse image flowchart JSON:', responseText);
-        await recordImageUsage(false, 'Failed to parse AI response as JSON');
-        return new Response(
-          JSON.stringify({
-            error: 'Failed to parse AI response as JSON',
-          }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      if (!parsedResult?.mermaid) {
-        await recordImageUsage(false, 'AI response missing mermaid code');
-        return new Response(
-          JSON.stringify({
-            error: 'AI response missing mermaid code',
-          }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      const description = parsedResult.title
-        ? `Generated from image: ${parsedResult.title}`
-        : 'Generated flowchart from image';
-
-      const mermaidCode = normalizeMermaidCode(parsedResult.mermaid);
-
-      const encoder = new TextEncoder();
-      const summaryContent = parsedResult.notes
-        ? parsedResult.notes
-        : 'Generated flowchart from the uploaded image.';
-
-      const stream = new ReadableStream({
-        start(controller) {
-          const textPayload = JSON.stringify({
-            type: 'text',
-            content: summaryContent,
-          });
-          controller.enqueue(encoder.encode(`data: ${textPayload}\n\n`));
-
-          const toolPayload = JSON.stringify({
-            type: 'tool-call',
-            toolCallId: `image-flowchart-${Date.now()}`,
-            toolName: 'generate_flowchart',
-            args: {
-              mermaid_code: mermaidCode,
-              mode: 'replace',
-              description,
+        const completion = await openai.chat.completions.create({
+          model: model,
+          messages: [
+            {
+              role: 'system' as const,
+              content: IMAGE_TO_FLOWCHART_PROMPT,
             },
-          });
-          controller.enqueue(encoder.encode(`data: ${toolPayload}\n\n`));
+            ...messages,
+          ],
+          temperature: 0.3,
+          stream: false,
+        });
 
-          const finishPayload = JSON.stringify({
-            type: 'finish',
-            content: summaryContent,
-            toolCallsCompleted: true,
-          });
-          controller.enqueue(encoder.encode(`data: ${finishPayload}\n\n`));
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
-        },
-      });
+        const rawContent = completion.choices[0]?.message?.content;
 
-      await recordImageUsage(true);
+        let responseText = '';
+        if (Array.isArray(rawContent)) {
+          responseText = rawContent
+            .map((item) => (item?.type === 'text' ? item.text : ''))
+            .join('')
+            .trim();
+        } else if (typeof rawContent === 'string') {
+          responseText = rawContent.trim();
+        }
 
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      });
+        if (!responseText) {
+          await recordImageUsage(false, 'Model returned empty response');
+          return new Response(
+            JSON.stringify({ error: 'Model returned empty response' }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        const normalizedJson = extractJsonFromContent(responseText);
+
+        if (!normalizedJson) {
+          await recordImageUsage(false, 'Model returned empty response');
+          return new Response(
+            JSON.stringify({ error: 'Model returned empty response' }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        let parsedResult: {
+          mermaid?: string;
+          title?: string;
+          notes?: string;
+        };
+
+        try {
+          parsedResult = JSON.parse(normalizedJson);
+        } catch (error) {
+          console.error('Failed to parse image flowchart JSON:', responseText);
+          await recordImageUsage(false, 'Failed to parse AI response as JSON');
+          return new Response(
+            JSON.stringify({
+              error: 'Failed to parse AI response as JSON',
+            }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        if (!parsedResult?.mermaid) {
+          await recordImageUsage(false, 'AI response missing mermaid code');
+          return new Response(
+            JSON.stringify({
+              error: 'AI response missing mermaid code',
+            }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        }
+
+        const description = parsedResult.title
+          ? `Generated from image: ${parsedResult.title}`
+          : 'Generated flowchart from image';
+
+        const mermaidCode = normalizeMermaidCode(parsedResult.mermaid);
+
+        const encoder = new TextEncoder();
+        const summaryContent = parsedResult.notes
+          ? parsedResult.notes
+          : 'Generated flowchart from the uploaded image.';
+
+        const stream = new ReadableStream({
+          start(controller) {
+            const textPayload = JSON.stringify({
+              type: 'text',
+              content: summaryContent,
+            });
+            controller.enqueue(encoder.encode(`data: ${textPayload}\n\n`));
+
+            const toolPayload = JSON.stringify({
+              type: 'tool-call',
+              toolCallId: `image-flowchart-${Date.now()}`,
+              toolName: 'generate_flowchart',
+              args: {
+                mermaid_code: mermaidCode,
+                mode: 'replace',
+                description,
+              },
+            });
+            controller.enqueue(encoder.encode(`data: ${toolPayload}\n\n`));
+
+            const finishPayload = JSON.stringify({
+              type: 'finish',
+              content: summaryContent,
+              toolCallsCompleted: true,
+            });
+            controller.enqueue(encoder.encode(`data: ${finishPayload}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
+          },
+        });
+
+        await recordImageUsage(true);
+
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+        });
+      }
     }
 
     const systemMessage = {
