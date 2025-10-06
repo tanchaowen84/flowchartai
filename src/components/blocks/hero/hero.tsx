@@ -4,12 +4,24 @@ import { Ripple } from '@/components/magicui/ripple';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import {
+  AI_ASSISTANT_MODES,
+  DEFAULT_AI_ASSISTANT_MODE,
+  type AiAssistantMode,
+} from '@/lib/ai-modes';
+import {
+  createImageThumbnail,
+  encodeImageToBase64,
+  formatFileSize,
+  isValidImageFile,
+  MAX_FILE_SIZE,
+} from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
-import { Send } from 'lucide-react';
+import { Camera, Send, UploadCloud, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { ChangeEvent, DragEvent, useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function HeroSection() {
@@ -21,6 +33,13 @@ export default function HeroSection() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<AiAssistantMode>(
+    DEFAULT_AI_ASSISTANT_MODE
+  );
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 使用useCallback稳定函数引用
   const handleInputChange = useCallback(
@@ -56,18 +75,23 @@ export default function HeroSection() {
     );
   }, [isFocused, isLoading]);
 
+  const isSubmitEnabled = useMemo(() => {
+    if (isLoading) return false;
+    if (selectedMode === 'image_to_flowchart') {
+      return imageFile !== null;
+    }
+    return input.trim().length > 0;
+  }, [input, isLoading, selectedMode, imageFile]);
+
   const buttonClassName = useMemo(() => {
     return cn(
-      // 基础样式
       'absolute right-2 top-1/2 -translate-y-1/2',
-      'h-12 w-12 rounded-full',
-      'transition-all duration-300 ease-in-out',
-      // 状态样式
-      input.trim() && !isLoading
+      'h-12 w-12 rounded-full transition-all duration-300 ease-in-out',
+      isSubmitEnabled
         ? 'bg-primary hover:bg-primary/90 scale-100'
         : 'bg-muted-foreground/20 scale-90'
     );
-  }, [input, isLoading]);
+  }, [isSubmitEnabled]);
 
   const iconClassName = useMemo(() => {
     return cn(
@@ -76,18 +100,84 @@ export default function HeroSection() {
     );
   }, [isLoading]);
 
+  const clearImage = useCallback(() => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImageFile(null);
+    setImagePreview(null);
+    setImageError(null);
+  }, [imagePreview]);
+
+  const handleValidatedImage = useCallback(
+    async (file: File | null) => {
+      if (!file) {
+        clearImage();
+        return;
+      }
+
+      if (!isValidImageFile(file)) {
+        setImageError(
+          file.size > MAX_FILE_SIZE
+            ? `Image exceeds ${formatFileSize(MAX_FILE_SIZE)} limit.`
+            : 'Unsupported image format. Please use JPG, PNG, WEBP, or GIF.'
+        );
+        clearImage();
+        return;
+      }
+
+      setImageError(null);
+      setImageFile(file);
+      const previewUrl = await createImageThumbnail(file, 480, 320);
+      setImagePreview(previewUrl);
+    },
+    [clearImage]
+  );
+
+  const handleImageSelect = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      await handleValidatedImage(file);
+    },
+    [handleValidatedImage]
+  );
+
+  const handleDrop = useCallback(
+    async (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      const file = event.dataTransfer.files?.[0];
+      if (!file) return;
+      await handleValidatedImage(file);
+    },
+    [handleValidatedImage]
+  );
+
+  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  }, []);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      if (!input.trim()) {
-        toast.error('Please enter a description for your flowchart');
-        return;
-      }
+      const trimmedInput = input.trim();
 
-      if (input.trim().length < 5) {
-        toast.error('Please provide a more detailed description');
-        return;
+      if (selectedMode === 'text_to_flowchart') {
+        if (!trimmedInput) {
+          toast.error('Please enter a description for your flowchart');
+          return;
+        }
+
+        if (trimmedInput.length < 5) {
+          toast.error('Please provide a more detailed description');
+          return;
+        }
+      } else if (selectedMode === 'image_to_flowchart') {
+        if (!imageFile) {
+          toast.error('Please upload a flowchart image to continue');
+          return;
+        }
       }
 
       setIsLoading(true);
@@ -109,15 +199,39 @@ export default function HeroSection() {
 
           const data = await response.json();
 
-          // Store the input for auto-generation
-          localStorage.setItem('flowchart_auto_input', input.trim());
+          // Store the input & mode for auto-generation
+          localStorage.setItem('flowchart_auto_input', trimmedInput);
           localStorage.setItem('flowchart_auto_generate', 'true');
+          localStorage.setItem('flowchart_auto_mode', selectedMode);
+          if (imageFile) {
+            try {
+              const base64 = await encodeImageToBase64(imageFile);
+              localStorage.setItem('flowchart_auto_image', base64);
+            } catch (error) {
+              console.error('Failed to encode image:', error);
+              toast.error('Failed to prepare image. Please try again.');
+              setIsLoading(false);
+              return;
+            }
+          }
 
           router.push(`/canvas/${data.id}`);
         } else {
           // Guest user - go to canvas directly
-          localStorage.setItem('flowchart_auto_input', input.trim());
+          localStorage.setItem('flowchart_auto_input', trimmedInput);
           localStorage.setItem('flowchart_auto_generate', 'true');
+          localStorage.setItem('flowchart_auto_mode', selectedMode);
+          if (imageFile) {
+            try {
+              const base64 = await encodeImageToBase64(imageFile);
+              localStorage.setItem('flowchart_auto_image', base64);
+            } catch (error) {
+              console.error('Failed to encode image:', error);
+              toast.error('Failed to prepare image. Please try again.');
+              setIsLoading(false);
+              return;
+            }
+          }
 
           router.push('/canvas');
         }
@@ -125,9 +239,13 @@ export default function HeroSection() {
         console.error('Error creating flowchart:', error);
         toast.error('Failed to create new flowchart');
         setIsLoading(false);
+      } finally {
+        if (selectedMode === 'image_to_flowchart') {
+          clearImage();
+        }
       }
     },
-    [input, currentUser, router]
+    [input, selectedMode, currentUser, router, imageFile, clearImage]
   );
 
   return (
@@ -159,28 +277,144 @@ export default function HeroSection() {
                   {t('description')}
                 </p>
 
-                {/* input form */}
-                <div className="mt-12 flex flex-col items-center justify-center gap-6">
+                {/* input form with mode selection */}
+                <div className="mt-12 flex flex-col items-center justify-center gap-3">
+                  <div className="flex items-center gap-2 rounded-full bg-muted px-1.5 py-1 text-sm shadow-lg border border-border/60 max-w-2xl w-full justify-center">
+                    {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
+                      (mode) => {
+                        const isActive = selectedMode === mode;
+                        const label = AI_ASSISTANT_MODES[mode].label;
+                        return (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setSelectedMode(mode)}
+                            className={cn(
+                              'rounded-full px-4 py-1.5 text-sm font-medium transition-all',
+                              isActive
+                                ? 'bg-primary text-white shadow-md'
+                                : 'text-muted-foreground hover:text-foreground'
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+
                   <form onSubmit={handleSubmit} className="w-full max-w-4xl">
-                    <div className="relative group">
-                      <Input
-                        value={input}
-                        onChange={handleInputChange}
-                        onFocus={handleFocus}
-                        onBlur={handleBlur}
-                        placeholder="Describe the flowchart you want to create..."
-                        className={inputClassName}
-                        disabled={isLoading}
-                      />
-                      <Button
-                        type="submit"
-                        size="icon"
-                        disabled={isLoading || !input.trim()}
-                        className={buttonClassName}
-                      >
-                        <Send className={iconClassName} />
-                      </Button>
-                    </div>
+                    {selectedMode === 'text_to_flowchart' ? (
+                      <div className="relative group">
+                        <Input
+                          value={input}
+                          onChange={handleInputChange}
+                          onFocus={handleFocus}
+                          onBlur={handleBlur}
+                          placeholder="Describe the flowchart you want to create..."
+                          className={cn(
+                            inputClassName,
+                            'h-20 text-base px-6 pr-20 rounded-3xl'
+                          )}
+                          disabled={isLoading}
+                        />
+                        <Button
+                          type="submit"
+                          size="icon"
+                          disabled={!isSubmitEnabled}
+                          className={buttonClassName}
+                        >
+                          <Send className={iconClassName} />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative group">
+                        <div
+                          className={cn(
+                            'flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed px-8 py-6 text-center transition-all duration-300',
+                            isFocused
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50 bg-background/80'
+                          )}
+                        >
+                          {imagePreview ? (
+                            <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border bg-white shadow-sm">
+                              <img
+                                src={imagePreview}
+                                alt="Preview"
+                                className="w-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={clearImage}
+                                className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white hover:bg-black/70"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                <UploadCloud className="h-8 w-8" />
+                              </div>
+                              <div className="space-y-2">
+                                <p className="text-base font-medium text-foreground">
+                                  Drag & drop or upload a flowchart image
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  Supported formats: JPG, PNG, WEBP, GIF. Max size {formatFileSize(MAX_FILE_SIZE)}.
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  className="gap-2"
+                                  onClick={() => fileInputRef.current?.click()}
+                                  disabled={isLoading}
+                                >
+                                  <Camera className="h-4 w-4" /> Upload image
+                                </Button>
+                                {imageError && (
+                                  <p className="text-xs text-red-500">{imageError}</p>
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          <Input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageSelect}
+                          />
+                        </div>
+
+                        <div className="mt-4">
+                          <Input
+                            value={input}
+                            onChange={handleInputChange}
+                            onFocus={handleFocus}
+                            onBlur={handleBlur}
+                            placeholder="Optional note for the AI (e.g. 'highlight decision points')"
+                            className={cn(
+                              inputClassName,
+                              'h-16 text-base px-6 pr-20 rounded-3xl'
+                            )}
+                            disabled={isLoading}
+                          />
+                          <Button
+                            type="submit"
+                            size="icon"
+                            disabled={!isSubmitEnabled}
+                            className={buttonClassName}
+                          >
+                            <Send className={iconClassName} />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </form>
                 </div>
               </div>

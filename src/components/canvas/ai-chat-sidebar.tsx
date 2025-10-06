@@ -92,6 +92,7 @@ interface AiChatSidebarProps {
   autoInput?: string;
   shouldAutoGenerate?: boolean;
   onAutoGenerateComplete?: () => void;
+  initialMode?: AiAssistantMode;
 }
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
@@ -104,6 +105,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   autoInput,
   shouldAutoGenerate,
   onAutoGenerateComplete,
+  initialMode,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -116,7 +118,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [aiMode, setAiMode] = useState<AiAssistantMode>(
-    DEFAULT_AI_ASSISTANT_MODE
+    initialMode ?? DEFAULT_AI_ASSISTANT_MODE
   );
   const hasAutoSentRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -174,6 +176,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     adjustTextareaHeight();
   }, [input]);
 
+  useEffect(() => {
+    if (initialMode) {
+      setAiMode(initialMode);
+    }
+  }, [initialMode]);
+
   // Auto-adjust textarea height when input changes
   useEffect(() => {
     adjustTextareaHeight();
@@ -181,7 +189,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   // Auto-send function that bypasses input state
   const handleAutoSendMessage = async (messageText: string) => {
-    if (!messageText.trim() || isLoading) return;
+    if ((!messageText.trim() && !canvasContextRef.current.homepageImage) || isLoading) {
+      return;
+    }
 
     // Check AI usage limit based on user type
     if (currentUser) {
@@ -328,6 +338,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           // 🔧 只有在自动发送成功后才清除localStorage
           localStorage.removeItem('flowchart_auto_generate');
           localStorage.removeItem('flowchart_auto_input');
+          localStorage.removeItem('flowchart_auto_mode');
           console.log('✅ Auto-generation completed, localStorage cleared');
 
           onAutoGenerateComplete?.();
@@ -357,6 +368,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 await handleAutoSendMessage(autoInput);
                 localStorage.removeItem('flowchart_auto_generate');
                 localStorage.removeItem('flowchart_auto_input');
+                localStorage.removeItem('flowchart_auto_mode');
+                localStorage.removeItem('flowchart_auto_image');
                 console.log('✅ Force auto-generation completed');
                 onAutoGenerateComplete?.();
               } catch (error) {
@@ -538,6 +551,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       code: string;
       generatedAt: number;
     };
+    homepageImage?: {
+      base64: string;
+      thumbnail: string;
+      filename: string;
+    };
   }>({});
 
   const addFlowchartToCanvas = async (
@@ -650,7 +668,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   };
 
   const handleSendMessage = async () => {
-    if ((!input.trim() && selectedImages.length === 0) || isLoading) return;
+    if (
+      (selectedImages.length === 0 && !input.trim() && !canvasContextRef.current.homepageImage) ||
+      isLoading
+    ) {
+      return;
+    }
 
     // Check AI usage limit based on user type
     if (currentUser) {

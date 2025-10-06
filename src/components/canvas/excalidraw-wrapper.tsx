@@ -16,6 +16,10 @@ import { websiteConfig } from '@/config/website';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
 import { useLocalePathname } from '@/i18n/navigation';
+import {
+  DEFAULT_AI_ASSISTANT_MODE,
+  type AiAssistantMode,
+} from '@/lib/ai-modes';
 import type {
   ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
@@ -95,6 +99,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [tempTitle, setTempTitle] = useState<string>('Untitled');
   const [autoInput, setAutoInput] = useState<string>('');
   const [shouldAutoGenerate, setShouldAutoGenerate] = useState(false);
+  const [initialMode, setInitialMode] = useState<AiAssistantMode>(
+    DEFAULT_AI_ASSISTANT_MODE
+  );
 
   const router = useRouter();
   const currentUser = useCurrentUser();
@@ -344,17 +351,51 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   useEffect(() => {
     const autoGenerate = localStorage.getItem('flowchart_auto_generate');
     const autoInputContent = localStorage.getItem('flowchart_auto_input');
+    const storedMode = localStorage.getItem('flowchart_auto_mode');
+    const autoMode: AiAssistantMode = storedMode
+      ? (storedMode as AiAssistantMode)
+      : DEFAULT_AI_ASSISTANT_MODE;
+
+    if (storedMode) {
+      setInitialMode(autoMode);
+    }
 
     if (autoGenerate === 'true' && autoInputContent) {
+      const autoImage = localStorage.getItem('flowchart_auto_image');
+
       setAutoInput(autoInputContent);
       setShouldAutoGenerate(true);
       setIsSidebarOpen(true);
 
-      // 🔧 不要立即清除localStorage，等待自动发送成功后再清除
+      if (autoImage) {
+        try {
+          const imagePayload = JSON.parse(autoImage) as {
+            base64: string;
+            thumbnail: string;
+            filename: string;
+          };
+          canvasContextRef.current = {
+            ...canvasContextRef.current,
+            homepageImage: imagePayload,
+          };
+          console.log('🖼️ Loaded homepage image payload');
+        } catch (err) {
+          console.error('Failed to parse homepage image payload', err);
+        }
+      }
+
       console.log('🚀 Auto-generation setup from homepage:', {
         autoInput: autoInputContent.substring(0, 50) + '...',
+        autoMode,
         willAutoGenerate: true,
       });
+    } else if (storedMode) {
+      // 打开侧边栏以便用户直接切换到对应模式
+      setIsSidebarOpen(true);
+      localStorage.removeItem('flowchart_auto_generate');
+      localStorage.removeItem('flowchart_auto_input');
+      localStorage.removeItem('flowchart_auto_mode');
+      localStorage.removeItem('flowchart_auto_image');
     }
   }, []);
 
@@ -589,9 +630,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         width={sidebarWidth}
         autoInput={autoInput}
         shouldAutoGenerate={shouldAutoGenerate}
+        initialMode={initialMode}
         onAutoGenerateComplete={() => {
           setAutoInput('');
           setShouldAutoGenerate(false);
+          localStorage.removeItem('flowchart_auto_mode');
         }}
       />
     </div>

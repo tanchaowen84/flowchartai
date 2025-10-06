@@ -4,6 +4,11 @@ import { Ripple } from '@/components/magicui/ripple';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import {
+  AI_ASSISTANT_MODES,
+  DEFAULT_AI_ASSISTANT_MODE,
+  type AiAssistantMode,
+} from '@/lib/ai-modes';
 import { cn } from '@/lib/utils';
 import { Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -26,6 +31,9 @@ export function FlowchartMakerHero({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<AiAssistantMode>(
+    DEFAULT_AI_ASSISTANT_MODE
+  );
 
   // 使用useCallback稳定函数引用
   const handleInputChange = useCallback(
@@ -57,18 +65,19 @@ export function FlowchartMakerHero({
     );
   }, [isFocused, isLoading]);
 
+  const isSubmitEnabled = useMemo(() => {
+    if (isLoading) return false;
+    return selectedMode === 'image_to_flowchart' || input.trim().length > 0;
+  }, [input, isLoading, selectedMode]);
+
   const buttonClassName = useMemo(() => {
     return cn(
-      // 基础样式
-      'absolute right-2 top-1/2 -translate-y-1/2',
-      'h-12 w-12 rounded-full',
-      'transition-all duration-300 ease-in-out',
-      // 状态样式
-      input.trim() && !isLoading
+      'absolute right-2 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full transition-all duration-300 ease-in-out',
+      isSubmitEnabled
         ? 'bg-primary hover:bg-primary/90 scale-100'
         : 'bg-muted-foreground/20 scale-90'
     );
-  }, [input, isLoading]);
+  }, [isSubmitEnabled]);
 
   const iconClassName = useMemo(() => {
     return cn(
@@ -81,14 +90,22 @@ export function FlowchartMakerHero({
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      if (!input.trim()) {
-        toast.error('Please enter a description for your flowchart');
-        return;
-      }
+      const trimmedInput = input.trim();
 
-      if (input.trim().length < 5) {
-        toast.error('Please provide a more detailed description');
-        return;
+      if (selectedMode === 'text_to_flowchart') {
+        if (!trimmedInput) {
+          toast.error('Please enter a description for your flowchart');
+          return;
+        }
+
+        if (trimmedInput.length < 5) {
+          toast.error('Please provide a more detailed description');
+          return;
+        }
+      } else if (!trimmedInput) {
+        toast.info(
+          'You can add a note. The canvas will prompt you to upload an image next.'
+        );
       }
 
       setIsLoading(true);
@@ -111,14 +128,16 @@ export function FlowchartMakerHero({
           const data = await response.json();
 
           // Store the input for auto-generation
-          localStorage.setItem('flowchart_auto_input', input.trim());
+          localStorage.setItem('flowchart_auto_input', trimmedInput);
           localStorage.setItem('flowchart_auto_generate', 'true');
+          localStorage.setItem('flowchart_auto_mode', selectedMode);
 
           router.push(`/canvas/${data.id}`);
         } else {
           // Guest user - go to canvas directly
-          localStorage.setItem('flowchart_auto_input', input.trim());
+          localStorage.setItem('flowchart_auto_input', trimmedInput);
           localStorage.setItem('flowchart_auto_generate', 'true');
+          localStorage.setItem('flowchart_auto_mode', selectedMode);
 
           router.push('/canvas');
         }
@@ -128,7 +147,7 @@ export function FlowchartMakerHero({
         setIsLoading(false);
       }
     },
-    [input, currentUser, router]
+    [input, selectedMode, currentUser, router]
   );
 
   return (
@@ -160,8 +179,30 @@ export function FlowchartMakerHero({
                   {description}
                 </p>
 
-                {/* input form */}
-                <div className="mt-12 flex flex-col items-center justify-center gap-6">
+                <div className="mt-12 flex flex-col items-center justify-center gap-3">
+                  <div className="flex items-center gap-2 rounded-full bg-muted px-1.5 py-1 text-sm shadow-lg border border-border/60 max-w-4xl w-full justify-center">
+                    {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
+                      (mode) => {
+                        const isActive = selectedMode === mode;
+                        return (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => setSelectedMode(mode)}
+                            className={cn(
+                              'rounded-full px-4 py-1.5 text-sm font-medium transition-all',
+                              isActive
+                                ? 'bg-primary text-white shadow-md'
+                                : 'text-muted-foreground hover:text-foreground'
+                            )}
+                          >
+                            {AI_ASSISTANT_MODES[mode].label}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+
                   <form onSubmit={handleSubmit} className="w-full max-w-4xl">
                     <div className="relative group">
                       <Input
@@ -169,14 +210,18 @@ export function FlowchartMakerHero({
                         onChange={handleInputChange}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
-                        placeholder={placeholder}
+                        placeholder={
+                          selectedMode === 'text_to_flowchart'
+                            ? placeholder
+                            : 'Optionally describe the flowchart you want to recreate from an image'
+                        }
                         className={inputClassName}
                         disabled={isLoading}
                       />
                       <Button
                         type="submit"
                         size="icon"
-                        disabled={isLoading || !input.trim()}
+                        disabled={!isSubmitEnabled}
                         className={buttonClassName}
                       >
                         <Send className={iconClassName} />
