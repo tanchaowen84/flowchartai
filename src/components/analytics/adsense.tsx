@@ -1,16 +1,16 @@
 "use client";
 
 import Script from 'next/script';
-import { useDeferredThirdParty } from '@/hooks/use-deferred-third-party';
+import { useConsent } from '@/hooks/use-consent';
 
 /**
  * Google AdSense component for FlowchartAI
  * Loads the AdSense script for ad serving and site verification
  */
 export function AdSense() {
-  const enabled = useDeferredThirdParty();
+  const { consentGranted, ready } = useConsent();
 
-  if (!enabled) {
+  if (!ready || !consentGranted) {
     return null;
   }
 

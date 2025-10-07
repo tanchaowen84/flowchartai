@@ -1,7 +1,7 @@
 'use client';
 
 import { GoogleAnalytics as NextGoogleAnalytics } from '@next/third-parties/google';
-import { useDeferredThirdParty } from '@/hooks/use-deferred-third-party';
+import { useConsent } from '@/hooks/use-consent';
 
 /**
  * Google Analytics
@@ -11,9 +11,9 @@ import { useDeferredThirdParty } from '@/hooks/use-deferred-third-party';
  * https://nextjs.org/docs/app/building-your-application/optimizing/third-party-libraries#google-analytics
  */
 export default function GoogleAnalytics() {
-  const enabled = useDeferredThirdParty();
+  const { consentGranted, ready } = useConsent();
 
-  if (!enabled || process.env.NODE_ENV !== 'production') {
+  if (!ready || !consentGranted || process.env.NODE_ENV !== 'production') {
     return null;
   }
 

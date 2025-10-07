@@ -4,6 +4,7 @@ import { GoogleOneTapProvider } from '@/components/auth/google-one-tap-provider'
 import { ActiveThemeProvider } from '@/components/layout/active-theme-provider';
 import { PaymentProvider } from '@/components/layout/payment-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ConsentBanner } from '@/components/consent/consent-banner';
 import { websiteConfig } from '@/config/website';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { ThemeProvider, useTheme } from 'next-themes';
@@ -37,6 +38,7 @@ export function Providers({ children }: PropsWithChildren) {
             <PaymentProvider>
               {/* GoogleOneTapProvider 暂时禁用以解决 FedCM 兼容性问题 */}
               {children}
+              <ConsentBanner />
             </PaymentProvider>
           </TooltipProvider>
         </RootProvider>
