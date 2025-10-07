@@ -29,7 +29,6 @@ export async function generateMetadata({
     title: page.title + ' | ' + t('title'),
     description: page.description,
     canonicalUrl: getUrlWithLocale('/terms', locale),
-    noIndex: true,
   });
 }
 
