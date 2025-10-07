@@ -481,10 +481,13 @@ export default function HeroSection() {
                 <div className="inset-shadow-2xs ring-background dark:inset-shadow-white/20 bg-background relative mx-auto max-w-6xl overflow-hidden rounded-2xl border p-4 shadow-lg shadow-zinc-950/15 ring-1">
                   <Image
                     className="z-2 border-border/25 relative rounded-2xl border"
-                    src="https://cdn.flowchartai.org/static/blocks/demo.png"
+                    src="https://cdn.flowchartai.org/static/blocks/demo-1400.jpg"
                     alt="FlowChart AI Demo"
-                    width={2796}
-                    height={2008}
+                    width={1400}
+                    height={651}
+                    priority
+                    quality={80}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, (max-width: 1440px) 70vw, 1200px"
                   />
                 </div>
               </div>
