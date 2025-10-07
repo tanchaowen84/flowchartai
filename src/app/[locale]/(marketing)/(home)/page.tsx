@@ -5,7 +5,11 @@ import { HowItWorksSection } from '@/components/blocks/how-it-works';
 import PricingSection from '@/components/blocks/pricing/pricing';
 import FaqSection from '@/components/blocks/faqs/faqs';
 import CallToActionSection from '@/components/blocks/calltoaction/calltoaction';
-import LazyMarketingSections from '@/components/blocks/home/lazy-sections';
+import {
+  LazyAiCapabilitiesSection,
+  LazyComparisonSection,
+  LazyDemoSection,
+} from '@/components/blocks/home/lazy-sections';
 import { constructMetadata } from '@/lib/metadata';
 import { getUrlWithLocale } from '@/lib/urls/urls';
 import type { Metadata } from 'next';
@@ -44,7 +48,7 @@ export default async function HomePage(props: HomePageProps) {
       <div className="flex flex-col">
         <HeroSection />
 
-        <LazyMarketingSections />
+        <LazyDemoSection />
 
         <UseCasesSection />
 
@@ -52,6 +56,9 @@ export default async function HomePage(props: HomePageProps) {
 
         <HowItWorksSection />
 
+        <LazyAiCapabilitiesSection />
+
+        <LazyComparisonSection />
 
         <PricingSection />
 

@@ -7,13 +7,6 @@ const DemoSection = dynamic(() => import('@/components/blocks/demo/demo'), {
   ssr: false,
 });
 
-const AiCapabilitiesSection = dynamic(
-  () => import('@/components/blocks/ai-capabilities/ai-capabilities'),
-  {
-    ssr: false,
-  }
-);
-
 const ComparisonSection = dynamic(
   () => import('@/components/blocks/comparison/comparison'),
   {
@@ -21,21 +14,34 @@ const ComparisonSection = dynamic(
   }
 );
 
-export default function LazyMarketingSections() {
+const AiCapabilitiesSection = dynamic(
+  () => import('@/components/blocks/ai-capabilities/ai-capabilities'),
+  {
+    ssr: false,
+  }
+);
+
+export function LazyDemoSection() {
   return (
-    <>
-      <Suspense fallback={<MarketingSectionPlaceholder />}> 
-        <DemoSection />
-      </Suspense>
+    <Suspense fallback={<MarketingSectionPlaceholder />}>
+      <DemoSection />
+    </Suspense>
+  );
+}
 
-      <Suspense fallback={<MarketingSectionPlaceholder />}> 
-        <AiCapabilitiesSection />
-      </Suspense>
+export function LazyComparisonSection() {
+  return (
+    <Suspense fallback={<MarketingSectionPlaceholder />}>
+      <ComparisonSection />
+    </Suspense>
+  );
+}
 
-      <Suspense fallback={<MarketingSectionPlaceholder />}> 
-        <ComparisonSection />
-      </Suspense>
-    </>
+export function LazyAiCapabilitiesSection() {
+  return (
+    <Suspense fallback={<MarketingSectionPlaceholder />}>
+      <AiCapabilitiesSection />
+    </Suspense>
   );
 }
 
