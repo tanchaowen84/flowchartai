@@ -1,6 +1,7 @@
 'use client';
 
 import { GoogleAnalytics as NextGoogleAnalytics } from '@next/third-parties/google';
+import { useDeferredThirdParty } from '@/hooks/use-deferred-third-party';
 
 /**
  * Google Analytics
@@ -10,7 +11,9 @@ import { GoogleAnalytics as NextGoogleAnalytics } from '@next/third-parties/goog
  * https://nextjs.org/docs/app/building-your-application/optimizing/third-party-libraries#google-analytics
  */
 export default function GoogleAnalytics() {
-  if (process.env.NODE_ENV !== 'production') {
+  const enabled = useDeferredThirdParty();
+
+  if (!enabled || process.env.NODE_ENV !== 'production') {
     return null;
   }
 
