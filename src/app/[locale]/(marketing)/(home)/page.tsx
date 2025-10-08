@@ -52,11 +52,11 @@ export default async function HomePage(props: HomePageProps) {
 
         <FeaturesSection />
 
+        <LazyAiCapabilitiesSection />
+
         <UseCasesSection />
 
         <HowItWorksSection />
-
-        <LazyAiCapabilitiesSection />
 
         <LazyComparisonSection />
 
