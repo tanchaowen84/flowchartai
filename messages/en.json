@@ -57,10 +57,10 @@
   "PricePlans": {
     "free": {
       "name": "Free",
-      "description": "Start exploring AI-powered flowchart generation — for free, forever.",
+      "description": "Start exploring FlowChart AI-powered flowchart generation — for free, forever.",
       "features": {
         "feature-1": "1 AI request per day",
-        "feature-2": "AI-assisted generation and editing",
+        "feature-2": "FlowChart AI-assisted generation and editing",
         "feature-3": "Unlimited diagram storage",
         "feature-4": "Text and image input supported",
         "feature-5": "Community support"
@@ -73,10 +73,10 @@
     },
     "hobby": {
       "name": "Hobby",
-      "description": "Great for individuals who need AI-powered flowchart generation on a budget.",
+      "description": "Great for individuals who need FlowChart AI-powered flowchart generation on a budget.",
       "features": {
         "feature-1": "100 AI requests per month",
-        "feature-2": "Full access to AI agent for generation and editing",
+        "feature-2": "Full access to FlowChart AI agent for generation and editing",
         "feature-3": "Unlimited diagram storage",
         "feature-4": "Text and image input supported",
         "feature-5": "Email support (24–48h response, max 7 days)",
@@ -89,10 +89,10 @@
     },
     "professional": {
       "name": "Professional",
-      "description": "Perfect for power users and professionals who want unlimited AI access and priority support.",
+      "description": "Perfect for power users and professionals who want unlimited FlowChart AI access and priority support.",
       "features": {
         "feature-1": "Unlimited AI requests",
-        "feature-2": "Priority AI processing",
+        "feature-2": "Priority FlowChart AI processing",
         "feature-3": "Unlimited diagram storage",
         "feature-4": "Real-time AI-assisted editing",
         "feature-5": "Email & technical support (under 24h, max 48h)",
@@ -638,25 +638,25 @@
     },
     "demo": {
       "title": "See FlowChart AI in Action",
-      "subtitle": "Choose the FlowChart AI path that fits how you work",
-      "description": "Whether you're jotting down steps, capturing a whiteboard snapshot, or reopening a trusted layout, FlowChart AI meets you where you are before the canvas even loads.",
+      "subtitle": "Choose the path that fits how you work",
+      "description": "FlowChart AI meets you where you are—whether you're jotting down steps, capturing a whiteboard snapshot, or reopening a trusted layout—before the canvas even loads.",
       "tryItNow": "Explore How It Works",
       "features": {
         "feature-1": {
           "title": "Text to flowchart, ready to edit",
-          "description": "Outline your steps in plain text and FlowChart AI maps the nodes for you, ready for color, notes, and export.",
+          "description": "Outline your steps in plain text and let the builder map the nodes for you, ready for color, notes, and export.",
           "ctaLabel": "Convert text to flowchart",
           "ctaHref": "/canvas"
         },
         "feature-2": {
           "title": "Image to flowchart without rebuilding",
-          "description": "Drop in a whiteboard photo or old diagram and FlowChart AI rebuilds it with clean spacing and editable labels.",
+          "description": "Drop in a whiteboard photo or old diagram and our AI rebuilds it with clean spacing and editable labels.",
           "ctaLabel": "Try image to flowchart",
           "ctaHref": "/canvas"
         },
         "feature-3": {
           "title": "Flowchart templates you can shape in minutes",
-          "description": "Open a saved flowchart template—onboarding, rollout, support—and adapt the structure in a few clicks.",
+          "description": "Open saved flowcharts—onboarding, rollout, support—and adapt the structure in a few clicks.",
           "ctaLabel": "Start from flowchart templates",
           "ctaHref": "/canvas"
         }
@@ -678,7 +678,7 @@
         },
         "step-2": {
           "title": "FlowChart AI Builds Your Diagram",
-          "description": "FlowChart AI transforms your input into a clean, structured flowchart using intelligent shape detection and layout optimization.",
+      "description": "FlowChart AI transforms your input into clean, structured flowcharts using intelligent shape detection and layout optimization.",
           "details": [
             "Automatically generates accurate diagrams with FlowChart AI’s layout engine",
             "Optimized visual structure for readability and presentation",
@@ -780,11 +780,11 @@
     "features": {
       "title": "Text to Flowchart, Explained",
       "subtitle": "Let FlowChart AI turn plain words into a structured flow in seconds",
-      "description": "Share what needs to happen, who makes a choice, and what happens next—FlowChart AI lays it out so you can focus on refining the details.",
+      "description": "Share what needs to happen, who makes a choice, and what happens next—the assistant lays it out so you can focus on refining the details.",
       "items": {
         "item-1": {
           "title": "Describe the steps once",
-          "description": "Type the starting point, key actions, and decisions. FlowChart AI keeps them in order and adds the branches for you."
+          "description": "Type the starting point, key actions, and decisions. The workflow engine keeps them in order and adds the branches for you."
         },
         "item-2": {
           "title": "Fix details without redrawing",
@@ -800,7 +800,7 @@
         }
       },
       "overviewTitle": "Why starting with text saves time",
-      "overviewDescription": "FlowChart AI turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter."
+      "overviewDescription": "This engine turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter."
     },
     "features2": {
       "title": "Features2",
@@ -845,7 +845,7 @@
     "pricing": {
       "title": "Pricing",
       "subtitle": "Pricing",
-      "description": "Choose the plan that works best for you"
+      "description": "Choose the plan that works best for you and unlock FlowChart AI features that match your team’s pace"
     },
     "faqs": {
       "title": "FAQ",
