@@ -7,7 +7,7 @@ export default function UseCasesSection() {
   const t = useTranslations('HomePage.useCases');
 
   return (
-    <section id="use-cases" className="px-4 py-16">
+    <section id="flowchart-templates" className="px-4 py-16">
       <div className="mx-auto max-w-5xl">
         <HeaderSection
           title={t('title')}
