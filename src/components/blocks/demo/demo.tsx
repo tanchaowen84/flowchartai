@@ -1,6 +1,6 @@
 import { HeaderSection } from '@/components/layout/header-section';
-import { BorderBeam } from '@/components/magicui/border-beam';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { LocaleLink } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -19,60 +19,29 @@ export default function DemoSection() {
         />
 
         <div className="mt-12 space-y-8">
-          {/* Main Demo Video */}
-          <div className="bg-background w-full relative flex overflow-hidden rounded-2xl border p-2">
-            <div className="aspect-video bg-background relative w-full rounded-2xl">
-              <div className="size-full overflow-hidden rounded-2xl border bg-zinc-900 shadow-md relative">
-                <video
-                  className="size-full object-cover object-center"
-                  controls
-                  preload="metadata"
-                  poster="https://cdn.flowchartai.org/static/demo-thumbnail.png"
-                >
-                  <source
-                    src="https://cdn.flowchartai.org/static/demo.mp4"
-                    type="video/mp4"
-                  />
-                  <track
-                    kind="captions"
-                    src=""
-                    srcLang="en"
-                    label="English captions"
-                    default
-                  />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            </div>
-            <BorderBeam
-              duration={6}
-              size={200}
-              className="from-transparent via-violet-700 to-transparent dark:via-white/50"
-            />
-          </div>
-
           {/* Demo Features */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             <DemoFeature
               title={t('features.feature-1.title')}
               description={t('features.feature-1.description')}
+              ctaLabel={t('features.feature-1.ctaLabel')}
+              ctaHref={t('features.feature-1.ctaHref')}
             />
             <DemoFeature
               title={t('features.feature-2.title')}
               description={t('features.feature-2.description')}
+              ctaLabel={t('features.feature-2.ctaLabel')}
+              ctaHref={t('features.feature-2.ctaHref')}
             />
             <DemoFeature
               title={t('features.feature-3.title')}
               description={t('features.feature-3.description')}
+              ctaLabel={t('features.feature-3.ctaLabel')}
+              ctaHref={t('features.feature-3.ctaHref')}
             />
           </div>
 
-          {/* CTA */}
-          <div className="text-center">
-            <Button asChild size="lg">
-              <LocaleLink href="/canvas">{t('tryItNow')}</LocaleLink>
-            </Button>
-          </div>
+          {/* Removed main CTA button as mini CTAs cover the flow */}
         </div>
       </div>
     </section>
@@ -82,14 +51,29 @@ export default function DemoSection() {
 const DemoFeature = ({
   title,
   description,
+  ctaLabel,
+  ctaHref,
 }: {
   title: string;
   description: string;
+  ctaLabel?: string;
+  ctaHref?: string;
 }) => {
   return (
-    <div className="text-center space-y-2">
-      <h3 className="font-semibold">{title}</h3>
-      <p className="text-muted-foreground text-sm">{description}</p>
+    <div className="flex h-full flex-col items-center gap-4">
+      <Card className="group h-full w-full space-y-4 p-8 text-center transition-all duration-300 hover:scale-[1.02] hover:bg-accent/50 hover:shadow-lg dark:hover:bg-accent/50">
+        <h3 className="text-lg font-semibold text-foreground transition-colors group-hover:text-primary">
+          {title}
+        </h3>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      </Card>
+      {ctaLabel && ctaHref ? (
+        <Button asChild size="lg" className="w-full max-w-xs">
+          <LocaleLink href={ctaHref}>{ctaLabel}</LocaleLink>
+        </Button>
+      ) : null}
     </div>
   );
 };

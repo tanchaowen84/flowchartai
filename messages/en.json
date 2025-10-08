@@ -1,8 +1,8 @@
 {
   "Metadata": {
     "name": "FlowChart AI",
-    "title": "FlowChart AI – Smart AI Tool to Create Beautiful Flowcharts",
-    "description": "Design professional flowcharts faster with FlowChart AI. Draw, edit, and collaborate in real time using powerful AI tools—no design experience required."
+    "title": "FlowChart AI | Flowcharts from Text or Images in Seconds",
+    "description": "Transform quick notes or uploaded diagrams into editable flowcharts you can refine, export, and share with FlowChart AI."
   },
   "Common": {
     "login": "Log in",
@@ -576,8 +576,8 @@
     "title": "MkSaaS",
     "description": "Make AI SaaS in days, simply and effortlessly",
     "hero": {
-      "title": "Create Beautiful Flowcharts with FlowChart AI",
-      "description": "FlowChart AI helps you transform ideas into detailed, professional flowcharts instantly. Use natural language to design, edit, and collaborate on diagrams—no design skills required.",
+      "title": "Transform ideas into flowcharts with FlowChart AI",
+      "description": "Start from quick notes, plain text, or an uploaded image—FlowChart AI shapes your story into a crisp flow you can polish on the canvas, stay on-message, and export wherever it needs to go.",
       "introduction": "Introducing FlowChart AI",
       "primary": "Start Creating",
       "secondary": "See Demo"
@@ -619,21 +619,27 @@
     },
     "demo": {
       "title": "See FlowChart AI in Action",
-      "subtitle": "From Idea to Flowchart in Seconds",
-      "description": "Watch how FlowChart AI turns natural language prompts into precise, presentation-ready flowcharts — no design skills or manual effort needed.",
-      "tryItNow": "Use FlowChart AI Now",
+      "subtitle": "Choose the FlowChart AI path that fits how you work",
+      "description": "Whether you're jotting down steps, capturing a whiteboard snapshot, or reopening a trusted layout, FlowChart AI meets you where you are before the canvas even loads.",
+      "tryItNow": "Explore How It Works",
       "features": {
         "feature-1": {
-          "title": "Natural Language Input",
-          "description": "Simply describe your process in Language you like — no shapes, templates, or special tools required"
+          "title": "Text to flowchart, ready to edit",
+          "description": "Outline your steps in plain text and FlowChart AI maps the nodes for you, ready for color, notes, and export.",
+          "ctaLabel": "Convert text to flowchart",
+          "ctaHref": "/canvas"
         },
         "feature-2": {
-          "title": "AI-Powered Generation",
-          "description": "FlowChart AI Automatically generates clean, logical diagrams based on your input"
+          "title": "Image to flowchart without rebuilding",
+          "description": "Drop in a whiteboard photo or old diagram and FlowChart AI rebuilds it with clean spacing and editable labels.",
+          "ctaLabel": "Try image to flowchart",
+          "ctaHref": "/canvas"
         },
         "feature-3": {
-          "title": "Instant Editing",
-          "description": "Customize and refine your diagram, Easily adjust elements, add details, and make it your own"
+          "title": "Flowchart templates you can shape in minutes",
+          "description": "Open a saved flowchart template—onboarding, rollout, support—and adapt the structure in a few clicks.",
+          "ctaLabel": "Start from flowchart templates",
+          "ctaHref": "/canvas"
         }
       }
     },
