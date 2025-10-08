@@ -59,9 +59,9 @@ export default async function HomePage(props: HomePageProps) {
 
         <TutorialsSection />
 
-        <HowItWorksSection />
+        {false && <HowItWorksSection />}
 
-        <LazyComparisonSection />
+        {false && <LazyComparisonSection />}
 
         <PricingSection />
 
