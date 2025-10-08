@@ -50,9 +50,9 @@ export default async function HomePage(props: HomePageProps) {
 
         <LazyDemoSection />
 
-        <UseCasesSection />
-
         <FeaturesSection />
+
+        <UseCasesSection />
 
         <HowItWorksSection />
 

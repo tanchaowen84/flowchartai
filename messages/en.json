@@ -756,27 +756,29 @@
       "secondaryButton": "See Demo"
     },
     "features": {
-      "title": "Features",
-      "subtitle": "AI-Powered Flowchart Creation",
-      "description": "FlowChart AI offers a comprehensive set of features designed to make diagramming effortless, intelligent, and collaborative.",
+      "title": "Text to Flowchart, Explained",
+      "subtitle": "Let FlowChart AI turn plain words into a structured flow in seconds",
+      "description": "Share what needs to happen, who makes a choice, and what happens next—FlowChart AI lays it out so you can focus on refining the details.",
       "items": {
         "item-1": {
-          "title": "Natural Language to Diagram",
-          "description": "Describe your process or idea in plain language, and let AI instantly turn it into a professional flowchart. No design skills or technical jargon required—just explain your workflow and see it visualized."
+          "title": "Describe the steps once",
+          "description": "Type the starting point, key actions, and decisions. FlowChart AI keeps them in order and adds the branches for you."
         },
         "item-2": {
-          "title": "Personal Workspace & Diagram Library",
-          "description": "Keep all your diagrams organized in one place. Our platform provides a personal workspace where you can access, manage, and continue editing your saved diagrams with ease."
+          "title": "Fix details without redrawing",
+          "description": "Add or remove a step in plain language and the diagram updates itself without ruining the layout."
         },
         "item-3": {
-          "title": "Intuitive Drag-and-Drop Editor",
-          "description": "Easily refine and customize your diagram with a user-friendly canvas. Move elements, adjust connections, and apply styles with simple drag-and-drop—no learning curve."
+          "title": "Polish it on the canvas",
+          "description": "Rename shapes, drag nodes, or merge paths—the canvas reacts in real time, so FlowChart AI understands your tweaks without another request."
         },
         "item-4": {
-          "title": "Export & Integrate Anywhere",
-          "description": "Export your diagrams in multiple formats: PNG for presentations, SVG for web use, and Excalidraw format for future editing. Copy directly to clipboard for quick sharing. All export options are easily accessible from the main menu."
+          "title": "Reuse it everywhere",
+          "description": "Export to PNG, SVG, or Excalidraw, or save it as your go-to template for the next project."
         }
-      }
+      },
+      "overviewTitle": "Why starting with text saves time",
+      "overviewDescription": "FlowChart AI turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter."
     },
     "features2": {
       "title": "Features2",

@@ -67,9 +67,9 @@ export default function FeaturesSection() {
           <div className="lg:col-span-5 flex flex-col gap-8">
             <div className="lg:pr-0 text-left">
               <h3 className="text-3xl font-semibold lg:text-4xl text-gradient_indigo-purple leading-normal py-1">
-                {t('title')}
+                {t('overviewTitle')}
               </h3>
-              <p className="mt-4 text-muted-foreground">{t('description')}</p>
+              <p className="mt-4 text-muted-foreground">{t('overviewDescription')}</p>
             </div>
             <Accordion
               type="single"
