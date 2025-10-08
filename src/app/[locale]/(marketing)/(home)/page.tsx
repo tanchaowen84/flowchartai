@@ -5,6 +5,7 @@ import { HowItWorksSection } from '@/components/blocks/how-it-works';
 import PricingSection from '@/components/blocks/pricing/pricing';
 import FaqSection from '@/components/blocks/faqs/faqs';
 import CallToActionSection from '@/components/blocks/calltoaction/calltoaction';
+import { TutorialsSection } from '@/components/blocks/tutorials';
 import {
   LazyAiCapabilitiesSection,
   LazyComparisonSection,
@@ -55,6 +56,8 @@ export default async function HomePage(props: HomePageProps) {
         <LazyAiCapabilitiesSection />
 
         <UseCasesSection />
+
+        <TutorialsSection />
 
         <HowItWorksSection />
 

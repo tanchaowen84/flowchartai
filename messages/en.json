@@ -585,6 +585,13 @@
     "logocloud": {
       "title": "Your favorite companies are our partners"
     },
+    "tutorials": {
+      "title": "Flowchart Tutorials",
+      "subtitle": "Learn faster with guided walkthroughs",
+      "description": "Watch how we diagram real processes, follow along with screenshots, and pick up tips for building better flowcharts in FlowChart AI.",
+      "moreTitle": "More tutorials",
+      "allLink": "View all tutorials"
+    },
     "useCases": {
       "title": "Flowchart Templates",
       "subtitle": "Kickstart your next diagram in one click",
