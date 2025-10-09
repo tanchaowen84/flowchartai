@@ -2,9 +2,9 @@ import { HeaderSection } from '@/components/layout/header-section';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LocaleLink } from '@/i18n/navigation';
+import { Camera, FileCog, Replace } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { Camera, FileCog, Replace } from 'lucide-react';
 
 export default function AiCapabilitiesSection() {
   const t = useTranslations('HomePage.aiCapabilities');
@@ -38,19 +38,21 @@ export default function AiCapabilitiesSection() {
                 {t('workflowTitle')}
               </h4>
               <ol className="mt-4 space-y-3 text-sm text-muted-foreground">
-                {(['step-1', 'step-2', 'step-3'] as const).map((step, index) => (
-                  <li
-                    key={step}
-                    className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-4 shadow-sm"
-                  >
-                    <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                      {index + 1}
-                    </span>
-                    <span className="leading-relaxed text-foreground">
-                      {t(`workflow.${step}`)}
-                    </span>
-                  </li>
-                ))}
+                {(['step-1', 'step-2', 'step-3'] as const).map(
+                  (step, index) => (
+                    <li
+                      key={step}
+                      className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-4 shadow-sm"
+                    >
+                      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                        {index + 1}
+                      </span>
+                      <span className="leading-relaxed text-foreground">
+                        {t(`workflow.${step}`)}
+                      </span>
+                    </li>
+                  )
+                )}
               </ol>
             </div>
           </div>
@@ -97,9 +99,7 @@ export default function AiCapabilitiesSection() {
                   size="sm"
                   className="mt-auto self-start"
                 >
-                  <LocaleLink href="/canvas">
-                    {example.ctaLabel}
-                  </LocaleLink>
+                  <LocaleLink href="/canvas">{example.ctaLabel}</LocaleLink>
                 </Button>
               </Card>
             ))}

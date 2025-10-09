@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import { HeaderSection } from '@/components/layout/header-section';
 import { Button } from '@/components/ui/button';
@@ -9,13 +8,46 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import type * as React from 'react';
 
+const USE_CASE_KEYS = [
+  'item-1',
+  'item-2',
+  'item-3',
+  'item-4',
+  'item-5',
+  'item-6',
+] as const;
+
+type UseCaseKey = (typeof USE_CASE_KEYS)[number];
+
 export default function UseCasesSection() {
   const t = useTranslations('HomePage.useCases');
-  const prompts = t.raw('items') as Record<
-    string,
-    { prompt?: string; ctaLabel?: string; title: string; description: string }
-  >;
   const router = useRouter();
+
+  const useCases = USE_CASE_KEYS.map((key) => {
+    const baseKey = `items.${key}` as const;
+    const promptKey = `${baseKey}.prompt` as const;
+
+    let prompt: string | undefined;
+    try {
+      prompt = t(promptKey);
+    } catch (error) {
+      prompt = undefined;
+    }
+
+    return {
+      key,
+      title: t(`${baseKey}.title` as const),
+      description: t(`${baseKey}.description` as const),
+      ctaLabel: t(`${baseKey}.ctaLabel` as const),
+      prompt,
+    } satisfies {
+      key: UseCaseKey;
+      title: string;
+      description: string;
+      ctaLabel: string;
+      prompt?: string;
+    };
+  });
 
   const getCtaHandler = (prompt?: string) => {
     if (!prompt) return undefined;
@@ -39,47 +71,15 @@ export default function UseCasesSection() {
         />
 
         <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <UseCaseCard
-            title={t('items.item-1.title')}
-            description={t('items.item-1.description')}
-            ctaLabel={t('items.item-1.ctaLabel')}
-            onCtaClick={getCtaHandler(prompts['item-1']?.prompt)}
-          />
-
-          <UseCaseCard
-            title={t('items.item-2.title')}
-            description={t('items.item-2.description')}
-            ctaLabel={t('items.item-2.ctaLabel')}
-            onCtaClick={getCtaHandler(prompts['item-2']?.prompt)}
-          />
-
-          <UseCaseCard
-            title={t('items.item-3.title')}
-            description={t('items.item-3.description')}
-            ctaLabel={t('items.item-3.ctaLabel')}
-            onCtaClick={getCtaHandler(prompts['item-3']?.prompt)}
-          />
-
-          <UseCaseCard
-            title={t('items.item-4.title')}
-            description={t('items.item-4.description')}
-            ctaLabel={t('items.item-4.ctaLabel')}
-            onCtaClick={getCtaHandler(prompts['item-4']?.prompt)}
-          />
-
-          <UseCaseCard
-            title={t('items.item-5.title')}
-            description={t('items.item-5.description')}
-            ctaLabel={t('items.item-5.ctaLabel')}
-            onCtaClick={getCtaHandler(prompts['item-5']?.prompt)}
-          />
-
-          <UseCaseCard
-            title={t('items.item-6.title')}
-            description={t('items.item-6.description')}
-            ctaLabel={t('items.item-6.ctaLabel')}
-            onCtaClick={getCtaHandler(prompts['item-6']?.prompt)}
-          />
+          {useCases.map(({ key, title, description, ctaLabel, prompt }) => (
+            <UseCaseCard
+              key={key}
+              title={title}
+              description={description}
+              ctaLabel={ctaLabel}
+              onCtaClick={getCtaHandler(prompt)}
+            />
+          ))}
         </div>
       </div>
     </section>

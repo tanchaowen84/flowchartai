@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import {
   AI_ASSISTANT_MODES,
-  DEFAULT_AI_ASSISTANT_MODE,
   type AiAssistantMode,
+  DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
 import { cn } from '@/lib/utils';
 import { Send } from 'lucide-react';

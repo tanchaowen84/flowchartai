@@ -208,7 +208,10 @@ export default function HeroSection() {
   const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     const relatedTarget = event.relatedTarget;
-    if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) {
+    if (
+      relatedTarget instanceof Node &&
+      event.currentTarget.contains(relatedTarget)
+    ) {
       return;
     }
     setIsDragActive(false);

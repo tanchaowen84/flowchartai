@@ -678,7 +678,7 @@
         },
         "step-2": {
           "title": "FlowChart AI Builds Your Diagram",
-      "description": "FlowChart AI transforms your input into clean, structured flowcharts using intelligent shape detection and layout optimization.",
+          "description": "FlowChart AI transforms your input into clean, structured flowcharts using intelligent shape detection and layout optimization.",
           "details": [
             "Automatically generates accurate diagrams with FlowChart AI’s layout engine",
             "Optimized visual structure for readability and presentation",

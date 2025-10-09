@@ -1,16 +1,16 @@
-import HeroSection from '@/components/blocks/hero/hero';
-import { UseCasesSection } from '@/components/blocks/use-cases';
-import FeaturesSection from '@/components/blocks/features/features';
-import { HowItWorksSection } from '@/components/blocks/how-it-works';
-import PricingSection from '@/components/blocks/pricing/pricing';
-import FaqSection from '@/components/blocks/faqs/faqs';
 import CallToActionSection from '@/components/blocks/calltoaction/calltoaction';
-import { TutorialsSection } from '@/components/blocks/tutorials';
+import FaqSection from '@/components/blocks/faqs/faqs';
+import FeaturesSection from '@/components/blocks/features/features';
+import HeroSection from '@/components/blocks/hero/hero';
 import {
   LazyAiCapabilitiesSection,
   LazyComparisonSection,
   LazyDemoSection,
 } from '@/components/blocks/home/lazy-sections';
+import { HowItWorksSection } from '@/components/blocks/how-it-works';
+import PricingSection from '@/components/blocks/pricing/pricing';
+import { TutorialsSection } from '@/components/blocks/tutorials';
+import { UseCasesSection } from '@/components/blocks/use-cases';
 import { constructMetadata } from '@/lib/metadata';
 import { getUrlWithLocale } from '@/lib/urls/urls';
 import type { Metadata } from 'next';

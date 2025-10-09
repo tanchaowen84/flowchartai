@@ -2,13 +2,15 @@ import BlogCard from '@/components/blog/blog-card';
 import { HeaderSection } from '@/components/layout/header-section';
 import { Button } from '@/components/ui/button';
 import { LocaleLink } from '@/i18n/navigation';
-import { allPosts, type Post } from 'content-collections';
+import { type Post, allPosts } from 'content-collections';
 import { getLocale, getTranslations } from 'next-intl/server';
 
 function getTutorialPosts(locale: string): Post[] {
   const tutorials = allPosts
     .filter((post) => post.published)
-    .filter((post) => post.categories?.some((category) => category?.slug === 'tutorial'))
+    .filter((post) =>
+      post.categories?.some((category) => category?.slug === 'tutorial')
+    )
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const localized = tutorials.filter((post) => post.locale === locale);

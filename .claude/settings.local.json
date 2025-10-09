@@ -6,7 +6,8 @@
       "Bash(curl:*)",
       "Bash(identify:*)",
       "Bash(brew install:*)",
-      "Bash(convert:*)"
+      "Bash(convert:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

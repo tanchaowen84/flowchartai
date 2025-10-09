@@ -1,6 +1,7 @@
+import type { AiAssistantMode } from '@/lib/ai-modes';
 import { authClient } from '@/lib/auth-client';
-import { type AiAssistantMode } from '@/lib/ai-modes';
-import { type ClassValue, clsx } from 'clsx';
+import type { ClassValue } from 'clsx';
+import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -47,7 +48,8 @@ export async function startFlowchartSession({
     localStorage.removeItem('flowchart_auto_image');
   }
 
-  const session = authClient.session.getValue();
+  const sessionAtom = authClient.$store.atoms.session;
+  const session = sessionAtom?.get();
   const userId = session?.user?.id;
 
   if (userId) {

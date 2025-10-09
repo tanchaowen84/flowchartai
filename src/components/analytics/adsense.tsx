@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Script from 'next/script';
 import { useConsent } from '@/hooks/use-consent';
+import Script from 'next/script';
 
 /**
  * Google AdSense component for FlowchartAI

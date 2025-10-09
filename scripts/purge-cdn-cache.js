@@ -7,7 +7,8 @@
 
 require('dotenv').config();
 
-const CDN_BASE_URL = process.env.STORAGE_PUBLIC_URL || 'https://cdn.flowchartai.org/static';
+const CDN_BASE_URL =
+  process.env.STORAGE_PUBLIC_URL || 'https://cdn.flowchartai.org/static';
 const CLOUDFLARE_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID;
 const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 
@@ -28,7 +29,10 @@ async function purgeCache({ urls = [], purgeEverything = false }) {
   const data = await response.json();
 
   if (!response.ok || !data.success) {
-    const errors = data.errors?.map((err) => `${err.message} (code ${err.code})`).join('\n  - ') || 'Unknown error';
+    const errors =
+      data.errors
+        ?.map((err) => `${err.message} (code ${err.code})`)
+        .join('\n  - ') || 'Unknown error';
     throw new Error(`Cloudflare purge failed:\n  - ${errors}`);
   }
 
@@ -37,14 +41,20 @@ async function purgeCache({ urls = [], purgeEverything = false }) {
 
 function printUsage() {
   console.log('用法: pnpm purge-cdn [路径或完整URL] ... [--all]');
-  console.log('示例: pnpm purge-cdn static/feature1.png static/blocks/demo.png');
+  console.log(
+    '示例: pnpm purge-cdn static/feature1.png static/blocks/demo.png'
+  );
   console.log('      pnpm purge-cdn --all  # 清理整个站点缓存');
-  console.log('也可以直接传入完整 URL，例如 https://cdn.flowchartai.org/static/feature1.png');
+  console.log(
+    '也可以直接传入完整 URL，例如 https://cdn.flowchartai.org/static/feature1.png'
+  );
 }
 
 async function main() {
   const args = process.argv.slice(2);
-  const purgeAllIndex = args.findIndex((arg) => arg === '--all' || arg === '--everything');
+  const purgeAllIndex = args.findIndex(
+    (arg) => arg === '--all' || arg === '--everything'
+  );
   const purgeEverything = purgeAllIndex !== -1;
 
   if (purgeEverything) {
@@ -52,7 +62,9 @@ async function main() {
   }
 
   if (!CLOUDFLARE_ZONE_ID || !CLOUDFLARE_API_TOKEN) {
-    console.error('❌ 缺少 CLOUDFLARE_ZONE_ID 或 CLOUDFLARE_API_TOKEN 环境变量');
+    console.error(
+      '❌ 缺少 CLOUDFLARE_ZONE_ID 或 CLOUDFLARE_API_TOKEN 环境变量'
+    );
     console.error('   请在 .env.local 中设置对应的 Cloudflare API 凭证');
     process.exit(1);
   }
