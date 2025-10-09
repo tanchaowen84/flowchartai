@@ -698,9 +698,9 @@
       "getStarted": "Using FlowChart AI Now"
     },
     "aiCapabilities": {
-      "title": "Image to Flowchart Capabilities",
+      "title": "Image to Flowchart",
       "subtitle": "Turn screenshots, scans, and scribbles into editable diagrams",
-      "description": "Upload any process snapshot—whiteboard photos, slide exports, or notebook sketches—and FlowChart AI rebuilds it as a clean, fully editable flowchart in seconds—no manual redraws required.",
+      "description": "Upload any image, diagram, or hand-drawn sketch — FlowChart AI instantly detects shapes, arrows, and text to rebuild it as an editable flowchart. Convert screenshots, scanned documents, or whiteboard photos into structured, digital diagrams you can refine, export, and share.",
       "sideTitle": "Why it feels effortless",
       "sideDescription": "Skip the tedious redrawing phase—FlowChart AI recognizes your rough inputs and returns a polished, editable diagram ready for the next review.",
       "workflowTitle": "How it works",
