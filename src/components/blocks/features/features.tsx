@@ -2,16 +2,23 @@
 
 import { HeaderSection } from '@/components/layout/header-section';
 import { BorderBeam } from '@/components/magicui/border-beam';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { startFlowchartSession } from '@/lib/utils';
-import { FileText, GitBranch, ListChecks, PenSquare, Repeat, Wand2 } from 'lucide-react';
+import {
+  FileText,
+  GitBranch,
+  ListChecks,
+  PenSquare,
+  Repeat,
+  Wand2,
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -38,28 +45,50 @@ export default function FeaturesSection() {
   const examplesTitle = t('examplesSection.title');
   const router = useRouter();
 
-  const images = {
+  const images: Record<
+    ImageKey,
+    {
+      image: string;
+      darkImage: string;
+      alt: string;
+      width: number;
+      height: number;
+    }
+  > = {
     'item-1': {
       image: 'https://cdn.flowchartai.org/static/blocks/feature1.png',
       darkImage: 'https://cdn.flowchartai.org/static/blocks/feature1.png',
       alt: 'Product Feature One',
+      width: 1024,
+      height: 1024,
     },
     'item-2': {
       image: 'https://cdn.flowchartai.org/static/blocks/feature2.png',
       darkImage: 'https://cdn.flowchartai.org/static/blocks/feature2.png',
       alt: 'Product Feature Two',
+      width: 1024,
+      height: 1024,
     },
     'item-3': {
       image: 'https://cdn.flowchartai.org/static/blocks/feature3.png',
       darkImage: 'https://cdn.flowchartai.org/static/blocks/feature3.png',
       alt: 'Product Feature Three',
+      width: 1024,
+      height: 1024,
     },
     'item-4': {
       image: 'https://cdn.flowchartai.org/static/blocks/feature4.png',
       darkImage: 'https://cdn.flowchartai.org/static/blocks/feature4.png',
       alt: 'Product Feature Four',
+      width: 1024,
+      height: 1024,
     },
   };
+
+  const activeMedia = images[activeItem];
+  const aspectRatio = activeMedia.height
+    ? activeMedia.width / activeMedia.height
+    : 1.3;
 
   return (
     <section id="features" className="px-4 py-16">
@@ -79,14 +108,16 @@ export default function FeaturesSection() {
               <h3 className="text-3xl font-semibold lg:text-4xl text-gradient_indigo-purple leading-normal py-1">
                 {t('overviewTitle')}
               </h3>
-              <p className="mt-4 text-muted-foreground">{t('overviewDescription')}</p>
+              <p className="mt-4 text-muted-foreground">
+                {t('overviewDescription')}
+              </p>
             </div>
-              <Accordion
-                type="single"
-                value={activeItem}
-                onValueChange={(value) => setActiveItem(value as ImageKey)}
-                className="w-full"
-              >
+            <Accordion
+              type="single"
+              value={activeItem}
+              onValueChange={(value) => setActiveItem(value as ImageKey)}
+              className="w-full"
+            >
               <AccordionItem value="item-1">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2 text-base">
@@ -135,7 +166,10 @@ export default function FeaturesSection() {
           </div>
 
           <div className="bg-background w-full relative flex overflow-hidden rounded-2xl border p-2 lg:h-auto lg:col-span-7">
-            <div className="aspect-76/59 bg-background relative w-full rounded-2xl">
+            <div
+              className="bg-background relative w-full rounded-2xl"
+              style={{ aspectRatio }}
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`${activeItem}-id`}
@@ -143,21 +177,22 @@ export default function FeaturesSection() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.98 }}
                   transition={{ duration: 0.2 }}
-                  className="size-full overflow-hidden rounded-2xl border bg-white dark:bg-zinc-900 shadow-md flex items-center justify-center"
+                  className="relative size-full overflow-hidden rounded-2xl border bg-white dark:bg-zinc-900 shadow-md"
                 >
                   <Image
-                    src={images[activeItem].image}
-                    className="max-w-full max-h-full object-contain dark:hidden"
-                    alt={images[activeItem].alt}
-                    width={1207}
-                    height={929}
+                    src={activeMedia.image}
+                    className="object-cotain dark:hidden"
+                    alt={activeMedia.alt}
+                    fill
+                    sizes="(min-width: 1024px) 640px, 100vw"
+                    priority={activeItem === 'item-1'}
                   />
                   <Image
-                    src={images[activeItem].darkImage}
-                    className="max-w-full max-h-full object-contain dark:block hidden"
-                    alt={images[activeItem].alt}
-                    width={1207}
-                    height={929}
+                    src={activeMedia.darkImage}
+                    className="object-contain hidden dark:block"
+                    alt={activeMedia.alt}
+                    fill
+                    sizes="(min-width: 1024px) 640px, 100vw"
                   />
                 </motion.div>
               </AnimatePresence>
