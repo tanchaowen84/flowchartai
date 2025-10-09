@@ -800,7 +800,33 @@
         }
       },
       "overviewTitle": "Why using text to make flowcharts?",
-      "overviewDescription": "Flowchart AI turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter."
+      "overviewDescription": "Flowchart AI turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter.",
+      "examplesSection": {
+        "title": "Text to Flowchart Examples",
+        "items": [
+          {
+            "title": "Process Documentation",
+            "snippet": "When a new signup happens, we validate their info, store it, send a confirmation email, and drop them on the success page.",
+            "description": "Convert everyday onboarding steps into a clear process map.",
+            "ctaLabel": "Convert This Text",
+            "ctaPrompt": "A new user submits a signup form. Validate their information, save it, email them a confirmation, then show the success screen."
+          },
+          {
+            "title": "Decision Trees",
+            "snippet": "When a customer checks out, offer 20% off if they’re premium. If they aren’t premium but spend over $100, give 10% off. Otherwise no discount.",
+            "description": "Turn conditional logic into a readable branching flow.",
+            "ctaLabel": "Convert This Text",
+            "ctaPrompt": "Customer checkout flow: if the buyer is a premium member give a twenty percent discount; if not, but their order is over one hundred dollars give ten percent; otherwise keep the full price."
+          },
+          {
+            "title": "Workflow Instructions",
+            "snippet": "Start by checking inventory. If the item is in stock, process the order, update the counts, generate the invoice, and email it to the customer.",
+            "description": "Capture operational checklists without rewriting them as bullet points.",
+            "ctaLabel": "Convert This Text",
+            "ctaPrompt": "Inventory fulfillment instructions: check stock, when it’s available push the order through, adjust inventory levels, make the invoice, then send the invoice to the customer."
+          }
+        ]
+      }
     },
     "features2": {
       "title": "Features2",

@@ -2,17 +2,28 @@
 
 import { HeaderSection } from '@/components/layout/header-section';
 import { BorderBeam } from '@/components/magicui/border-beam';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { ListChecks, PenSquare, Repeat, Wand2 } from 'lucide-react';
+import { LocaleLink } from '@/i18n/navigation';
+import { FileText, GitBranch, ListChecks, PenSquare, Repeat, Wand2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useState } from 'react';
+
+type ExampleCard = {
+  title: string;
+  snippet: string;
+  description: string;
+  ctaLabel: string;
+  ctaPrompt: string;
+};
 
 /**
  * https://nsui.irung.me/features
@@ -22,6 +33,8 @@ export default function FeaturesSection() {
   const t = useTranslations('HomePage.features');
   type ImageKey = 'item-1' | 'item-2' | 'item-3' | 'item-4';
   const [activeItem, setActiveItem] = useState<ImageKey>('item-1');
+  const examples = (t.raw('examplesSection.items') as ExampleCard[]) ?? [];
+  const examplesTitle = t('examplesSection.title');
 
   const images = {
     'item-1': {
@@ -66,12 +79,12 @@ export default function FeaturesSection() {
               </h3>
               <p className="mt-4 text-muted-foreground">{t('overviewDescription')}</p>
             </div>
-            <Accordion
-              type="single"
-              value={activeItem}
-              onValueChange={(value) => setActiveItem(value as ImageKey)}
-              className="w-full"
-            >
+              <Accordion
+                type="single"
+                value={activeItem}
+                onValueChange={(value) => setActiveItem(value as ImageKey)}
+                className="w-full"
+              >
               <AccordionItem value="item-1">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2 text-base">
@@ -155,6 +168,61 @@ export default function FeaturesSection() {
           </div>
         </div>
       </div>
+
+      {examples.length > 0 ? (
+        <div className="mt-16 space-y-8">
+          <h3 className="text-center text-2xl font-semibold text-foreground">
+            {examplesTitle}
+          </h3>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {examples.map((example, index) => (
+              <Card
+                key={`text-flowchart-example-${example.title}`}
+                className="flex h-full flex-col gap-4 rounded-2xl border bg-background p-6 shadow-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <ExampleIcon index={index} />
+                  <div>
+                    <h4 className="text-lg font-semibold text-foreground">
+                      {example.title}
+                    </h4>
+                    <p className="mt-2 rounded-xl bg-muted/70 p-3 text-sm text-muted-foreground">
+                      {example.snippet}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {example.description}
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="mt-auto self-start"
+                >
+                  <LocaleLink
+                    href={`/canvas?prompt=${encodeURIComponent(example.ctaPrompt)}`}
+                  >
+                    {example.ctaLabel}
+                  </LocaleLink>
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
+}
+
+function ExampleIcon({ index }: { index: number }) {
+  const iconClassName = 'size-5 text-primary';
+  switch (index) {
+    case 1:
+      return <GitBranch className={iconClassName} />;
+    case 2:
+      return <PenSquare className={iconClassName} />;
+    default:
+      return <FileText className={iconClassName} />;
+  }
 }
