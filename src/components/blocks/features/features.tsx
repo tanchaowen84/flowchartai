@@ -8,12 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import {
-  ChartBarIncreasingIcon,
-  Database,
-  Fingerprint,
-  IdCard,
-} from 'lucide-react';
+import { ListChecks, PenSquare, Repeat, Wand2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -80,7 +75,7 @@ export default function FeaturesSection() {
               <AccordionItem value="item-1">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2 text-base">
-                    <Database className="size-4" />
+                    <ListChecks className="size-5 text-primary" />
                     {t('items.item-1.title')}
                   </div>
                 </AccordionTrigger>
@@ -91,7 +86,7 @@ export default function FeaturesSection() {
               <AccordionItem value="item-2">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2 text-base">
-                    <Fingerprint className="size-4" />
+                    <Wand2 className="size-5 text-primary" />
                     {t('items.item-2.title')}
                   </div>
                 </AccordionTrigger>
@@ -102,7 +97,7 @@ export default function FeaturesSection() {
               <AccordionItem value="item-3">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2 text-base">
-                    <IdCard className="size-4" />
+                    <PenSquare className="size-5 text-primary" />
                     {t('items.item-3.title')}
                   </div>
                 </AccordionTrigger>
@@ -113,7 +108,7 @@ export default function FeaturesSection() {
               <AccordionItem value="item-4">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2 text-base">
-                    <ChartBarIncreasingIcon className="size-4" />
+                    <Repeat className="size-5 text-primary" />
                     {t('items.item-4.title')}
                   </div>
                 </AccordionTrigger>

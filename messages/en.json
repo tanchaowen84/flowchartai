@@ -778,9 +778,9 @@
       "secondaryButton": "See Demo"
     },
     "features": {
-      "title": "Text to Flowchart, Explained",
-      "subtitle": "Let FlowChart AI turn plain words into a structured flow in seconds",
-      "description": "Share what needs to happen, who makes a choice, and what happens next—the assistant lays it out so you can focus on refining the details.",
+      "title": "TEXT TO FLOWCHART",
+      "subtitle": "Turn plain text into professional flowcharts in seconds",
+      "description": "Paste your notes, instructions, or ideas — FlowChart AI automatically detects steps, decisions, and connections to create a clear structured flow you can edit instantly.",
       "items": {
         "item-1": {
           "title": "Describe the steps once",
@@ -799,8 +799,8 @@
           "description": "Export to PNG, SVG, or Excalidraw, or save it as your go-to template for the next project."
         }
       },
-      "overviewTitle": "Why starting with text saves time",
-      "overviewDescription": "This engine turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter."
+      "overviewTitle": "Why using text to make flowcharts?",
+      "overviewDescription": "Flowchart AI turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter."
     },
     "features2": {
       "title": "Features2",
