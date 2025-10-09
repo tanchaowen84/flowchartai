@@ -50,30 +50,10 @@ export default async function TutorialsSection() {
         </div>
 
         {more.length > 0 ? (
-          <div className="rounded-2xl border bg-background/80 p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
-              <h3 className="text-base font-semibold text-foreground">
-                {t('moreTitle')}
-              </h3>
-              <Button asChild size="sm" variant="outline">
-                <LocaleLink href="/blog">{t('allLink')}</LocaleLink>
-              </Button>
-            </div>
-            <ul className="mt-4 grid gap-3 md:grid-cols-2">
-              {more.map((post) => {
-                const slugParts = post.slugAsParams.split('/');
-                return (
-                  <li key={`tutorial-link-${post.slugAsParams}`}>
-                    <LocaleLink
-                      href={`/blog/${slugParts.join('/')}`}
-                      className="text-sm font-medium text-foreground hover:text-primary"
-                    >
-                      {post.title}
-                    </LocaleLink>
-                  </li>
-                );
-              })}
-            </ul>
+          <div className="flex justify-center">
+            <Button asChild size="lg" variant="outline">
+              <LocaleLink href="/blog">{t('allLink')}</LocaleLink>
+            </Button>
           </div>
         ) : null}
       </div>
