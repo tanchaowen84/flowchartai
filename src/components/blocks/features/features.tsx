@@ -180,16 +180,16 @@ export default function FeaturesSection() {
                 key={`text-flowchart-example-${example.title}`}
                 className="flex h-full flex-col gap-4 rounded-2xl border bg-background p-6 shadow-sm"
               >
-                <div className="flex items-start gap-3">
-                  <ExampleIcon index={index} />
-                  <div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <ExampleIcon index={index} />
                     <h4 className="text-lg font-semibold text-foreground">
                       {example.title}
                     </h4>
-                    <p className="mt-2 rounded-xl bg-muted/70 p-3 text-sm text-muted-foreground">
-                      {example.snippet}
-                    </p>
                   </div>
+                  <p className="rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/10 to-transparent p-4 text-sm text-foreground/90 shadow-sm">
+                    {example.snippet}
+                  </p>
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {example.description}
