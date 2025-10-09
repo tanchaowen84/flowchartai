@@ -60,6 +60,7 @@ export default function HeroSection() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modeSectionRef = useRef<HTMLDivElement | null>(null);
 
@@ -186,6 +187,7 @@ export default function HeroSection() {
   const handleDrop = useCallback(
     async (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
+      setIsDragActive(false);
       const file = event.dataTransfer.files?.[0];
       if (!file) return;
       await handleValidatedImage(file);
@@ -195,6 +197,21 @@ export default function HeroSection() {
 
   const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) {
+      return;
+    }
+    setIsDragActive(false);
   }, []);
 
   const handleSubmit = useCallback(
@@ -393,10 +410,14 @@ export default function HeroSection() {
                         <div
                           className={cn(
                             'flex min-h-[180px] flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed px-8 py-6 text-center transition-all duration-300',
-                            isFocused
+                            isFocused || isDragActive
                               ? 'border-primary bg-primary/5'
                               : 'border-border hover:border-primary/50 bg-background/80'
                           )}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
+                          onDragEnter={handleDragEnter}
+                          onDragLeave={handleDragLeave}
                         >
                           {imagePreview ? (
                             <div className="relative flex h-56 w-full max-w-xl items-center justify-center overflow-hidden rounded-2xl border bg-white shadow-sm">
