@@ -37,6 +37,19 @@ export default function HeroSection() {
   const router = useRouter();
   const currentUser = useCurrentUser();
 
+  const heroTitle = t.rich('title', {
+    flow: (chunks) => (
+      <span className="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
+        {chunks}
+      </span>
+    ),
+    ai: (chunks) => (
+      <span className="bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-500 bg-clip-text text-transparent">
+        {chunks}
+      </span>
+    ),
+  });
+
   // State for the input
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -314,7 +327,7 @@ export default function HeroSection() {
               <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
                 {/* title */}
                 <h1 className="mt-8 text-balance text-5xl font-bricolage-grotesque lg:mt-16 xl:text-[5rem]">
-                  {t('title')}
+                  {heroTitle}
                 </h1>
 
                 {/* description */}
