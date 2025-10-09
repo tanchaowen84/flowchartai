@@ -24,7 +24,8 @@
     "migrate-assets": "node scripts/migrate-assets.js",
     "update-asset-paths": "node scripts/update-asset-paths.js",
     "test-cdn-resources": "node scripts/test-cdn-resources.js",
-    "test-new-images": "node scripts/test-new-images.js"
+    "test-new-images": "node scripts/test-new-images.js",
+    "purge-cdn": "node scripts/purge-cdn-cache.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.13",
