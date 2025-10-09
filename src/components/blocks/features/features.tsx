@@ -10,11 +10,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { LocaleLink } from '@/i18n/navigation';
+import { startFlowchartSession } from '@/lib/utils';
 import { FileText, GitBranch, ListChecks, PenSquare, Repeat, Wand2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 type ExampleCard = {
@@ -35,6 +36,7 @@ export default function FeaturesSection() {
   const [activeItem, setActiveItem] = useState<ImageKey>('item-1');
   const examples = (t.raw('examplesSection.items') as ExampleCard[]) ?? [];
   const examplesTitle = t('examplesSection.title');
+  const router = useRouter();
 
   const images = {
     'item-1': {
@@ -195,16 +197,18 @@ export default function FeaturesSection() {
                   {example.description}
                 </p>
                 <Button
-                  asChild
                   variant="outline"
                   size="sm"
                   className="mt-auto self-start"
+                  onClick={async () => {
+                    await startFlowchartSession({
+                      mode: 'text_to_flowchart',
+                      prompt: example.ctaPrompt,
+                      router,
+                    });
+                  }}
                 >
-                  <LocaleLink
-                    href={`/canvas?prompt=${encodeURIComponent(example.ctaPrompt)}`}
-                  >
-                    {example.ctaLabel}
-                  </LocaleLink>
+                  {example.ctaLabel}
                 </Button>
               </Card>
             ))}
