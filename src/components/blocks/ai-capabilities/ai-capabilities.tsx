@@ -97,9 +97,7 @@ export default function AiCapabilitiesSection() {
                   size="sm"
                   className="mt-auto self-start"
                 >
-                  <LocaleLink
-                    href={`/canvas?mode=image_to_flowchart&prompt=${encodeURIComponent(example.ctaPrompt)}`}
-                  >
+                  <LocaleLink href="/canvas">
                     {example.ctaLabel}
                   </LocaleLink>
                 </Button>
