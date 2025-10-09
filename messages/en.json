@@ -602,37 +602,37 @@
           "title": "Customer Onboarding",
           "description": "Outline every touchpoint from sign-up to success, including welcome emails, product tours, and activation milestones.",
           "ctaLabel": "Use Onboarding template",
-          "ctaHref": "/canvas?template=customer-onboarding"
+          "prompt": "Customer onboarding flow: welcome email, product tour, activation tasks, success check-in, handoff to customer success manager."
         },
         "item-2": {
           "title": "Support Escalation",
           "description": "Track issue intake, triage, escalation tiers, and resolution handoffs so nothing falls through the cracks.",
           "ctaLabel": "Use Escalation template",
-          "ctaHref": "/canvas?template=support-escalation"
+          "prompt": "Support escalation workflow starting at ticket intake, triage, assign to tier 1, escalate to tier 2 or engineering, resolve, follow up with customer."
         },
         "item-3": {
           "title": "Product Launch Plan",
           "description": "Coordinate research, build, QA, and release activities with built-in checkpoints and go/no-go criteria.",
           "ctaLabel": "Use Launch template",
-          "ctaHref": "/canvas?template=product-launch"
+          "prompt": "Product launch plan: research, roadmap freeze, development sprints, QA, go/no-go review, launch day, post-launch follow-up."
         },
         "item-4": {
           "title": "Software Deployment Pipeline",
           "description": "Map code commits to staging, testing, approvals, and rollbacks to keep releases predictable.",
           "ctaLabel": "Use Deployment template",
-          "ctaHref": "/canvas?template=deployment-pipeline"
+          "prompt": "Software deployment pipeline from code commit, CI build, automated tests, staging deploy, approvals, production release, rollback if needed."
         },
         "item-5": {
           "title": "Hiring Funnel",
           "description": "Visualize candidate sourcing, interviews, feedback loops, and offer steps for a consistent hiring experience.",
           "ctaLabel": "Use Hiring template",
-          "ctaHref": "/canvas?template=hiring-funnel"
+          "prompt": "Hiring funnel: sourcing, recruiter screen, hiring manager interview, panel interview, feedback review, offer, acceptance, onboarding."
         },
         "item-6": {
           "title": "Content Production Workflow",
           "description": "Move ideas from brief to publish with review gates, asset approvals, and promotion tasks already defined.",
           "ctaLabel": "Use Content template",
-          "ctaHref": "/canvas?template=content-production"
+          "prompt": "Content production workflow: topic brief, draft, internal review, stakeholder approval, publish, promotion, performance follow-up."
         }
       }
     },

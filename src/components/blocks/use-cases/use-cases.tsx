@@ -1,12 +1,31 @@
+
+"use client";
+
 import { HeaderSection } from '@/components/layout/header-section';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { LocaleLink } from '@/i18n/navigation';
+import { startFlowchartSession } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import type * as React from 'react';
 
 export default function UseCasesSection() {
   const t = useTranslations('HomePage.useCases');
+  const prompts = t.raw('items') as Record<
+    string,
+    { prompt?: string; ctaLabel?: string; title: string; description: string }
+  >;
+  const router = useRouter();
+
+  const getCtaHandler = (prompt?: string) => {
+    if (!prompt) return undefined;
+    return () =>
+      startFlowchartSession({
+        mode: 'text_to_flowchart',
+        prompt,
+        router,
+      });
+  };
 
   return (
     <section id="flowchart-templates" className="px-4 py-16">
@@ -24,42 +43,42 @@ export default function UseCasesSection() {
             title={t('items.item-1.title')}
             description={t('items.item-1.description')}
             ctaLabel={t('items.item-1.ctaLabel')}
-            ctaHref={t('items.item-1.ctaHref')}
+            onCtaClick={getCtaHandler(prompts['item-1']?.prompt)}
           />
 
           <UseCaseCard
             title={t('items.item-2.title')}
             description={t('items.item-2.description')}
             ctaLabel={t('items.item-2.ctaLabel')}
-            ctaHref={t('items.item-2.ctaHref')}
+            onCtaClick={getCtaHandler(prompts['item-2']?.prompt)}
           />
 
           <UseCaseCard
             title={t('items.item-3.title')}
             description={t('items.item-3.description')}
             ctaLabel={t('items.item-3.ctaLabel')}
-            ctaHref={t('items.item-3.ctaHref')}
+            onCtaClick={getCtaHandler(prompts['item-3']?.prompt)}
           />
 
           <UseCaseCard
             title={t('items.item-4.title')}
             description={t('items.item-4.description')}
             ctaLabel={t('items.item-4.ctaLabel')}
-            ctaHref={t('items.item-4.ctaHref')}
+            onCtaClick={getCtaHandler(prompts['item-4']?.prompt)}
           />
 
           <UseCaseCard
             title={t('items.item-5.title')}
             description={t('items.item-5.description')}
             ctaLabel={t('items.item-5.ctaLabel')}
-            ctaHref={t('items.item-5.ctaHref')}
+            onCtaClick={getCtaHandler(prompts['item-5']?.prompt)}
           />
 
           <UseCaseCard
             title={t('items.item-6.title')}
             description={t('items.item-6.description')}
             ctaLabel={t('items.item-6.ctaLabel')}
-            ctaHref={t('items.item-6.ctaHref')}
+            onCtaClick={getCtaHandler(prompts['item-6']?.prompt)}
           />
         </div>
       </div>
@@ -71,12 +90,12 @@ const UseCaseCard = ({
   title,
   description,
   ctaLabel,
-  ctaHref,
+  onCtaClick,
 }: {
   title: string;
   description: string;
   ctaLabel?: string;
-  ctaHref?: string;
+  onCtaClick?: () => void | Promise<void>;
 }) => {
   return (
     <Card className="group flex h-full flex-col justify-between gap-6 p-8 transition-all duration-300 hover:scale-[1.02] hover:bg-accent/50 hover:shadow-lg dark:hover:bg-accent/50">
@@ -88,9 +107,9 @@ const UseCaseCard = ({
           {description}
         </p>
       </div>
-      {ctaLabel && ctaHref ? (
-        <Button asChild size="sm" className="self-start">
-          <LocaleLink href={ctaHref}>{ctaLabel}</LocaleLink>
+      {ctaLabel && onCtaClick ? (
+        <Button size="sm" className="self-start" onClick={onCtaClick}>
+          {ctaLabel}
         </Button>
       ) : null}
     </Card>
