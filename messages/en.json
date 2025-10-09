@@ -708,6 +708,29 @@
         "step-1": "Upload any snapshot or export (PNG, JPG, WEBP, GIF)",
         "step-2": "Add an optional note so AI keeps your domain language",
         "step-3": "Open the regenerated flowchart in canvas to tweak and export"
+      },
+      "examplesSection": {
+        "title": "Image to Flowchart Examples",
+        "items": [
+          {
+            "title": "Whiteboard Sketch",
+            "description": "Snap a photo of your brainstorm wall and let FlowChart AI clean it up into a tidy, editable flowchart.",
+            "ctaLabel": "Convert This Image",
+            "ctaPrompt": "Whiteboard photo of a sprint planning workflow with columns for todo, in progress, qa, done. Rebuild a clean editable flowchart from it."
+          },
+          {
+            "title": "Legacy Diagram",
+            "description": "Import an outdated flowchart export and modernize it without rebuilding everything manually.",
+            "ctaLabel": "Upgrade My Diagram",
+            "ctaPrompt": "Old flowchart image showing onboarding steps: welcome email, account setup, product training, go live. Recreate a modern editable version."
+          },
+          {
+            "title": "Scanned Handout",
+            "description": "Turn printed procedures and PDF scan-outs into structured diagrams you can edit and share.",
+            "ctaLabel": "Digitize This Process",
+            "ctaPrompt": "Scanned operations checklist describing order intake, review, approval, fulfillment, delivery. Convert it into a clean flowchart."
+          }
+        ]
       }
     },
     "comparison": {
