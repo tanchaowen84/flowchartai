@@ -97,7 +97,7 @@ export default function FeaturesSection() {
         <HeaderSection
           title={t('title')}
           subtitle={t('subtitle')}
-          subtitleAs="h2"
+          subtitleAs="p"
           description={t('description')}
           descriptionAs="p"
         />

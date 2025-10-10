@@ -66,7 +66,7 @@ export default function UseCasesSection() {
           title={t('title')}
           subtitle={t('subtitle')}
           description={t('description')}
-          subtitleAs="h2"
+          subtitleAs="p"
           descriptionAs="p"
         />
 

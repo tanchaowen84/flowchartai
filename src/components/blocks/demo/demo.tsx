@@ -14,7 +14,7 @@ export default function DemoSection() {
           title={t('title')}
           subtitle={t('subtitle')}
           description={t('description')}
-          subtitleAs="h2"
+          subtitleAs="p"
           descriptionAs="p"
         />
 

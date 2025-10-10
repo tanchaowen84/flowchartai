@@ -41,7 +41,7 @@ export default async function TutorialsSection() {
           title={t('title')}
           subtitle={t('subtitle')}
           description={t('description')}
-          subtitleAs="h2"
+          subtitleAs="p"
           descriptionAs="p"
         />
 
