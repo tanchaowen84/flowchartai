@@ -296,10 +296,6 @@
             "title": "Contact",
             "description": "Get in touch with our team for support or inquiries"
           },
-          "tools": {
-            "title": "Tools",
-            "description": "Explore our collection of AI-powered diagram tools"
-          },
           "changelog": {
             "title": "Changelog",
             "description": "See the latest updates to our products"
@@ -334,8 +330,7 @@
         "items": {
           "blog": "Blog",
           "docs": "Documentation",
-          "changelog": "Changelog",
-          "tools": "Tools"
+          "changelog": "Changelog"
         }
       },
       "company": {
@@ -1064,20 +1059,9 @@
     "description": "Create beautiful flowcharts with AI assistance - draw, edit, and collaborate on your diagrams",
     "subtitle": "AI-Powered Flowchart Editor"
   },
-  "ToolsPage": {
-    "meta": {
-      "title": "AI Diagram Tools - FlowChart AI",
-      "description": "Explore our collection of AI-powered diagram and flowchart tools. Create professional diagrams instantly with artificial intelligence."
-    },
-    "header": {
-      "title": "AI Tools",
-      "subtitle": "Powerful AI-Driven Diagram Tools",
-      "description": "Discover our comprehensive suite of AI-powered tools designed to help you create professional diagrams, flowcharts, and visual content effortlessly."
-    },
-    "cta": {
+  "cta": {
       "title": "Ready to Create Your First Diagram?",
       "description": "Start creating professional diagrams with our AI-powered canvas. No design experience required.",
       "button": "Start Creating"
     }
-  }
 }
