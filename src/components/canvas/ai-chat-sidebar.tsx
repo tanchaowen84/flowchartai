@@ -735,6 +735,106 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
+  const handleRegenerate = async () => {
+    if (messages.length === 0 || isLoading) return;
+
+    // Get the last user message
+    const lastUserMessage = messages
+      .filter((msg) => msg.role === 'user')
+      .pop();
+
+    if (!lastUserMessage) return;
+
+    // Check AI usage limit based on user type
+    if (currentUser) {
+      const canUseAI = await checkUsageLimit();
+      if (!canUseAI) {
+        if (usageData?.timeFrame === 'daily') {
+          setDailyLimitUsageInfo({
+            timeFrame: 'daily',
+            nextResetTime: usageData.nextResetTime,
+          });
+          setShowPricingModal(true);
+        } else {
+          setShowUsageLimitCard(true);
+        }
+        return;
+      }
+    } else {
+      console.log('Guest user sending request - backend will validate usage');
+    }
+
+    setIsLoading(true);
+    setIsStreamingResponse(true);
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
+    try {
+      // Use the last user message content for regeneration
+      const conversationPayload: any[] = [
+        ...messages.slice(0, -1).map((msg) => ({
+          role: msg.role,
+          content: typeof msg.content === 'string' ? msg.content : msg.content,
+        })),
+        {
+          role: 'user',
+          content: lastUserMessage.content,
+        },
+      ];
+
+      await processAIConversation(conversationPayload);
+
+      if (!currentUser) {
+        markGuestAsUsed();
+      }
+    } catch (error) {
+      console.error('Error regenerating message:', error);
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      if (error instanceof Error && (error as any).isGuestLimit) {
+        if (!currentUser) {
+          handleGuestLimitReached();
+          setShowLoginModal(true);
+          return;
+        }
+      }
+
+      if (error instanceof Error && (error as any).isDailyLimit) {
+        if (currentUser) {
+          setDailyLimitUsageInfo((error as any).usageInfo);
+          setShowPricingModal(true);
+          return;
+        }
+      }
+
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        content:
+          'Sorry, I encountered an error while regenerating your request. Please try again.',
+        role: 'assistant',
+        timestamp: new Date(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+
+      toast({
+        title: 'Error',
+        description: 'Failed to regenerate your message. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+      setIsStreamingResponse(false);
+      streamingMessageIdRef.current = null;
+    }
+  };
+
   const handleSendMessage = async () => {
     if (
       (selectedImages.length === 0 &&
@@ -1255,48 +1355,18 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     >
       <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handleNewConversation}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              disabled={isLoading}
-              title="New Conversation"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <h2 className="text-base font-medium text-gray-900">
-              FlowChart AI
-            </h2>
-            {isLoading && (
-              <div className="flex items-center gap-1">
-                <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
-                <span className="text-xs text-gray-500">Thinking...</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            {isLoading && (
-              <Button
-                onClick={handleStopGeneration}
-                variant="ghost"
-                size="sm"
-                className="h-8 px-3 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg font-medium transition-colors"
-              >
-                <span className="text-xs">Stop</span>
-              </Button>
-            )}
-            <Button
-              onClick={onToggle}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h2 className="text-base font-medium text-gray-900">
+            FlowChart AI
+          </h2>
+          <Button
+            onClick={onToggle}
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            X
+          </Button>
         </div>
 
         {/* Guest Usage Indicator */}
@@ -1318,7 +1388,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   </p>
                   {excalidrawAPI && (
                     <div className="mt-3 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-md mx-auto w-fit">
-                      🎨 Canvas context enabled - I can see your current drawing
+                      Canvas context enabled - I can see your current drawing
                     </div>
                   )}
                 </div>
@@ -1387,10 +1457,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         </div>
 
         {/* Input */}
-        <div className="p-6">
+        <div className="border-t border-gray-200">
           {/* Image previews */}
           {selectedImages.length > 0 && (
-            <div className="mb-3 mx-2">
+            <div className="mb-3 mx-4 mt-4">
               <div className="flex flex-wrap gap-2">
                 {selectedImages.map((file, index) => (
                   <div key={index} className="relative">
@@ -1427,8 +1497,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           />
 
           {/* Mode Switch */}
-          <div className="px-4 pb-3">
+          <div className="px-4 pb-3 pt-4">
             <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 border border-gray-200">
+              <span className="text-xs text-gray-600 mr-2">Mode:</span>
               {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
                 (mode) => {
                   const isActive = aiMode === mode;
@@ -1454,57 +1525,59 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200/50 p-3 mx-2">
-            <div className="flex items-end space-x-3">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0 mb-1"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <div className="flex-1">
-                <Textarea
-                  ref={textareaRef}
-                  placeholder="Describe the flowchart you want to create..."
-                  value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    // Adjust height after state update
-                    setTimeout(() => adjustTextareaHeight(), 0);
-                  }}
-                  onKeyDown={handleKeyPress}
-                  disabled={isLoading}
-                  className="min-h-[32px] max-h-[120px] resize-none border-0 focus-visible:ring-0 shadow-none bg-transparent dark:bg-white placeholder:text-gray-400 text-black text-sm px-0 py-1 leading-5 overflow-y-auto"
-                  style={{
-                    height: '32px',
-                    wordWrap: 'break-word',
-                    whiteSpace: 'pre-wrap',
-                  }}
-                />
-              </div>
+          <div className="px-4 pb-4">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Describe your flowchart..."
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                // Adjust height after state update
+                setTimeout(() => adjustTextareaHeight(), 0);
+              }}
+              onKeyDown={handleKeyPress}
+              disabled={isLoading}
+              className="min-h-[32px] max-h-[120px] resize-none border border-gray-300 rounded-lg focus-visible:ring-0 shadow-none bg-white placeholder:text-gray-400 text-black text-sm px-3 py-2 leading-5 overflow-y-auto"
+              style={{
+                height: '32px',
+                wordWrap: 'break-word',
+                whiteSpace: 'pre-wrap',
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-1">Press Enter to send</p>
+          </div>
+
+          <div className="px-4 pb-4">
+            <div className="flex gap-2">
               <Button
                 onClick={() => {
                   handleCameraClick();
                 }}
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg flex-shrink-0 mb-1"
+                variant="outline"
+                size="sm"
+                className="flex-1"
                 disabled={isLoading}
-                title="Upload image"
               >
-                <Camera className="h-4 w-4" />
+                Upload Image
               </Button>
               <Button
                 onClick={handleSendMessage}
-                size="icon"
-                variant="ghost"
+                size="sm"
+                className="flex-1"
                 disabled={
                   (!input.trim() && selectedImages.length === 0) || isLoading
                 }
-                className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg disabled:opacity-30 flex-shrink-0 mb-1"
               >
-                <ArrowUp className="h-4 w-4" />
+                Send
+              </Button>
+              <Button
+                onClick={handleRegenerate}
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                disabled={messages.length === 0 || isLoading}
+              >
+                Regenerate
               </Button>
             </div>
           </div>
