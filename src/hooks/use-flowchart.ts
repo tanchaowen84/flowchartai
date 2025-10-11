@@ -32,6 +32,43 @@ export const useFlowchart = (flowchartId?: string): UseFlowchartResult => {
     setError(null);
 
     try {
+      // First, check if we have cached data from the callback page
+      const cacheKey = `flowchart_cache_${flowchartId}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+
+      if (cachedData) {
+        try {
+          const parsedData: FlowchartData = JSON.parse(cachedData);
+          console.log('✅ Using cached flowchart data for immediate display');
+          setFlowchart(parsedData);
+
+          // Clear the cache after using it to prevent stale data
+          sessionStorage.removeItem(cacheKey);
+
+          // Still fetch fresh data in the background to ensure consistency
+          fetch(`/api/flowcharts/${flowchartId}`)
+            .then(response => {
+              if (response.ok) {
+                return response.json();
+              }
+              throw new Error('Failed to fetch fresh data');
+            })
+            .then(data => {
+              setFlowchart(data);
+              console.log('✅ Fresh flowchart data loaded');
+            })
+            .catch(err => {
+              console.warn('⚠️ Failed to load fresh data, keeping cached data:', err);
+            });
+
+          return;
+        } catch (parseError) {
+          console.warn('⚠️ Failed to parse cached data, fetching from API:', parseError);
+          sessionStorage.removeItem(cacheKey);
+        }
+      }
+
+      // No cached data or cache invalid, fetch from API
       const response = await fetch(`/api/flowcharts/${flowchartId}`);
 
       if (!response.ok) {

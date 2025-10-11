@@ -20,12 +20,12 @@ export default function FlowchartCallbackPage() {
 
   // 设置页面标题
   useEffect(() => {
-    document.title = '创建流程图中... - FlowChart AI';
+    document.title = 'Creating Flowchart... - FlowChart AI';
 
     // 设置meta description
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', '正在为您创建AI流程图，请稍候...');
+      metaDescription.setAttribute('content', 'Creating your AI flowchart, please wait...');
     }
   }, []);
 
@@ -58,7 +58,7 @@ export default function FlowchartCallbackPage() {
       handlePendingFlowchart(stateId, session.user.id, router)
         .then((success) => {
           if (!success) {
-            setError('创建流程图时出错，请重试');
+            setError('Error creating flowchart. Please try again.');
             setTimeout(() => {
               router.push('/canvas');
             }, 3000);
@@ -66,7 +66,7 @@ export default function FlowchartCallbackPage() {
         })
         .catch((error) => {
           console.error('Error handling pending flowchart:', error);
-          setError('创建流程图时出错，请重试');
+          setError('Error creating flowchart. Please try again.');
           setTimeout(() => {
             router.push('/canvas');
           }, 3000);
@@ -88,24 +88,24 @@ export default function FlowchartCallbackPage() {
         {isCreating ? (
           <>
             <Loader2Icon className="animate-spin mx-auto h-12 w-12 text-primary" />
-            <h2 className="text-xl font-semibold">正在为您创建流程图...</h2>
-            <p className="text-muted-foreground">请稍候，我们正在处理您的请求</p>
+            <h2 className="text-xl font-semibold">Creating your flowchart...</h2>
+            <p className="text-muted-foreground">Please wait while we prepare your canvas</p>
           </>
         ) : error ? (
           <>
             <div className="mx-auto h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
               <span className="text-red-600 text-xl">⚠️</span>
             </div>
-            <h2 className="text-xl font-semibold text-red-600">出错了</h2>
+            <h2 className="text-xl font-semibold text-red-600">Something went wrong</h2>
             <p className="text-muted-foreground max-w-md">{error}</p>
-            <p className="text-sm text-muted-foreground">正在跳转到画布页面...</p>
+            <p className="text-sm text-muted-foreground">Redirecting to canvas...</p>
           </>
         ) : (
           <>
             <Loader2Icon className="animate-spin mx-auto h-12 w-12 text-primary" />
-            <h2 className="text-xl font-semibold">准备创建流程图...</h2>
+            <h2 className="text-xl font-semibold">Preparing your flowchart...</h2>
             <p className="text-muted-foreground">
-              {isLoading ? '正在验证登录状态...' : '正在处理您的请求...'}
+              {isLoading ? 'Verifying your login status...' : 'Processing your request...'}
             </p>
           </>
         )}

@@ -146,6 +146,8 @@ export async function createFlowchartWithAutoGeneration(
   router: ReturnType<typeof useRouter>
 ): Promise<string | null> {
   try {
+    console.log('🚀 Starting flowchart creation with auto-generation...');
+
     // 创建新流程图
     const response = await fetch('/api/flowcharts', {
       method: 'POST',
@@ -160,8 +162,9 @@ export async function createFlowchartWithAutoGeneration(
     }
 
     const { id: flowchartId } = await response.json();
+    console.log('✅ Flowchart created successfully:', flowchartId);
 
-    // 设置自动生成参数到localStorage
+    // 立即设置自动生成参数到localStorage，确保canvas页面能立即获取
     localStorage.setItem('flowchart_auto_input', pendingData.input);
     localStorage.setItem('flowchart_auto_generate', 'true');
     localStorage.setItem('flowchart_auto_mode', pendingData.mode);
@@ -173,13 +176,32 @@ export async function createFlowchartWithAutoGeneration(
         thumbnail: pendingData.imageFile.thumbnail,
         filename: pendingData.imageFile.name,
       }));
+      console.log('✅ Image data saved to localStorage');
     }
 
-    console.log('✅ Flowchart created with auto-generation:', flowchartId);
+    // 预缓存flowchart数据以减少canvas页面加载时间
+    try {
+      const cacheData = {
+        id: flowchartId,
+        title: 'Untitled',
+        content: '{"type":"excalidraw","version":2,"source":"https://excalidraw.com","elements":[],"appState":{"gridSize":null,"viewBackgroundColor":"#ffffff"}}',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // 将数据存储在sessionStorage中以供canvas页面快速访问
+      sessionStorage.setItem(`flowchart_cache_${flowchartId}`, JSON.stringify(cacheData));
+      console.log('✅ Flowchart data cached for immediate access');
+    } catch (cacheError) {
+      console.warn('⚠️ Failed to cache flowchart data:', cacheError);
+      // 缓存失败不是致命错误，继续流程
+    }
+
+    console.log('✅ All auto-generation data prepared successfully');
     return flowchartId;
 
   } catch (error) {
-    console.error('Error creating flowchart:', error);
+    console.error('❌ Error creating flowchart:', error);
     return null;
   }
 }
