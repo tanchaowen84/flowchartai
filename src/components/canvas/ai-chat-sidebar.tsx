@@ -707,6 +707,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               mode: mode,
               mermaidLength: mermaidCode.length,
               elementCount: result.elements?.length || 0,
+              // 添加图片模式标识，这样计费记录能区分来源
+              isImageMode: aiMode === 'image_to_flowchart',
+              sourceMode: aiMode,
             },
           }),
         });
@@ -804,9 +807,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       await processAIConversation(conversationPayload);
 
-      if (!currentUser) {
-        markGuestAsUsed();
-      }
+      // 移除即时计费逻辑，改为在流程图成功生成后计费
+      // if (!currentUser) {
+      //   markGuestAsUsed();
+      // }
     } catch (error) {
       console.error('Error regenerating message:', error);
 

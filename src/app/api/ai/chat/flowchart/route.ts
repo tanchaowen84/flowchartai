@@ -277,21 +277,26 @@ export async function POST(req: Request) {
           success: boolean,
           errorMessage?: string
         ) => {
-          // 移除这里的计费，改为在流程图成功生成后计费
-          // if (isGuestUser) {
-          //   await recordGuestAIUsage(req, 'flowchart_generation', success);
-          // } else {
-          //   await recordAIUsage(userId!, 'flowchart_generation', {
-          //     tokensUsed: 0,
-          //     model: model,
-          //     success,
-          //     errorMessage,
-          //     metadata: {
-          //       messageCount: messages.length,
-          //       mode: requestedMode,
-          //     },
-          //   });
-          // }
+          // 图片模式的计费应该在前端渲染成功后进行，保持与文本模式一致
+          // 这里只记录错误情况，成功计费在前端处理
+          if (!success && userId) {
+            try {
+              await recordAIUsage(userId, 'flowchart_generation', {
+                tokensUsed: 0,
+                model: model,
+                success: false,
+                errorMessage,
+                metadata: {
+                  messageCount: messages.length,
+                  mode: 'image_to_flowchart',
+                  imageMode: true,
+                },
+              });
+              console.log('❌ Image to flowchart error recorded for user:', userId);
+            } catch (recordError) {
+              console.error('Failed to record image flowchart error:', recordError);
+            }
+          }
         };
 
         const completion = await openai.chat.completions.create({
@@ -420,7 +425,8 @@ export async function POST(req: Request) {
           },
         });
 
-        await recordImageUsage(true);
+        // 图片模式成功，计费将在前端渲染成功后进行
+        // await recordImageUsage(true); // 不在这里计费，保持与文本模式一致
 
         return new Response(stream, {
           headers: {
