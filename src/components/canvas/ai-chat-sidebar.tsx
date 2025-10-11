@@ -1584,8 +1584,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               <Button
                 onClick={handleRegenerate}
                 size="default"
-                variant="outline"
-                className="flex-1 h-11 text-sm font-medium border-gray-200 hover:border-gray-300 transition-colors"
+                className="flex-1 h-11 text-sm font-medium bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600 transition-colors"
                 disabled={messages.length === 0 || isLoading}
               >
                 Regenerate
