@@ -7,8 +7,6 @@ import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import {
@@ -112,13 +110,7 @@ export default function HeroSection() {
     }
   }, [selectedMode]);
 
-  // 处理登录模态框关闭时的重置
-  const handleLoginModalClose = useCallback(() => {
-    setShowLoginModal(false);
-    setLoginCallbackUrl(null);
-    setIsLoading(false);
-  }, []);
-
+  
   // 使用useMemo缓存className计算结果
   const inputClassName = useMemo(() => {
     return cn(
@@ -322,11 +314,9 @@ export default function HeroSection() {
               imagePreview
             );
 
-            // Build callback URL
+            // Build callback URL and show login modal
             const callbackUrl = buildCallbackUrl(stateId);
             setLoginCallbackUrl(callbackUrl);
-
-            // Show login modal
             setShowLoginModal(true);
             console.log('✅ Pending data saved and login modal shown', {
               stateId,
@@ -562,28 +552,18 @@ export default function HeroSection() {
         </section>
       </main>
 
-      {/* Login Modal for Guest Users */}
-      <Dialog open={showLoginModal} onOpenChange={handleLoginModalClose}>
-        <DialogContent className="sm:max-w-[420px] p-0">
-          <DialogHeader className="pb-2 pt-4">
-            <DialogTitle className="text-lg text-center">
-              Create Your AI Flowchart
-            </DialogTitle>
-          </DialogHeader>
-          <div className="px-6 pb-6">
-            <div className="text-center mb-4">
-              <p className="text-sm text-muted-foreground">
-                Please log in to create and save your flowchart
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Your AI-generated flowchart will be waiting for you after login
-              </p>
-            </div>
-            <LoginForm
-              callbackUrl={loginCallbackUrl || ''}
-              className="border-none p-0"
-            />
+      {/* Login Modal - Simple wrapper for our default LoginForm */}
+      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+        <DialogContent className="p-0 max-w-md">
+          <div className="p-6 pb-0 text-center">
+            <p className="text-sm text-muted-foreground">
+              Your input will be saved and you won't need to re-enter it after logging in.
+            </p>
           </div>
+          <LoginForm
+            callbackUrl={loginCallbackUrl || ''}
+            className="border-none shadow-none pt-0"
+          />
         </DialogContent>
       </Dialog>
     </>
