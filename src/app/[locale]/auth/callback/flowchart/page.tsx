@@ -83,33 +83,31 @@ export default function FlowchartCallbackPage() {
   }, [session, router, searchParams]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="text-center space-y-4">
-        {isCreating ? (
-          <>
-            <Loader2Icon className="animate-spin mx-auto h-12 w-12 text-primary" />
-            <h2 className="text-xl font-semibold">Creating your flowchart...</h2>
-            <p className="text-muted-foreground">Please wait while we prepare your canvas</p>
-          </>
-        ) : error ? (
-          <>
-            <div className="mx-auto h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-              <span className="text-red-600 text-xl">⚠️</span>
-            </div>
-            <h2 className="text-xl font-semibold text-red-600">Something went wrong</h2>
-            <p className="text-muted-foreground max-w-md">{error}</p>
-            <p className="text-sm text-muted-foreground">Redirecting to canvas...</p>
-          </>
-        ) : (
-          <>
-            <Loader2Icon className="animate-spin mx-auto h-12 w-12 text-primary" />
-            <h2 className="text-xl font-semibold">Preparing your flowchart...</h2>
-            <p className="text-muted-foreground">
-              {isLoading ? 'Verifying your login status...' : 'Processing your request...'}
-            </p>
-          </>
-        )}
-      </div>
+    <div className="fixed inset-0 flex items-center justify-center bg-white dark:bg-gray-950">
+      {isCreating ? (
+        <div className="flex flex-col items-center gap-4">
+          <Loader2Icon className="animate-spin h-12 w-12 text-primary" />
+          <h2 className="text-xl font-semibold">Creating your flowchart...</h2>
+          <p className="text-muted-foreground">Please wait while we prepare your canvas</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+            <span className="text-red-600 text-xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-semibold text-red-600">Something went wrong</h2>
+          <p className="text-muted-foreground">{error}</p>
+          <p className="text-sm text-muted-foreground">Redirecting to canvas...</p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <Loader2Icon className="animate-spin h-12 w-12 text-primary" />
+          <h2 className="text-xl font-semibold">Preparing your flowchart...</h2>
+          <p className="text-muted-foreground">
+            {isLoading ? 'Verifying your login status...' : 'Processing your request...'}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
