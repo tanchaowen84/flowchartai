@@ -30,7 +30,7 @@ import {
   Edit,
   FileImage,
   FileText,
-  Loader2,
+  Loader2Icon,
   User,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -419,7 +419,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     return (
       <div className="h-screen w-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Loader2Icon className="animate-spin h-12 w-12 text-primary" />
           <p className="text-lg text-gray-600">Loading flowchart...</p>
         </div>
       </div>
