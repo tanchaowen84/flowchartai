@@ -1,8 +1,15 @@
 'use client';
 
+import { LoginForm } from '@/components/auth/login-form';
 import { Ripple } from '@/components/magicui/ripple';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import {
   AI_ASSISTANT_MODES,
@@ -17,6 +24,11 @@ import {
   isValidImageFile,
 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
+import {
+  buildCallbackUrl,
+  generateStateId,
+  savePendingFlowchartData,
+} from '@/lib/flowchart-callback-handler';
 import { Camera, Send, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -61,6 +73,8 @@ export default function HeroSection() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginCallbackUrl, setLoginCallbackUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modeSectionRef = useRef<HTMLDivElement | null>(null);
 
@@ -97,6 +111,13 @@ export default function HeroSection() {
       return () => window.clearTimeout(timeoutId);
     }
   }, [selectedMode]);
+
+  // 处理登录模态框关闭时的重置
+  const handleLoginModalClose = useCallback(() => {
+    setShowLoginModal(false);
+    setLoginCallbackUrl(null);
+    setIsLoading(false);
+  }, []);
 
   // 使用useMemo缓存className计算结果
   const inputClassName = useMemo(() => {
@@ -286,32 +307,40 @@ export default function HeroSection() {
 
           router.push(`/canvas/${data.id}`);
         } else {
-          // Guest user - go to canvas directly
-          localStorage.setItem('flowchart_auto_input', trimmedInput);
-          localStorage.setItem('flowchart_auto_generate', 'true');
-          localStorage.setItem('flowchart_auto_mode', selectedMode);
-          if (imageFile) {
-            try {
-              const base64 = await encodeImageToBase64(imageFile);
-              localStorage.setItem(
-                'flowchart_auto_image',
-                JSON.stringify({
-                  base64,
-                  thumbnail:
-                    imagePreview ??
-                    (await createImageThumbnail(imageFile, 320, 200)),
-                  filename: imageFile.name,
-                })
-              );
-            } catch (error) {
-              console.error('Failed to encode image:', error);
-              toast.error('Failed to prepare image. Please try again.');
-              setIsLoading(false);
-              return;
-            }
-          }
+          // Guest user - show login modal
+          console.log('🎯 Guest user detected - showing login modal');
 
-          router.push('/canvas');
+          // Generate state ID and save pending data
+          const stateId = generateStateId();
+
+          try {
+            await savePendingFlowchartData(
+              stateId,
+              trimmedInput,
+              selectedMode,
+              imageFile,
+              imagePreview
+            );
+
+            // Build callback URL
+            const callbackUrl = buildCallbackUrl(stateId);
+            setLoginCallbackUrl(callbackUrl);
+
+            // Show login modal
+            setShowLoginModal(true);
+            console.log('✅ Pending data saved and login modal shown', {
+              stateId,
+              mode: selectedMode,
+              hasImage: !!imageFile
+            });
+
+          } catch (error) {
+            console.error('Error saving pending data:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to prepare your request';
+            toast.error(errorMessage);
+            setIsLoading(false);
+            setShowLoginModal(false);
+          }
         }
       } catch (error) {
         console.error('Error creating flowchart:', error);
@@ -323,7 +352,7 @@ export default function HeroSection() {
         }
       }
     },
-    [input, selectedMode, currentUser, router, imageFile, clearImage]
+    [input, selectedMode, currentUser, router, imageFile, imagePreview, clearImage]
   );
 
   return (
@@ -532,6 +561,31 @@ export default function HeroSection() {
           </div>
         </section>
       </main>
+
+      {/* Login Modal for Guest Users */}
+      <Dialog open={showLoginModal} onOpenChange={handleLoginModalClose}>
+        <DialogContent className="sm:max-w-[420px] p-0">
+          <DialogHeader className="pb-2 pt-4">
+            <DialogTitle className="text-lg text-center">
+              Create Your AI Flowchart
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            <div className="text-center mb-4">
+              <p className="text-sm text-muted-foreground">
+                Please log in to create and save your flowchart
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Your AI-generated flowchart will be waiting for you after login
+              </p>
+            </div>
+            <LoginForm
+              callbackUrl={loginCallbackUrl || ''}
+              className="border-none p-0"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
