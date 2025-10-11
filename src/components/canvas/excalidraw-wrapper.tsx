@@ -90,7 +90,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
   const [isAPIReady, setIsAPIReady] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
   const [currentFlowchartId, setCurrentFlowchartId] = useState(flowchartId);
