@@ -12,23 +12,23 @@ interface GuestUsageIndicatorProps {
 export function GuestUsageIndicator({ className }: GuestUsageIndicatorProps) {
   return (
     <Card className={className}>
-      <CardContent className="p-4">
-        <div className="space-y-4">
+      <CardContent className="p-3">
+        <div className="space-y-3">
           {/* Header with lock icon */}
           <div className="text-center space-y-2">
-            <div className="mx-auto w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-              <Lock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="mx-auto w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+              <Lock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <h3 className="font-medium text-sm">AI Assistant Locked</h3>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 Sign in to unlock AI-powered flowchart generation
               </p>
             </div>
           </div>
 
           {/* Feature highlights */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs">
               <Sparkles className="h-3 w-3 text-blue-500" />
               <span>Generate flowcharts with AI</span>
@@ -57,11 +57,6 @@ export function GuestUsageIndicator({ className }: GuestUsageIndicatorProps) {
                 Create Free Account
               </LocaleLink>
             </Button>
-          </div>
-
-          {/* Bottom explanation */}
-          <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-            Free tier includes 1 flowchart per day
           </div>
         </div>
       </CardContent>

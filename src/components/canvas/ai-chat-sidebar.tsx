@@ -123,6 +123,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [dailyLimitUsageInfo, setDailyLimitUsageInfo] = useState<any>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginCallbackUrl, setLoginCallbackUrl] = useState<string | null>(null);
   const [aiMode, setAiMode] = useState<AiAssistantMode>(
     initialMode ?? DEFAULT_AI_ASSISTANT_MODE
   );
@@ -210,33 +211,33 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       return;
     }
 
-    // Check AI usage limit based on user type
-    if (currentUser) {
-      // Logged in user - check subscription limits
-      const canUseAI = await checkUsageLimit();
-      if (!canUseAI) {
-        // Check if it's a daily limit for free users
-        if (usageData?.timeFrame === 'daily') {
-          console.log(
-            '🎯 Daily limit detected - showing PricingModal directly'
-          );
-          // Set daily limit context and show pricing modal directly
-          setDailyLimitUsageInfo({
-            timeFrame: 'daily',
-            nextResetTime: usageData.nextResetTime,
-          });
-          setShowPricingModal(true);
-        } else {
-          setShowUsageLimitCard(true);
-        }
-        return;
+    // Check if user is guest and show login modal instead of processing request
+    if (!currentUser) {
+      // Generate callback URL to preserve current state
+      const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      setLoginCallbackUrl(callbackUrl);
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Logged in user - check subscription limits
+    const canUseAI = await checkUsageLimit();
+    if (!canUseAI) {
+      // Check if it's a daily limit for free users
+      if (usageData?.timeFrame === 'daily') {
+        console.log(
+          '🎯 Daily limit detected - showing PricingModal directly'
+        );
+        // Set daily limit context and show pricing modal directly
+        setDailyLimitUsageInfo({
+          timeFrame: 'daily',
+          nextResetTime: usageData.nextResetTime,
+        });
+        setShowPricingModal(true);
+      } else {
+        setShowUsageLimitCard(true);
       }
-    } else {
-      // Guest user - let the request go to backend for real validation
-      console.log(
-        '🎯 Guest user sending request - backend will validate usage',
-        { hasUsedBefore: hasUsedFreeRequest }
-      );
+      return;
     }
 
     // Create user message with the provided text
@@ -767,23 +768,27 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     if (!lastUserMessage) return;
 
-    // Check AI usage limit based on user type
-    if (currentUser) {
-      const canUseAI = await checkUsageLimit();
-      if (!canUseAI) {
-        if (usageData?.timeFrame === 'daily') {
-          setDailyLimitUsageInfo({
-            timeFrame: 'daily',
-            nextResetTime: usageData.nextResetTime,
-          });
-          setShowPricingModal(true);
-        } else {
-          setShowUsageLimitCard(true);
-        }
-        return;
+    // Check if user is guest and show login modal instead of processing request
+    if (!currentUser) {
+      // Generate callback URL to preserve current state
+      const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      setLoginCallbackUrl(callbackUrl);
+      setShowLoginModal(true);
+      return;
+    }
+
+    const canUseAI = await checkUsageLimit();
+    if (!canUseAI) {
+      if (usageData?.timeFrame === 'daily') {
+        setDailyLimitUsageInfo({
+          timeFrame: 'daily',
+          nextResetTime: usageData.nextResetTime,
+        });
+        setShowPricingModal(true);
+      } else {
+        setShowUsageLimitCard(true);
       }
-    } else {
-      console.log('Guest user sending request - backend will validate usage');
+      return;
     }
 
     setIsLoading(true);
@@ -868,34 +873,33 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       return;
     }
 
-    // Check AI usage limit based on user type
-    if (currentUser) {
-      // Logged in user - check subscription limits
-      const canUseAI = await checkUsageLimit();
-      if (!canUseAI) {
-        // Check if it's a daily limit for free users
-        if (usageData?.timeFrame === 'daily') {
-          console.log(
-            '🎯 Daily limit detected - showing PricingModal directly'
-          );
-          // Set daily limit context and show pricing modal directly
-          setDailyLimitUsageInfo({
-            timeFrame: 'daily',
-            nextResetTime: usageData.nextResetTime,
-          });
-          setShowPricingModal(true);
-        } else {
-          setShowUsageLimitCard(true);
-        }
-        return;
+    // Check if user is guest and show login modal instead of processing request
+    if (!currentUser) {
+      // Generate callback URL to preserve current state
+      const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      setLoginCallbackUrl(callbackUrl);
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Logged in user - check subscription limits
+    const canUseAI = await checkUsageLimit();
+    if (!canUseAI) {
+      // Check if it's a daily limit for free users
+      if (usageData?.timeFrame === 'daily') {
+        console.log(
+          '🎯 Daily limit detected - showing PricingModal directly'
+        );
+        // Set daily limit context and show pricing modal directly
+        setDailyLimitUsageInfo({
+          timeFrame: 'daily',
+          nextResetTime: usageData.nextResetTime,
+        });
+        setShowPricingModal(true);
+      } else {
+        setShowUsageLimitCard(true);
       }
-    } else {
-      // Guest user - let the request go to backend for real validation
-      // Backend will check actual database usage and return appropriate error if needed
-      console.log(
-        '🎯 Guest user sending request - backend will validate usage',
-        { hasUsedBefore: hasUsedFreeRequest }
-      );
+      return;
     }
 
     // Prepare message content
@@ -1625,7 +1629,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           <DialogHeader className="hidden">
             <DialogTitle>Sign In</DialogTitle>
           </DialogHeader>
-          <LoginForm callbackUrl={currentPath} className="border-none" />
+          <LoginForm callbackUrl={loginCallbackUrl || currentPath} className="border-none" />
         </DialogContent>
       </Dialog>
 

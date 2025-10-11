@@ -1,6 +1,5 @@
 import { canUserUseAI, recordAIUsage } from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
-import { canGuestUseAI, recordGuestAIUsage } from '@/lib/guest-usage';
 import { IMAGE_TO_FLOWCHART_PROMPT } from '@/lib/prompts/image-flowchart';
 import { headers } from 'next/headers';
 import OpenAI from 'openai';
@@ -167,11 +166,10 @@ function normalizeMermaidCode(mermaid: string): string {
 
 export async function POST(req: Request) {
   let userId: string | null = null;
-  let isGuestUser = false;
   let requestedMode: AiAssistantMode = TEXT_MODE;
 
   try {
-    // 1. 身份验证 - 支持guest用户
+    // 1. 身份验证 - 要求用户登录
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -179,44 +177,35 @@ export async function POST(req: Request) {
     if (session?.user?.id) {
       userId = session.user.id;
     } else {
-      // Guest user - check if they can use AI
-      isGuestUser = true;
-      const guestCheck = await canGuestUseAI(req);
-
-      if (!guestCheck.canUse) {
-        return new Response(
-          JSON.stringify({
-            error: 'Guest usage limit exceeded',
-            message:
-              guestCheck.reason ||
-              'Guest users can only use AI once per month. Please sign up for more requests.',
-            isGuest: true,
-            lastUsed: guestCheck.lastUsed,
-          }),
-          {
-            status: 429,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
+      // Guest用户 - 禁止使用AI功能，要求登录
+      return new Response(
+        JSON.stringify({
+          error: 'Authentication required',
+          message: 'Please sign in to use AI-powered flowchart generation.',
+          isGuest: true,
+          redirectTo: '/auth/login'
+        }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    // 2. 检查AI使用量限制 (仅对登录用户)
-    if (!isGuestUser) {
-      const usageCheck = await canUserUseAI(userId!);
-      if (!usageCheck.canUse) {
-        return new Response(
-          JSON.stringify({
-            error: 'Usage limit exceeded',
-            message: `You have reached your AI usage limit. ${usageCheck.remainingUsage} of ${usageCheck.limit} requests remaining.`,
-            usageInfo: usageCheck,
-          }),
-          {
-            status: 429,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
+    // 2. 检查AI使用量限制
+    const usageCheck = await canUserUseAI(userId!);
+    if (!usageCheck.canUse) {
+      return new Response(
+        JSON.stringify({
+          error: 'Usage limit exceeded',
+          message: `You have reached your AI usage limit. ${usageCheck.remainingUsage} of ${usageCheck.limit} requests remaining.`,
+          usageInfo: usageCheck,
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // 3. 验证请求数据
@@ -461,7 +450,7 @@ export async function POST(req: Request) {
     const fullMessages = [systemMessage, ...contextMessages, ...messages];
 
     console.log(
-      `🚀 Starting AI conversation with ${fullMessages.length} messages (${isGuestUser ? 'Guest' : 'User'})`
+      `🚀 Starting AI conversation with ${fullMessages.length} messages (User)`
     );
 
     const completion = await openai.chat.completions.create({
@@ -619,26 +608,17 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('FlowChart API Error:', error);
 
-    // Record failed usage if we have userId or is guest
-    if (isGuestUser) {
-      try {
-        await recordGuestAIUsage(req, 'flowchart_generation', false);
-      } catch (recordError) {
-        console.error('Failed to record guest AI usage:', recordError);
-      }
-    } // 移除这里的计费，改为在流程图成功生成后计费
-    // else if (userId) {
-    //   try {
-    //     await recordAIUsage(userId, 'flowchart_generation', {
-    //       tokensUsed: 0,
-    //       model: 'google/gemini-2.5-flash',
-    //       success: false,
-    //       errorMessage: error.message,
-    //       metadata: { mode: requestedMode },
-    //     });
-    //   } catch (recordError) {
-    //     console.error('Failed to record AI usage:', recordError);
-    //   }
+    // 移除这里的计费，改为在流程图成功生成后计费
+    // try {
+    //   await recordAIUsage(userId, 'flowchart_generation', {
+    //     tokensUsed: 0,
+    //     model: 'google/gemini-2.5-flash',
+    //     success: false,
+    //     errorMessage: error.message,
+    //     metadata: { mode: requestedMode },
+    //   });
+    // } catch (recordError) {
+    //   console.error('Failed to record AI usage:', recordError);
     // }
 
     return new Response(
