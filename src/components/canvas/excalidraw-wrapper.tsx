@@ -521,10 +521,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           {!isSidebarOpen && (
             <Button
               onClick={toggleSidebar}
-              variant="ghost"
-              className="px-4 py-2 rounded-lg border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
+              className="px-4 py-2 rounded-lg border border-blue-200 bg-blue-500 text-white shadow-sm hover:bg-blue-600 hover:border-blue-300 transition-colors duration-200"
             >
-              Create
+              AI Assistant
             </Button>
           )}
         </div>
