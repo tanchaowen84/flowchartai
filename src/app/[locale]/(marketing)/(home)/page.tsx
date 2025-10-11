@@ -150,7 +150,11 @@ export default async function HomePage(props: HomePageProps) {
         <CallToActionSection />
       </div>
 
-      <Script id="faq-schema" type="application/ld+json" strategy="afterInteractive">
+      <Script
+        id="faq-schema"
+        type="application/ld+json"
+        strategy="afterInteractive"
+      >
         {JSON.stringify(faqSchema)}
       </Script>
     </>

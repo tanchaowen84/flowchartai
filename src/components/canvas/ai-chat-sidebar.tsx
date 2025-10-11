@@ -308,10 +308,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         },
       ]);
 
-      // Mark guest usage after successful AI response
-      if (!currentUser) {
-        markGuestAsUsed();
-      }
+      // 移除访客使用标记，改为在流程图成功生成后计费
+      // if (!currentUser) {
+      //   markGuestAsUsed();
+      // }
     } catch (error) {
       console.error('Error sending auto message:', error);
       // Handle errors similar to handleSendMessage
@@ -693,6 +693,27 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         generatedAt: Date.now(),
       };
 
+      // ✅ 只有流程图成功渲染后才计费
+      try {
+        await fetch('/api/ai/usage/record', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'flowchart_generation',
+            success: true,
+            metadata: {
+              mode: mode,
+              mermaidLength: mermaidCode.length,
+              elementCount: result.elements?.length || 0,
+            },
+          }),
+        });
+      } catch (recordError) {
+        console.error('Failed to record AI usage:', recordError);
+      }
+
       toast({
         title: toastTitle,
         description: toastDescription,
@@ -739,9 +760,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (messages.length === 0 || isLoading) return;
 
     // Get the last user message
-    const lastUserMessage = messages
-      .filter((msg) => msg.role === 'user')
-      .pop();
+    const lastUserMessage = messages.filter((msg) => msg.role === 'user').pop();
 
     if (!lastUserMessage) return;
 
@@ -985,10 +1004,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       await processAIConversation(conversationPayload);
 
-      // Mark guest usage after successful AI response
-      if (!currentUser) {
-        markGuestAsUsed();
-      }
+      // 移除访客使用标记，改为在流程图成功生成后计费
+      // if (!currentUser) {
+      //   markGuestAsUsed();
+      // }
     } catch (error) {
       console.error('Error sending message:', error);
 
@@ -1555,7 +1574,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 whiteSpace: 'pre-wrap',
               }}
             />
-            <p className="text-xs text-gray-400 mt-2 ml-1">Press Enter to send</p>
+            <p className="text-xs text-gray-400 mt-2 ml-1">
+              Press Enter to send
+            </p>
           </div>
 
           <div className="px-4 pb-6">

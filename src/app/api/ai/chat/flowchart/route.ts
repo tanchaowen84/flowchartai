@@ -277,20 +277,21 @@ export async function POST(req: Request) {
           success: boolean,
           errorMessage?: string
         ) => {
-          if (isGuestUser) {
-            await recordGuestAIUsage(req, 'flowchart_generation', success);
-          } else {
-            await recordAIUsage(userId!, 'flowchart_generation', {
-              tokensUsed: 0,
-              model: model,
-              success,
-              errorMessage,
-              metadata: {
-                messageCount: messages.length,
-                mode: requestedMode,
-              },
-            });
-          }
+          // 移除这里的计费，改为在流程图成功生成后计费
+          // if (isGuestUser) {
+          //   await recordGuestAIUsage(req, 'flowchart_generation', success);
+          // } else {
+          //   await recordAIUsage(userId!, 'flowchart_generation', {
+          //     tokensUsed: 0,
+          //     model: model,
+          //     success,
+          //     errorMessage,
+          //     metadata: {
+          //       messageCount: messages.length,
+          //       mode: requestedMode,
+          //     },
+          //   });
+          // }
         };
 
         const completion = await openai.chat.completions.create({
@@ -468,20 +469,20 @@ export async function POST(req: Request) {
 
     console.log('✅ OpenRouter API call successful, starting stream');
 
-    // 6. 记录AI使用情况
-    if (isGuestUser) {
-      await recordGuestAIUsage(req, 'flowchart_generation', true);
-    } else {
-      await recordAIUsage(userId!, 'flowchart_generation', {
-        tokensUsed: 0,
-        model: model,
-        success: true,
-        metadata: {
-          messageCount: messages.length,
-          mode: requestedMode,
-        },
-      });
-    }
+    // 6. 记录AI使用情况 - 移除这里的计费，改为在流程图成功生成后计费
+    // if (isGuestUser) {
+    //   await recordGuestAIUsage(req, 'flowchart_generation', true);
+    // } else {
+    //   await recordAIUsage(userId!, 'flowchart_generation', {
+    //     tokensUsed: 0,
+    //     model: model,
+    //     success: true,
+    //     metadata: {
+    //       messageCount: messages.length,
+    //       mode: requestedMode,
+    //     },
+    //   });
+    // }
 
     // 7. 创建流式响应
     const encoder = new TextEncoder();
@@ -576,17 +577,18 @@ export async function POST(req: Request) {
           console.error('FlowChart API Error:', error);
 
           // Record failed usage
-          if (isGuestUser) {
-            await recordGuestAIUsage(req, 'flowchart_generation', false);
-          } else if (userId) {
-            await recordAIUsage(userId, 'flowchart_generation', {
-              tokensUsed: 0,
-              model: model,
-              success: false,
-              errorMessage: error.message,
-              metadata: { messageCount: messages.length, mode: requestedMode },
-            });
-          }
+          // 移除这里的计费，改为在流程图成功生成后计费
+          // if (isGuestUser) {
+          //   await recordGuestAIUsage(req, 'flowchart_generation', false);
+          // } else if (userId) {
+          //   await recordAIUsage(userId, 'flowchart_generation', {
+          //     tokensUsed: 0,
+          //     model: model,
+          //     success: false,
+          //     errorMessage: error.message,
+          //     metadata: { messageCount: messages.length, mode: requestedMode },
+          //   });
+          // }
 
           const errorData = JSON.stringify({
             type: 'error',
@@ -618,19 +620,20 @@ export async function POST(req: Request) {
       } catch (recordError) {
         console.error('Failed to record guest AI usage:', recordError);
       }
-    } else if (userId) {
-      try {
-        await recordAIUsage(userId, 'flowchart_generation', {
-          tokensUsed: 0,
-          model: 'google/gemini-2.5-flash',
-          success: false,
-          errorMessage: error.message,
-          metadata: { mode: requestedMode },
-        });
-      } catch (recordError) {
-        console.error('Failed to record AI usage:', recordError);
-      }
-    }
+    } // 移除这里的计费，改为在流程图成功生成后计费
+    // else if (userId) {
+    //   try {
+    //     await recordAIUsage(userId, 'flowchart_generation', {
+    //       tokensUsed: 0,
+    //       model: 'google/gemini-2.5-flash',
+    //       success: false,
+    //       errorMessage: error.message,
+    //       metadata: { mode: requestedMode },
+    //     });
+    //   } catch (recordError) {
+    //     console.error('Failed to record AI usage:', recordError);
+    //   }
+    // }
 
     return new Response(
       JSON.stringify({
