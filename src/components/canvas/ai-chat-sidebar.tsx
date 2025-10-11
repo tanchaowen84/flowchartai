@@ -165,8 +165,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       // Reset height to auto to get the correct scrollHeight
       textarea.style.height = 'auto';
       // Calculate new height based on content
-      const minHeight = 32;
-      const maxHeight = 120;
+      const minHeight = 80;
+      const maxHeight = 200;
       const scrollHeight = textarea.scrollHeight;
       const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
       textarea.style.height = `${newHeight}px`;
@@ -1537,33 +1537,33 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               }}
               onKeyDown={handleKeyPress}
               disabled={isLoading}
-              className="min-h-[32px] max-h-[120px] resize-none border border-gray-300 rounded-lg focus-visible:ring-0 shadow-none bg-white placeholder:text-gray-400 text-black text-sm px-3 py-2 leading-5 overflow-y-auto"
+              className="min-h-[80px] max-h-[200px] resize-none border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white placeholder:text-gray-500 text-gray-900 text-base px-4 py-3 leading-6 overflow-y-auto transition-all duration-200"
               style={{
-                height: '32px',
+                height: '80px',
                 wordWrap: 'break-word',
                 whiteSpace: 'pre-wrap',
               }}
             />
-            <p className="text-xs text-gray-500 mt-1">Press Enter to send</p>
+            <p className="text-xs text-gray-400 mt-2 ml-1">Press Enter to send</p>
           </div>
 
-          <div className="px-4 pb-4">
-            <div className="flex gap-2">
+          <div className="px-4 pb-6">
+            <div className="flex gap-3">
               <Button
                 onClick={() => {
                   handleCameraClick();
                 }}
                 variant="outline"
-                size="sm"
-                className="flex-1"
+                size="default"
+                className="flex-1 h-11 text-sm font-medium border-gray-200 hover:border-gray-300 transition-colors"
                 disabled={isLoading}
               >
                 Upload Image
               </Button>
               <Button
                 onClick={handleSendMessage}
-                size="sm"
-                className="flex-1"
+                size="default"
+                className="flex-1 h-11 text-sm font-medium bg-blue-600 hover:bg-blue-700 transition-colors"
                 disabled={
                   (!input.trim() && selectedImages.length === 0) || isLoading
                 }
@@ -1572,9 +1572,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               </Button>
               <Button
                 onClick={handleRegenerate}
-                size="sm"
+                size="default"
                 variant="outline"
-                className="flex-1"
+                className="flex-1 h-11 text-sm font-medium border-gray-200 hover:border-gray-300 transition-colors"
                 disabled={messages.length === 0 || isLoading}
               >
                 Regenerate
