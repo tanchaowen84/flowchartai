@@ -1356,9 +1356,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       <div className="flex h-full flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-base font-medium text-gray-900">
-            FlowChart AI
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-base font-medium text-gray-900">
+              FlowChart AI
+            </h2>
+            <Button
+              onClick={handleNewConversation}
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50 rounded-lg text-xs font-medium transition-colors"
+              disabled={isLoading}
+            >
+              New Conversation
+            </Button>
+          </div>
           <Button
             onClick={onToggle}
             variant="ghost"
