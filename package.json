@@ -25,7 +25,9 @@
     "update-asset-paths": "node scripts/update-asset-paths.js",
     "test-cdn-resources": "node scripts/test-cdn-resources.js",
     "test-new-images": "node scripts/test-new-images.js",
-    "purge-cdn": "node scripts/purge-cdn-cache.js"
+    "purge-cdn": "node scripts/purge-cdn-cache.js",
+    "upload-blog-images": "node scripts/upload-blog-images-to-r2.js",
+    "test-blog-cdn": "node scripts/test-blog-cdn-images.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.13",
