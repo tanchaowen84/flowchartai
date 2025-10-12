@@ -1424,11 +1424,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   <p className="text-xs mt-1 opacity-75">
                     I can help you visualize processes, workflows, and ideas.
                   </p>
-                  {excalidrawAPI && (
-                    <div className="mt-3 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-md mx-auto w-fit">
-                      Canvas context enabled - I can see your current drawing
-                    </div>
-                  )}
                 </div>
               )}
 
