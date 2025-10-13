@@ -126,27 +126,24 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [exportStatus, setExportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [exportError, setExportError] = useState<string>('');
 
-  // Export formats configuration
+  // Export formats configuration (without icons)
   const exportFormats = [
     {
       id: 'png',
       title: 'PNG Image',
       description: 'Perfect for web sharing, documents, and presentations',
-      icon: '🖼️',
       extension: 'png'
     },
     {
       id: 'svg',
       title: 'SVG Vector',
       description: 'Scalable format, ideal for editing and high-quality exports',
-      icon: '🎨',
       extension: 'svg'
     },
     {
       id: 'json',
       title: 'Excalidraw File',
       description: 'Native format for editing in Excalidraw later',
-      icon: '📋',
       extension: 'excalidraw'
     }
   ];
@@ -791,7 +788,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="relative mx-4 w-full max-w-lg bg-white rounded-2xl border-2 border-white shadow-2xl md:mx-0"
+              className="relative mx-4 w-full max-w-md bg-white rounded-xl border-2 border-white shadow-xl md:mx-0"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close button */}
@@ -803,9 +800,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
               </motion.button>
 
               {/* Export options content */}
-              <div className="p-6">
-                <div className="pb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
+              <div className="p-5">
+                <div className="pb-3">
+                  <h2 className="text-lg font-semibold text-gray-900">
                     Export Flowchart
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
@@ -815,7 +812,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
                 {/* Export status */}
                 {exportStatus === 'success' && (
-                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-md">
                     <div className="flex items-center gap-2 text-green-800">
                       <Check className="w-4 h-4" />
                       <span className="text-sm font-medium">Export successful!</span>
@@ -824,7 +821,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
                 )}
 
                 {exportStatus === 'error' && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
                     <div className="flex items-center gap-2 text-red-800">
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm font-medium">{exportError}</span>
@@ -832,33 +829,27 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
                   </div>
                 )}
 
-                <div className="grid gap-3 pb-6">
+                <div className="grid gap-2 pb-4">
                   {exportFormats.map((format) => (
                     <Card
                       key={format.id}
                       className={cn(
-                        "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.01]",
+                        "cursor-pointer transition-all duration-200 hover:shadow-sm",
                         selectedFormat === format.id
                           ? "border-blue-500 bg-blue-50 shadow-sm"
                           : "border-gray-200 bg-white hover:border-gray-300"
                       )}
                       onClick={() => setSelectedFormat(format.id)}
                     >
-                      <CardContent className="p-4">
+                      <CardContent className="p-3">
                         <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center text-lg",
-                            selectedFormat === format.id ? "bg-blue-100" : "bg-gray-100"
-                          )}>
-                            {format.icon}
-                          </div>
                           <div className="flex-1">
                             <h3 className="font-medium text-gray-900">{format.title}</h3>
-                            <p className="text-sm text-gray-600 mt-1">{format.description}</p>
+                            <p className="text-xs text-gray-600 mt-1">{format.description}</p>
                           </div>
                           {selectedFormat === format.id && (
-                            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
-                              <Check className="w-3 h-3 text-white" />
+                            <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
+                              <Check className="w-2.5 h-2.5 text-white" />
                             </div>
                           )}
                         </div>
