@@ -25,6 +25,7 @@ import type {
   ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
 } from '@excalidraw/excalidraw/types';
+import { cn } from '@/lib/utils';
 import {
   Check,
   Copy,
