@@ -6,12 +6,15 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { AlertCircle, Check, Loader2, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface SaveButtonProps {
   excalidrawAPI: ExcalidrawImperativeAPI | null;
   flowchartId?: string;
   flowchartTitle?: string;
   onFlowchartIdChange?: (newId: string) => void;
+  // 新增：用于合并按钮的样式控制
+  isMerged?: boolean;
 }
 
 export function SaveButton({
@@ -19,6 +22,7 @@ export function SaveButton({
   flowchartId,
   flowchartTitle,
   onFlowchartIdChange,
+  isMerged = false, // 默认不是合并模式
 }: SaveButtonProps) {
   const router = useRouter();
   const { saveFlowchart, saving, lastSaved } = useFlowchartSave(
@@ -87,20 +91,23 @@ export function SaveButton({
   };
 
   return (
-    <div className="flex flex-col items-end">
+    <div className={isMerged ? "contents" : "flex flex-col items-end"}>
       <Button
         onClick={handleSave}
         disabled={saving || !excalidrawAPI}
         variant={getVariant()}
         size="sm"
-        className="gap-2"
+        className={cn(
+          "gap-2 transition-all duration-200",
+          isMerged && "h-9 px-4 rounded-r-lg rounded-l-none border-0"
+        )}
       >
         {getIcon()}
-        {getText()}
+        <span className={isMerged ? "text-sm font-medium" : ""}>{getText()}</span>
       </Button>
 
       {/* Show error message */}
-      {saveStatus === 'error' && errorMessage && (
+      {saveStatus === 'error' && errorMessage && !isMerged && (
         <span
           className="text-xs text-destructive mt-1 max-w-32 truncate"
           title={errorMessage}

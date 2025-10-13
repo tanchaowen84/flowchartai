@@ -12,6 +12,7 @@ import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 import { websiteConfig } from '@/config/website';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
@@ -25,6 +26,7 @@ import type {
   ExcalidrawInitialDataState,
 } from '@excalidraw/excalidraw/types';
 import {
+  Check,
   Copy,
   Download,
   Edit,
@@ -32,8 +34,11 @@ import {
   FileText,
   Loader2Icon,
   User,
+  XIcon,
+  AlertCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useMemo, useState } from 'react';
 import AiChatSidebar from './ai-chat-sidebar';
 import ResizableDivider from './resizable-divider';
@@ -112,6 +117,38 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
   const { flowchart, loading, error } = useFlowchart(currentFlowchartId);
+
+  // Export modal state
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState('png');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [exportError, setExportError] = useState<string>('');
+
+  // Export formats configuration
+  const exportFormats = [
+    {
+      id: 'png',
+      title: 'PNG Image',
+      description: 'Perfect for web sharing, documents, and presentations',
+      icon: '🖼️',
+      extension: 'png'
+    },
+    {
+      id: 'svg',
+      title: 'SVG Vector',
+      description: 'Scalable format, ideal for editing and high-quality exports',
+      icon: '🎨',
+      extension: 'svg'
+    },
+    {
+      id: 'json',
+      title: 'Excalidraw File',
+      description: 'Native format for editing in Excalidraw later',
+      icon: '📋',
+      extension: 'excalidraw'
+    }
+  ];
 
   // Compute initial data based on flowchart content
   const initialData = useMemo((): ExcalidrawInitialDataState => {
@@ -352,6 +389,103 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     }
   };
 
+  // Export modal function
+  const handleExportWithModal = async (format: string) => {
+    if (!excalidrawAPI) return;
+
+    setIsExporting(true);
+    setExportStatus('idle');
+    setExportError('');
+
+    try {
+      const elements = excalidrawAPI.getSceneElements();
+      const appState = excalidrawAPI.getAppState();
+      const files = excalidrawAPI.getFiles();
+
+      if (!elements || elements.length === 0) {
+        throw new Error('Canvas is empty. Please draw something before exporting.');
+      }
+
+      let blob: Blob;
+      let filename: string;
+
+      switch (format) {
+        case 'png':
+          blob = await exportToBlob({
+            elements,
+            appState: {
+              ...appState,
+              exportBackground: true,
+              exportWithDarkMode: false,
+            },
+            files,
+            mimeType: 'image/png',
+            quality: 0.92,
+            exportPadding: 20,
+          });
+          filename = `${currentTitle || 'flowchart'}.png`;
+          break;
+
+        case 'svg':
+          const svg = await exportToSvg({
+            elements,
+            appState: {
+              ...appState,
+              exportBackground: true,
+              exportWithDarkMode: false,
+            },
+            files,
+            exportPadding: 20,
+          });
+          const svgData = new XMLSerializer().serializeToString(svg);
+          blob = new Blob([svgData], { type: 'image/svg+xml' });
+          filename = `${currentTitle || 'flowchart'}.svg`;
+          break;
+
+        case 'json':
+          const { collaborators, ...cleanAppState } = appState;
+          const exportData = {
+            type: 'excalidraw',
+            version: 2,
+            source: 'https://excalidraw.com',
+            elements,
+            appState: cleanAppState,
+            files,
+          };
+          const jsonData = JSON.stringify(exportData, null, 2);
+          blob = new Blob([jsonData], { type: 'application/json' });
+          filename = `${currentTitle || 'flowchart'}.excalidraw`;
+          break;
+
+        default:
+          throw new Error('Unsupported format');
+      }
+
+      // Download file
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setExportStatus('success');
+      setTimeout(() => {
+        setIsExportModalOpen(false);
+        setExportStatus('idle');
+      }, 1500);
+
+    } catch (error) {
+      console.error('Export error:', error);
+      setExportStatus('error');
+      setExportError(error instanceof Error ? error.message : 'Export failed');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Check for auto-generation from homepage
   useEffect(() => {
     const autoGenerate = localStorage.getItem('flowchart_auto_generate');
@@ -493,14 +627,30 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
         {/* Top Right Controls */}
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-          {/* Save Button - only show for logged in users */}
+          {/* Export | Save Button - only show for logged in users */}
           {currentUser && (
-            <SaveButton
-              excalidrawAPI={excalidrawAPI}
-              flowchartId={currentFlowchartId}
-              flowchartTitle={currentTitle}
-              onFlowchartIdChange={handleFlowchartIdChange}
-            />
+            <div className="flex items-center rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all duration-200">
+              {/* Export Button */}
+              <Button
+                onClick={() => setIsExportModalOpen(true)}
+                disabled={!excalidrawAPI}
+                variant="ghost"
+                size="sm"
+                className="h-9 px-4 rounded-l-lg rounded-r-none border-r border-gray-200 hover:bg-gray-50 transition-colors duration-200"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                <span className="text-sm font-medium">Export</span>
+              </Button>
+
+              {/* Save Button - use existing SaveButton logic */}
+              <SaveButton
+                excalidrawAPI={excalidrawAPI}
+                flowchartId={currentFlowchartId}
+                flowchartTitle={currentTitle}
+                onFlowchartIdChange={handleFlowchartIdChange}
+                isMerged={true}
+              />
+            </div>
           )}
 
           {/* User Button/Sign In button */}
@@ -624,6 +774,126 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           />
         </div>
       )}
+
+      {/* Export Modal */}
+      <AnimatePresence>
+        {isExportModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onClick={() => setIsExportModalOpen(false)}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="relative mx-4 w-full max-w-lg bg-white rounded-2xl border-2 border-white shadow-2xl md:mx-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <motion.button
+                className="absolute -top-16 right-0 rounded-full bg-neutral-900/50 p-2 text-xl text-white ring-1 backdrop-blur-md hover:bg-neutral-900/70 transition-colors"
+                onClick={() => setIsExportModalOpen(false)}
+              >
+                <XIcon className="size-5" />
+              </motion.button>
+
+              {/* Export options content */}
+              <div className="p-6">
+                <div className="pb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Export Flowchart
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Choose your preferred export format
+                  </p>
+                </div>
+
+                {/* Export status */}
+                {exportStatus === 'success' && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-800">
+                      <Check className="w-4 h-4" />
+                      <span className="text-sm font-medium">Export successful!</span>
+                    </div>
+                  </div>
+                )}
+
+                {exportStatus === 'error' && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-800">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">{exportError}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid gap-3 pb-6">
+                  {exportFormats.map((format) => (
+                    <Card
+                      key={format.id}
+                      className={cn(
+                        "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.01]",
+                        selectedFormat === format.id
+                          ? "border-blue-500 bg-blue-50 shadow-sm"
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      )}
+                      onClick={() => setSelectedFormat(format.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "w-10 h-10 rounded-lg flex items-center justify-center text-lg",
+                            selectedFormat === format.id ? "bg-blue-100" : "bg-gray-100"
+                          )}>
+                            {format.icon}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">{format.title}</h3>
+                            <p className="text-sm text-gray-600 mt-1">{format.description}</p>
+                          </div>
+                          {selectedFormat === format.id && (
+                            <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsExportModalOpen(false)}
+                    disabled={isExporting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => handleExportWithModal(selectedFormat)}
+                    disabled={isExporting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isExporting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Exporting...
+                      </>
+                    ) : (
+                      `Export ${exportFormats.find(f => f.id === selectedFormat)?.title}`
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* AI Chat Sidebar */}
       <AiChatSidebar
