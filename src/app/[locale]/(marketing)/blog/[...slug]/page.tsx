@@ -159,12 +159,6 @@ export default async function BlogPostPage(props: BlogPostPageProps) {
                 </span>
               </div>
             </div>
-
-            {/* blog post title */}
-            <h1 className="text-3xl font-bold">{post.title}</h1>
-
-            {/* blog post description */}
-            <p className="text-lg text-muted-foreground">{post.description}</p>
           </div>
 
           {/* blog post content */}
