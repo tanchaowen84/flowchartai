@@ -170,10 +170,12 @@ export const posts = defineCollection({
     const slug = `/blog/${base}`;
     const slugAsParams = base;
 
-    // Calculate estimated reading time
-    const wordCount = data.content.split(/\s+/).length;
-    const wordsPerMinute = 200; // average reading speed: 200 words per minute
-    const estimatedTime = Math.max(Math.ceil(wordCount / wordsPerMinute), 1);
+    // Calculate estimated reading time only if not provided in frontmatter
+    const estimatedTime = data.estimatedTime || (() => {
+      const wordCount = data.content.split(/\s+/).length;
+      const wordsPerMinute = 200; // average reading speed: 200 words per minute
+      return Math.max(Math.ceil(wordCount / wordsPerMinute), 1);
+    })();
 
     return {
       ...data,
