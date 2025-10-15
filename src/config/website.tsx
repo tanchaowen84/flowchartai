@@ -25,7 +25,7 @@ export const websiteConfig: WebsiteConfig = {
     social: {
       github: 'https://github.com/tanchaowen84/flowchartai',
       twitter: 'https://x.com/tanchaowen84',
-      discord: 'https://discord.gg/Pfdyhqqu',
+      discord: 'https://discord.gg/EhuSZNHNQh',
     },
   },
   features: {
