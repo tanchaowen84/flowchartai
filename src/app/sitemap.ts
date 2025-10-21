@@ -110,7 +110,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     sitemapList.push(
       ...publishedPosts.flatMap((post) =>
         routing.locales.map((locale) => ({
-          url: getUrl(`/blog/${post.slug}`, locale),
+          url: getUrl(post.slug, locale),
           lastModified: new Date(post.date),
           priority: 0.7,
           changeFrequency: 'weekly' as const,
