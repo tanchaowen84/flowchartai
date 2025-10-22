@@ -52,6 +52,21 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
   },
+
+  async redirects() {
+    return [
+      {
+        source: '/blog/flowchart-symbols',
+        destination: '/blog/flowchart-symbols-guide',
+        permanent: true,
+      },
+      {
+        source: '/:locale/blog/flowchart-symbols',
+        destination: '/:locale/blog/flowchart-symbols-guide',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 /**
