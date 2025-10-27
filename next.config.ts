@@ -65,6 +65,26 @@ const nextConfig: NextConfig = {
         destination: '/:locale/blog/flowchart-symbols-guide',
         permanent: true,
       },
+      {
+        source: '/tools/ai-flowchart-generator',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/:locale/tools/ai-flowchart-generator',
+        destination: '/:locale',
+        permanent: true,
+      },
+      {
+        source: '/tools/flowchart-maker-ai',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/:locale/tools/flowchart-maker-ai',
+        destination: '/:locale',
+        permanent: true,
+      },
     ];
   },
 };
