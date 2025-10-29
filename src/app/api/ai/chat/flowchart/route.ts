@@ -28,7 +28,8 @@ const flowchartTool = {
       properties: {
         mermaid_code: {
           type: 'string',
-          description: 'Valid Mermaid flowchart code. CRITICAL: NO special symbols in node text: ()（）【】《》「」\'\'"":;，。！？',
+          description:
+            'Valid Mermaid flowchart code. CRITICAL: NO special symbols in node text: ()（）【】《》「」\'\'"":;，。！？',
         },
         mode: {
           type: 'string',
@@ -228,7 +229,7 @@ export async function POST(req: Request) {
           error: 'Authentication required',
           message: 'Please sign in to use AI-powered flowchart generation.',
           isGuest: true,
-          redirectTo: '/auth/login'
+          redirectTo: '/auth/login',
         }),
         {
           status: 401,
@@ -255,7 +256,7 @@ export async function POST(req: Request) {
 
     // 3. 验证请求数据
     const body = await req.json();
-    const { messages, model = 'google/gemini-2.5-flash', aiContext } = body;
+    const { messages, model = 'minimax/minimax-m2', aiContext } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -326,9 +327,15 @@ export async function POST(req: Request) {
                   imageMode: true,
                 },
               });
-              console.log('❌ Image to flowchart error recorded for user:', userId);
+              console.log(
+                '❌ Image to flowchart error recorded for user:',
+                userId
+              );
             } catch (recordError) {
-              console.error('Failed to record image flowchart error:', recordError);
+              console.error(
+                'Failed to record image flowchart error:',
+                recordError
+              );
             }
           }
         };
