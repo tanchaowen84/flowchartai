@@ -256,7 +256,7 @@ export async function POST(req: Request) {
 
     // 3. 验证请求数据
     const body = await req.json();
-    const { messages, model = 'minimax/minimax-m2', aiContext } = body;
+    const { messages, model = 'x-ai/grok-4-fast', aiContext } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
