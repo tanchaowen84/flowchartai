@@ -1,0 +1,39 @@
+# FlowChart AI — Site Overview
+
+FlowChart AI turns plain-language ideas into clear, editable flowcharts. Type a description, get a professional diagram, then refine with drag-and-drop, styling, and full undo/redo. Personal workspaces keep versions traceable, exports cover PNG / SVG / Excalidraw (PDF planned), and multilingual/mobile-friendly UX makes sharing easy. Image-to-flowchart is now available: upload one picture to obtain an editable diagram. A free tier offers a daily taste; paid or self-hosted setups can remove practical limits.
+
+## Background
+We aim to cut the effort of communicating processes so product, ops, teaching, and engineering teams can focus on decisions instead of drawing boxes. The product philosophy is “AI drafts, you refine”: AI supplies structure, users polish and keep history intact. Open-source and self-host friendly, so organizations retain data control. Current focus areas: smarter replace/extend generations, polished image-to-flowchart conversions, and clearer onboarding so teams ramp quickly.
+
+## Content Sections
+### [Product & AI Canvas](https://flowchartai.org/ai)
+Shows text-to-flowchart and image-to-flowchart flows, editing with undo/redo, personal workspace, version visibility, exports, multilingual/mobile experience, and self-host options—helping newcomers judge fit fast.
+
+### [Tutorials & Blog](https://flowchartai.org/blog)
+Practical guides for non-designers: symbol usage, office/learning scenarios, prompt-writing tips, and ready-to-use example flows—easy for search and AI to extract structured know-how.
+
+### [Policies & Compliance](https://flowchartai.org/pages/privacy-policy)
+Privacy, Terms of Service, and Cookie Policy—clear on data use, retention, and self-host responsibilities for compliance reviews.
+
+## User Value
+- Save time: text or images become flowcharts in seconds, no repetitive box-and-arrow work.
+- Stay editable: drag, restyle, undo/redo keeps iterations fast and safe.
+- Keep control: open-source and self-host options let teams retain their data.
+- Share easily: export PNG / SVG / Excalidraw for docs, decks, and handoffs; PDF is on the roadmap.
+- Scale affordably: free daily usage to try; paid or self-hosted setups can run with effectively no caps for teams.
+
+## Latest Content (Most Recent)
+### [Problem-Solving Flowchart: DIY Guide + Free Templates 2025](https://flowchartai.org/blog/problem-solving-flowchart-guide)
+Published 2025-10-29. Step-by-step method to break down complex problems with ready-to-use templates and prompts.
+
+### [Convert Images to Editable Flowcharts: A Step-by-Step Guide](https://flowchartai.org/blog/image-to-flowchart-guide)
+Published 2025-10-20. How to turn a single image into an editable flowchart with recognition tips and cleanup suggestions.
+
+### [Flowchart Symbols Explained: Complete Guide + Usage Examples](https://flowchartai.org/blog/flowchart-symbols-guide)
+Published 2025-10-14. Clarifies core symbols, when to use each, and provides sample flows to avoid misuse.
+
+### [How to Use Flowchart AI — Make Flowcharts Instantly from Text](https://flowchartai.org/blog/How-to-Use-Flowchart-AI-Make-Flowcharts-Instantly-from-Text)
+Published 2025-10-12. Quickstart for new users with prompt examples, editing tips, and export guidance.
+
+### [What Is a Subprocess in a Flowchart?](https://flowchartai.org/blog/what-is-subprocess-in-flowchart)
+Published 2025-09-02. Explains the subprocess symbol, when to apply it, and how to build layered diagrams.
