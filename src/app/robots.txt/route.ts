@@ -2,7 +2,6 @@ import { getBaseUrl } from '../../lib/urls/urls';
 
 const marketingAllows = [
   'Allow: /',
-  'Allow: /ai',
   'Allow: /pricing',
   'Allow: /blog',
   'Allow: /llms.txt',
