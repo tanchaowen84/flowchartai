@@ -60,6 +60,18 @@ const nextConfig: NextConfig = {
   // Add redirects for proper domain handling
   async redirects() {
     return [
+      // Redirect non-www to www to prevent CORS issues with auth
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'infogiph.com',
+          },
+        ],
+        destination: 'https://www.infogiph.com/:path*',
+        permanent: true,
+      },
       {
         source: '/:path*',
         has: [
