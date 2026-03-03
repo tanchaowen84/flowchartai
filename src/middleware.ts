@@ -1,4 +1,3 @@
-import { getToken } from 'next-auth/jwt';
 import createMiddleware from 'next-intl/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
 import { LOCALES, routing } from './i18n/routing';
@@ -37,9 +36,10 @@ export default async function middleware(req: NextRequest) {
   let token = null;
 
   if (!isAnimateRoute) {
-    // Use NextAuth.js getToken to check for session in middleware
-    token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    isLoggedIn = !!token;
+    // Check for better-auth session cookie to handle redirection.
+    // To avoid blocking requests by making API or database calls, we just check existence.
+    const sessionCookie = req.cookies.get('better-auth.session_token') || req.cookies.get('__Secure-better-auth.session_token');
+    isLoggedIn = !!sessionCookie;
     // console.log('middleware, isLoggedIn', isLoggedIn);
   }
 

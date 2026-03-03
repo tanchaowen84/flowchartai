@@ -6,7 +6,6 @@ import { PaymentProvider } from '@/components/layout/payment-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { websiteConfig } from '@/config/website';
 import { RootProvider } from 'fumadocs-ui/provider';
-import { SessionProvider } from 'next-auth/react';
 import { ThemeProvider, useTheme } from 'next-themes';
 import type { PropsWithChildren } from 'react';
 
@@ -26,23 +25,21 @@ export function Providers({ children }: PropsWithChildren) {
   const defaultMode = websiteConfig.metadata.mode?.defaultMode ?? 'system';
 
   return (
-    <SessionProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme={defaultMode}
-        enableSystem={true}
-        disableTransitionOnChange
-      >
-        <ActiveThemeProvider>
-          <RootProvider theme={theme}>
-            <TooltipProvider>
-              <PaymentProvider>
-                <GoogleOneTapProvider>{children}</GoogleOneTapProvider>
-              </PaymentProvider>
-            </TooltipProvider>
-          </RootProvider>
-        </ActiveThemeProvider>
-      </ThemeProvider>
-    </SessionProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme={defaultMode}
+      enableSystem={true}
+      disableTransitionOnChange
+    >
+      <ActiveThemeProvider>
+        <RootProvider theme={theme}>
+          <TooltipProvider>
+            <PaymentProvider>
+              <GoogleOneTapProvider>{children}</GoogleOneTapProvider>
+            </PaymentProvider>
+          </TooltipProvider>
+        </RootProvider>
+      </ActiveThemeProvider>
+    </ThemeProvider>
   );
 }
