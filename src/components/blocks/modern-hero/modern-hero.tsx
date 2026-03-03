@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCurrentUser } from '@/hooks/use-current-user';
 import { cn } from '@/lib/utils';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, Send, Sparkles, Zap } from 'lucide-react';
@@ -14,7 +13,6 @@ import { toast } from 'sonner';
 export default function ModernHeroSection() {
   const t = useTranslations('HomePage.hero');
   const router = useRouter();
-  const currentUser = useCurrentUser();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [input, setInput] = useState('');
@@ -37,7 +35,7 @@ export default function ModernHeroSection() {
   );
 
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
+    (e: React.FormEvent) => {
       e.preventDefault();
 
       if (!input.trim()) {
@@ -52,36 +50,14 @@ export default function ModernHeroSection() {
 
       setIsLoading(true);
 
-      try {
-        if (currentUser) {
-          const response = await fetch('/api/flowcharts', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({}),
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to create flowchart');
-          }
-
-          const data = await response.json();
-          localStorage.setItem('flowchart_auto_input', input.trim());
-          localStorage.setItem('flowchart_auto_generate', 'true');
-          router.push(`/canvas/${data.id}`);
-        } else {
-          localStorage.setItem('flowchart_auto_input', input.trim());
-          localStorage.setItem('flowchart_auto_generate', 'true');
-          router.push('/canvas');
-        }
-      } catch (error) {
-        console.error('Error creating flowchart:', error);
-        toast.error('Failed to create new flowchart');
-        setIsLoading(false);
-      }
+      // Both authenticated and unauthenticated users follow the same flow:
+      // set localStorage flags and navigate to canvas. The canvas component
+      // handles record creation after successful generation.
+      localStorage.setItem('flowchart_auto_input', input.trim());
+      localStorage.setItem('flowchart_auto_generate', 'true');
+      router.push('/canvas');
     },
-    [input, currentUser, router]
+    [input, router]
   );
 
   return (
