@@ -1,6 +1,5 @@
 import { recordAIUsage } from '@/lib/ai-usage';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/server';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -16,9 +15,7 @@ const recordUsageSchema = z.object({
 // POST /api/ai/usage/record - Record successful flowchart generation
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const session = await getSession();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

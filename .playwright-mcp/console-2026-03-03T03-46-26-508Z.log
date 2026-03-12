@@ -1,0 +1,2 @@
+[   11392ms] [WARNING] Please ensure that the container has a non-static position, like 'relative', 'fixed', or 'absolute' to ensure scroll offset is calculated correctly. @ webpack-internal:///(app-pages-browser)/./node_modules/.pnpm/framer-motion@12.4.7_react-dom@19.0.0_react@19.0.0__react@19.0.0/node_modules/framer-motion/dist/es/utils/warn-once.mjs:8
+[   17103ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/api/auth/get-session:0

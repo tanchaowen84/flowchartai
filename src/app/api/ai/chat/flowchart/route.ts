@@ -1,7 +1,6 @@
 import { canUserUseAI, recordAIUsage } from '@/lib/ai-usage';
-import { auth } from '@/lib/auth';
 import { IMAGE_TO_FLOWCHART_PROMPT } from '@/lib/prompts/image-flowchart';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/server';
 import OpenAI from 'openai';
 
 // OpenRouter 客户端配置
@@ -216,9 +215,7 @@ export async function POST(req: Request) {
 
   try {
     // 1. 身份验证 - 要求用户登录
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const session = await getSession();
 
     if (session?.user?.id) {
       userId = session.user.id;

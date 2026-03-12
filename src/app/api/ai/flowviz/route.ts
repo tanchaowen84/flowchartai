@@ -1,6 +1,5 @@
 import { canUserUseAI, recordAIUsage } from '@/lib/ai-usage';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/server';
 import OpenAI from 'openai';
 
 // Define the shape of the expected response
@@ -17,9 +16,7 @@ interface DiagramData {
 
 export async function POST(req: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const session = await getSession();
 
     if (!session?.user?.id) {
       return new Response(
@@ -51,17 +48,18 @@ export async function POST(req: Request) {
     const { topic } = await req.json();
 
     if (!topic) {
-      return new Response(
-        JSON.stringify({ error: 'Topic is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Topic is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const openai = new OpenAI({
       baseURL: 'https://openrouter.ai/api/v1',
       apiKey: process.env.OPENROUTER_API_KEY,
       defaultHeaders: {
-        'HTTP-Referer': process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+        'HTTP-Referer':
+          process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
         'X-Title': 'FlowViz Architect',
       },
     });
@@ -93,7 +91,7 @@ Return valid JSON ONLY. It must strictly match the following format without any 
     });
 
     const rawContent = completion.choices[0]?.message?.content;
-    
+
     if (!rawContent) {
       throw new Error('Model returned empty response');
     }
@@ -112,20 +110,19 @@ Return valid JSON ONLY. It must strictly match the following format without any 
       tokensUsed: 0,
       model: 'google/gemini-2.5-flash',
       success: true,
-      metadata: { mode: 'flowviz' }
+      metadata: { mode: 'flowviz' },
     });
 
     return new Response(JSON.stringify(parsedData), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-    
   } catch (error: any) {
     console.error('FlowViz API Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Generation failed', 
-        message: error.message || 'Unknown error' 
+      JSON.stringify({
+        error: 'Generation failed',
+        message: error.message || 'Unknown error',
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

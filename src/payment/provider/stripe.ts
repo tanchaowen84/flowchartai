@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getDb } from '@/db';
-import { payment, session, user } from '@/db/schema';
+import { payment, user } from '@/db/schema';
 import { sendMessageToDiscord } from '@/lib/discord';
 import {
   findPlanByPlanId,

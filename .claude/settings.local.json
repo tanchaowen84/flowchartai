@@ -36,7 +36,22 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(claude mcp:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_close",
+      "Bash(find:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm build:*)"
     ],
     "deny": [],
     "ask": []

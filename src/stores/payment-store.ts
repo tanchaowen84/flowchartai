@@ -1,6 +1,5 @@
 import { getActiveSubscriptionAction } from '@/actions/get-active-subscription';
 import { getLifetimeStatusAction } from '@/actions/get-lifetime-status';
-import type { Session } from '@/lib/auth-types';
 import { getAllPricePlans } from '@/lib/price-plan';
 import type { PricePlan, Subscription } from '@/payment/types';
 import { create } from 'zustand';
@@ -19,7 +18,7 @@ export interface PaymentState {
   error: string | null;
 
   // Actions
-  fetchPayment: (user: Session['user'] | null | undefined) => Promise<void>;
+  fetchPayment: (user: { id: string; name?: string | null; email?: string | null; image?: string | null } | null | undefined) => Promise<void>;
   resetState: () => void;
 }
 

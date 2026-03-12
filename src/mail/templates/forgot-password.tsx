@@ -11,7 +11,12 @@ interface ForgotPasswordProps extends BaseEmailProps {
   name: string;
 }
 
-export function ForgotPassword({ url, name, locale, messages }: ForgotPasswordProps) {
+export function ForgotPassword({
+  url,
+  name,
+  locale,
+  messages,
+}: ForgotPasswordProps) {
   const t = createTranslator({
     locale,
     messages,
