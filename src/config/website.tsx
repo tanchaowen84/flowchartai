@@ -39,7 +39,7 @@ export const websiteConfig: WebsiteConfig = {
     defaultLoginRedirect: '/dashboard',
   },
   analytics: {
-    enableVercelAnalytics: false,
+    enableVercelAnalytics: true,
     enableSpeedInsights: false,
   },
   auth: {
