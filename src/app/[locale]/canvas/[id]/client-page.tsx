@@ -17,7 +17,9 @@ const FlowVizArchitectWrapper = dynamic(
   }
 );
 
-export default function EditFlowchartClient({ flowchartId }: { flowchartId: string }) {
+export default function EditFlowchartClient({
+  flowchartId,
+}: { flowchartId: string }) {
   return (
     <div className="h-screen w-screen overflow-y-auto bg-slate-50">
       <FlowVizArchitectWrapper flowchartId={flowchartId} />

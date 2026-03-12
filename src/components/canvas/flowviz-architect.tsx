@@ -11,7 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { useFlowchartExport } from '@/hooks/use-export';
 import { useCurrentUserWithStatus } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
 import { useLocalePathname } from '@/i18n/navigation';
@@ -119,6 +126,11 @@ export default function FlowVizArchitect({
   );
   const autoGenerateTriggered = useRef(false);
 
+  // Hook for exporting
+  const exportContainerRef = useRef<HTMLDivElement>(null);
+  const { exportPNG, exportSVG, exportGIF, exportMP4, isExporting, exportProgress } =
+    useFlowchartExport(exportContainerRef);
+
   // Load initial data if editing an existing flowchart
   useEffect(() => {
     if (flowchart) {
@@ -157,15 +169,9 @@ export default function FlowVizArchitect({
     // Populate the input field regardless of auth state
     setTopic(autoInput);
 
-    if (isAuthenticated) {
-      // Authenticated — auto-generate
-      autoGenerateTriggered.current = true;
-      generateDiagram(undefined, autoInput);
-    } else {
-      // Not authenticated — show login dialog
-      autoGenerateTriggered.current = true;
-      setShowAutoLoginPrompt(true);
-    }
+    // Auto-generate regardless of auth state
+    autoGenerateTriggered.current = true;
+    generateDiagram(undefined, autoInput);
   }, [authLoading, isAuthenticated]); // Trigger when auth state resolves
 
   const handleTitleChange = async (newTitle: string) => {
@@ -232,11 +238,6 @@ export default function FlowVizArchitect({
     const activeTopic = customTopic || topic;
 
     if (!activeTopic.trim()) return;
-
-    if (!currentUser) {
-      toast.error('Please sign in to generate AI flowcharts');
-      return;
-    }
 
     setLoading(true);
     setError(null);
@@ -395,6 +396,33 @@ export default function FlowVizArchitect({
           )}
 
           <div className="flex items-center gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={isExporting} className="gap-2">
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Export {isExporting && exportProgress > 0 ? `${exportProgress}%` : ''}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-white z-[100]">
+                <DropdownMenuItem onClick={() => exportPNG(currentTitle)} className="cursor-pointer">
+                  Download as PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportSVG(currentTitle)} className="cursor-pointer">
+                  Download as SVG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportGIF(currentTitle)} className="cursor-pointer">
+                  Download as GIF (Animated)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportMP4(currentTitle)} className="cursor-pointer">
+                  Download as MP4 (Video)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               variant="outline"
               size="sm"
@@ -490,25 +518,11 @@ export default function FlowVizArchitect({
           </div>
         </header>
 
-        <div className="relative w-full aspect-square md:aspect-[16/9] bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex items-center justify-center mt-8">
+        <div ref={exportContainerRef} className="relative w-full aspect-square md:aspect-[16/9] bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex items-center justify-center mt-8">
           <DiagramRenderer data={diagramData} mode={animationType} />
         </div>
       </div>
 
-      {/* Auto-login dialog for unauthenticated users coming from homepage */}
-      <Dialog open={showAutoLoginPrompt} onOpenChange={setShowAutoLoginPrompt}>
-        <DialogContent className="sm:max-w-[400px] p-0">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle>Sign in to generate</DialogTitle>
-            <DialogDescription>
-              {topic
-                ? `Sign in to generate your flowchart for "${topic}"`
-                : 'Sign in to generate AI flowcharts'}
-            </DialogDescription>
-          </DialogHeader>
-          <LoginForm callbackUrl={currentPath} className="border-none" />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

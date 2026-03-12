@@ -33,9 +33,7 @@ export function Providers({ children }: PropsWithChildren) {
       <ActiveThemeProvider>
         <RootProvider theme={theme}>
           <TooltipProvider>
-            <PaymentProvider>
-              {children}
-            </PaymentProvider>
+            <PaymentProvider>{children}</PaymentProvider>
           </TooltipProvider>
         </RootProvider>
       </ActiveThemeProvider>

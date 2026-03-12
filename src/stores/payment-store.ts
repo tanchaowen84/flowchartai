@@ -18,7 +18,17 @@ export interface PaymentState {
   error: string | null;
 
   // Actions
-  fetchPayment: (user: { id: string; name?: string | null; email?: string | null; image?: string | null } | null | undefined) => Promise<void>;
+  fetchPayment: (
+    user:
+      | {
+          id: string;
+          name?: string | null;
+          email?: string | null;
+          image?: string | null;
+        }
+      | null
+      | undefined
+  ) => Promise<void>;
   resetState: () => void;
 }
 

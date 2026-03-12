@@ -1,17 +1,8 @@
-import { AiCapabilitiesSection } from '@/components/blocks/ai-capabilities';
-import CallToActionSection from '@/components/blocks/calltoaction/calltoaction';
-import { ComparisonSection } from '@/components/blocks/comparison';
-import { DemoSection } from '@/components/blocks/demo';
-import FaqSection from '@/components/blocks/faqs/faqs';
-import FeaturesSection from '@/components/blocks/features/features';
-import HeroSection from '@/components/blocks/hero/hero';
-import { HowItWorksSection } from '@/components/blocks/how-it-works';
-import ModernFeaturesSection from '@/components/blocks/modern-features/modern-features';
-import ModernHeroSection from '@/components/blocks/modern-hero/modern-hero';
-import ModernHowItWorksSection from '@/components/blocks/modern-how-it-works/modern-how-it-works';
-import ModernTestimonialsSection from '@/components/blocks/modern-testimonials/modern-testimonials';
-import PricingSection from '@/components/blocks/pricing/pricing';
-import { UseCasesSection } from '@/components/blocks/use-cases';
+import { InfogiphFooter } from '@/components/blocks/infogiph-footer/infogiph-footer';
+import { InfogiphHero } from '@/components/blocks/infogiph-hero/infogiph-hero';
+import { InfogiphHowItWorks } from '@/components/blocks/infogiph-how-it-works/infogiph-how-it-works';
+import { InfogiphTestimonials } from '@/components/blocks/infogiph-testimonials/infogiph-testimonials';
+import { InfogiphUseCases } from '@/components/blocks/infogiph-use-cases/infogiph-use-cases';
 import { constructMetadata } from '@/lib/metadata';
 import { getUrlWithLocale } from '@/lib/urls/urls';
 import type { Metadata } from 'next';
@@ -43,26 +34,17 @@ interface HomePageProps {
 export default async function HomePage(props: HomePageProps) {
   const params = await props.params;
   const { locale } = params;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const t = await getTranslations('HomePage');
 
   return (
     <>
-      <div className="flex flex-col">
-        <ModernHeroSection />
-
-        <ModernFeaturesSection />
-
-        <ModernHowItWorksSection />
-
-        <ModernTestimonialsSection />
-
-        <AiCapabilitiesSection />
-
-        <PricingSection />
-
-        <FaqSection />
-
-        <CallToActionSection />
+      <div className="flex flex-col w-full min-h-screen bg-white font-sans selection:bg-[#1AC6FF] selection:text-white">
+        <InfogiphHero />
+        <InfogiphHowItWorks />
+        <InfogiphUseCases />
+        <InfogiphTestimonials />
+        <InfogiphFooter />
       </div>
     </>
   );

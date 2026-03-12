@@ -17,32 +17,22 @@ interface DiagramData {
 export async function POST(req: Request) {
   try {
     const session = await getSession();
+    const userId = session?.user?.id;
 
-    if (!session?.user?.id) {
-      return new Response(
-        JSON.stringify({
-          error: 'Authentication required',
-          message: 'Please sign in to use AI-powered visual generation.',
-        }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const usageCheck = await canUserUseAI(session.user.id);
-    if (!usageCheck.canUse) {
-      return new Response(
-        JSON.stringify({
-          error: 'Usage limit exceeded',
-          message: `You have reached your AI usage limit. ${usageCheck.remainingUsage} of ${usageCheck.limit} requests remaining.`,
-        }),
-        {
-          status: 429,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+    if (userId) {
+      const usageCheck = await canUserUseAI(userId);
+      if (!usageCheck.canUse) {
+        return new Response(
+          JSON.stringify({
+            error: 'Usage limit exceeded',
+            message: `You have reached your AI usage limit. ${usageCheck.remainingUsage} of ${usageCheck.limit} requests remaining.`,
+          }),
+          {
+            status: 429,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
     }
 
     const { topic } = await req.json();
@@ -105,13 +95,15 @@ Return valid JSON ONLY. It must strictly match the following format without any 
     const jsonString = extractJson(rawContent);
     const parsedData: DiagramData = JSON.parse(jsonString);
 
-    // Record the usage securely
-    await recordAIUsage(session.user.id, 'flowchart_generation', {
-      tokensUsed: 0,
-      model: 'google/gemini-2.5-flash',
-      success: true,
-      metadata: { mode: 'flowviz' },
-    });
+    // Record the usage securely if logged in
+    if (userId) {
+      await recordAIUsage(userId, 'flowchart_generation', {
+        tokensUsed: 0,
+        model: 'google/gemini-2.5-flash',
+        success: true,
+        metadata: { mode: 'flowviz' },
+      });
+    }
 
     return new Response(JSON.stringify(parsedData), {
       status: 200,

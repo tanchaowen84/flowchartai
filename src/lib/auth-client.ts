@@ -31,9 +31,7 @@ function mapUser(user: User): AppUser {
       '',
     email: user.email || '',
     image:
-      user.user_metadata?.avatar_url ||
-      user.user_metadata?.picture ||
-      null,
+      user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
     role: user.user_metadata?.role || null,
   };
 }

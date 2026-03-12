@@ -29,9 +29,7 @@ export const getSession = cache(async () => {
         '',
       email: user.email || '',
       image:
-        user.user_metadata?.avatar_url ||
-        user.user_metadata?.picture ||
-        null,
+        user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
     },
   };
 });
