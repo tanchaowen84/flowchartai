@@ -116,9 +116,9 @@ export function InfogiphFooter() {
         </div>
 
         {/* Bottom Copyright */}
-        <div className="w-full text-center text-gray-500 text-sm mt-8">
-          © {new Date().getFullYear()} Infogiph Clone Inc.
-        </div>
+        <p className="text-sm text-balance text-muted-foreground">
+          © {new Date().getFullYear()} Infogiph Inc. All rights reserved.
+        </p>
       </div>
     </footer>
   );
