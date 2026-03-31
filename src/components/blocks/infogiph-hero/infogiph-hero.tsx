@@ -24,7 +24,7 @@ export function InfogiphHero() {
       />
 
       <div className="container relative z-10 px-4 md:px-6 flex flex-col items-center text-center max-w-5xl mx-auto">
-        <h1 className="text-5xl md:text-7xl lg:text-[80px] font-bold text-[#484848] leading-[1.1] md:leading-[1.1] tracking-tight mb-8">
+        <h1 className="text-4xl md:text-5xl lg:text-7xl xl:text-[80px] font-bold text-[#484848] leading-[1.1] md:leading-[1.1] tracking-tight mb-8">
           Make{' '}
           <span className="relative inline-block">
             <span className="relative z-10 px-2">interactive</span>
@@ -39,161 +39,99 @@ export function InfogiphHero() {
 
         {/* Hero Visual Mockup */}
         <div className="relative w-full max-w-4xl mx-auto mb-20">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+          {/* Mobile & Tablet: simple grid */}
+          <div className="grid grid-cols-2 gap-4 lg:hidden">
+            <div className="flex items-center justify-center bg-white border-2 border-[#FC8181] rounded-lg px-4 py-3 shadow-sm">
+              <span className="text-[#FC8181] font-medium mr-2">Notes</span>
+              <FileText className="w-4 h-4 text-[#FC8181]" />
+            </div>
+            <div className="flex items-center justify-center bg-white border-2 border-[#B794F4] rounded-lg px-4 py-3 shadow-sm">
+              <span className="text-[#B794F4] font-medium mr-2">Blogs</span>
+              <PenTool className="w-4 h-4 text-[#B794F4]" />
+            </div>
+            <div className="flex items-center justify-center bg-white border-2 border-[#F6E05E] rounded-lg px-4 py-3 shadow-sm">
+              <span className="text-[#D69E2E] font-medium mr-2">Wikis</span>
+              <Globe className="w-4 h-4 text-[#D69E2E]" />
+            </div>
+            <div className="flex items-center justify-center bg-[#f2faeb] border-2 border-[#68D391] rounded-lg px-4 py-3 shadow-sm">
+              <Share2 className="w-4 h-4 text-[#38A169] mr-2" />
+              <span className="text-[#38A169] font-medium">Social</span>
+            </div>
+            <div className="col-span-2 flex items-center justify-center bg-white border-2 border-[#A0AEC0] rounded-xl px-6 py-5 shadow-sm">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="mr-3 text-[#4A5568]">
+                <path d="M5 3L19 12L5 21V3Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[#4A5568] font-medium">Infogiph Boosts</span>
+            </div>
+            <div className="flex items-center justify-center bg-[#fef7f0] border-2 border-[#F6AD55] rounded-lg px-4 py-3 shadow-sm">
+              <Layout className="w-4 h-4 text-[#DD6B20] mr-2" />
+              <span className="text-[#DD6B20] font-medium text-sm">Presentations</span>
+            </div>
+            <div className="flex items-center justify-center bg-[#eff9ff] border-2 border-[#4299E1] rounded-lg px-4 py-3 shadow-sm">
+              <FileText className="w-4 h-4 text-[#3182CE] mr-2" />
+              <span className="text-[#3182CE] font-medium">Documents</span>
+            </div>
+          </div>
+
+          {/* Desktop: flowchart layout */}
+          <div className="hidden lg:flex items-center justify-center gap-6 xl:gap-10">
             {/* Input Column */}
-            <div className="flex flex-col gap-6 w-full md:w-auto">
-              {/* Notes Node */}
-              <div className="relative flex items-center justify-center bg-white border-2 border-[#FC8181] rounded-lg px-6 py-4 shadow-sm z-10">
+            <div className="flex flex-col items-end gap-5 shrink-0">
+              <div className="flex items-center bg-white border-2 border-[#FC8181] rounded-lg px-5 py-3 shadow-sm">
                 <span className="text-[#FC8181] font-medium mr-2">Notes</span>
                 <FileText className="w-5 h-5 text-[#FC8181]" />
-                {/* Connecting Line */}
-                <svg
-                  className="absolute top-1/2 -right-16 md:-right-[4.5rem] w-16 md:w-[4.5rem] h-px hidden md:block"
-                  overflow="visible"
-                >
-                  <line
-                    x1="0"
-                    y1="0"
-                    x2="100%"
-                    y2="0"
-                    stroke="#CBD5E1"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                  />
-                </svg>
               </div>
-
-              {/* Blogs Node */}
-              <div className="relative flex items-center justify-center w-48 bg-white border-2 border-[#B794F4] rounded-lg px-6 py-4 shadow-sm z-10 md:mr-12">
+              <div className="flex items-center bg-white border-2 border-[#B794F4] rounded-lg px-5 py-3 shadow-sm">
                 <span className="text-[#B794F4] font-medium mr-2">Blogs</span>
                 <PenTool className="w-5 h-5 text-[#B794F4]" />
-                {/* Connecting Line angled up */}
-                <svg
-                  className="absolute -top-[1.2rem] -right-[3rem] w-16 h-12 hidden md:block"
-                  overflow="visible"
-                >
-                  <path
-                    d="M0 48 C 30 48, 30 0, 64 0"
-                    fill="none"
-                    className="stroke-[#CBD5E1]"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                  />
-                </svg>
               </div>
-
-              {/* Wikis Node */}
-              <div className="relative flex items-center justify-center bg-white border-2 border-[#F6E05E] rounded-lg px-6 py-4 shadow-sm z-10 md:ml-12 w-40">
+              <div className="flex items-center bg-white border-2 border-[#F6E05E] rounded-lg px-5 py-3 shadow-sm">
                 <span className="text-[#D69E2E] font-medium mr-2">Wikis</span>
                 <Globe className="w-5 h-5 text-[#D69E2E]" />
-                {/* Connecting Line angled down */}
-                <svg
-                  className="absolute -top-[3.5rem] -left-[2.5rem] w-16 h-16 hidden md:block z-0"
-                  overflow="visible"
-                >
-                  <path
-                    d="M0 0 C 20 0, 20 64, 50 64"
-                    fill="none"
-                    className="stroke-[#CBD5E1]"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                  />
-                </svg>
               </div>
+              <div className="flex items-center bg-[#f2faeb] border-2 border-[#68D391] rounded-lg px-5 py-3 shadow-sm">
+                <Share2 className="w-5 h-5 text-[#38A169] mr-2" />
+                <span className="text-[#38A169] font-medium">Social Media</span>
+              </div>
+            </div>
+
+            {/* Connecting arrows left */}
+            <div className="flex flex-col items-center justify-center shrink-0">
+              <svg width="60" height="160" viewBox="0 0 60 160" fill="none" className="text-[#CBD5E1]">
+                <path d="M0 20 Q30 20 55 80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" fill="none" />
+                <path d="M0 60 Q30 60 55 80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" fill="none" />
+                <path d="M0 100 Q30 100 55 80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" fill="none" />
+                <path d="M0 140 Q30 140 55 80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" fill="none" />
+              </svg>
             </div>
 
             {/* Central Node */}
-            <div className="relative flex flex-col items-center justify-center bg-white border-2 border-[#A0AEC0] rounded-xl px-8 py-6 shadow-sm z-20 w-40 h-40">
-              <svg
-                width="40"
-                height="40"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="mb-2 text-[#4A5568]"
-              >
-                <path
-                  d="M5 3L19 12L5 21V3Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+            <div className="flex flex-col items-center justify-center bg-white border-2 border-[#A0AEC0] rounded-xl px-8 py-6 shadow-sm shrink-0 w-36 h-36">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" className="mb-2 text-[#4A5568]">
+                <path d="M5 3L19 12L5 21V3Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span className="text-[#4A5568] font-medium text-center leading-tight">
-                Infogiph
-                <br />
-                Boosts
+                Infogiph<br />Boosts
               </span>
             </div>
 
-            {/* Output Column */}
-            <div className="flex flex-col gap-6 w-full md:w-auto">
-              {/* Presentations Node */}
-              <div className="relative flex items-center justify-center bg-[#fef7f0] border-2 border-[#F6AD55] rounded-lg px-6 py-4 shadow-sm z-10 md:ml-8">
-                {/* Connecting Line */}
-                <svg
-                  className="absolute top-1/2 -left-16 md:-left-[4rem] w-16 md:w-[4rem] h-px hidden md:block"
-                  overflow="visible"
-                >
-                  <line
-                    x1="0"
-                    y1="0"
-                    x2="100%"
-                    y2="0"
-                    stroke="#CBD5E1"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                  />
-                </svg>
-                <Layout className="w-5 h-5 text-[#DD6B20] mr-2" />
-                <span className="text-[#DD6B20] font-medium">
-                  Presentations
-                </span>
-              </div>
+            {/* Connecting arrows right */}
+            <div className="flex flex-col items-center justify-center shrink-0">
+              <svg width="60" height="120" viewBox="0 0 60 120" fill="none" className="text-[#CBD5E1]">
+                <path d="M5 60 Q30 60 55 30" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" fill="none" />
+                <path d="M5 60 Q30 60 55 90" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" fill="none" />
+              </svg>
+            </div>
 
-              {/* Documents Node */}
-              <div className="relative flex items-center justify-center bg-[#eff9ff] border-2 border-[#4299E1] rounded-lg px-6 py-4 shadow-sm z-10">
-                {/* Connecting Line */}
-                <svg
-                  className="absolute top-1/2 -left-16 md:-left-[2rem] w-16 md:w-[2rem] h-px hidden md:block"
-                  overflow="visible"
-                >
-                  <line
-                    x1="0"
-                    y1="0"
-                    x2="100%"
-                    y2="0"
-                    stroke="#CBD5E1"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                  />
-                </svg>
+            {/* Output Column */}
+            <div className="flex flex-col items-start gap-5 shrink-0">
+              <div className="flex items-center bg-[#fef7f0] border-2 border-[#F6AD55] rounded-lg px-5 py-3 shadow-sm">
+                <Layout className="w-5 h-5 text-[#DD6B20] mr-2" />
+                <span className="text-[#DD6B20] font-medium">Presentations</span>
+              </div>
+              <div className="flex items-center bg-[#eff9ff] border-2 border-[#4299E1] rounded-lg px-5 py-3 shadow-sm">
                 <FileText className="w-5 h-5 text-[#3182CE] mr-2" />
                 <span className="text-[#3182CE] font-medium">Documents</span>
-              </div>
-
-              {/* Social Medias Node */}
-              <div className="relative items-center justify-center bg-[#f2faeb] border-2 border-[#68D391] rounded-lg px-6 py-4 shadow-sm z-10 hidden md:flex md:-mt-64 md:-ml-[48rem]">
-                <Share2 className="w-5 h-5 text-[#38A169] mr-2" />
-                <span className="text-[#38A169] font-medium">
-                  Social Medias
-                </span>
-                {/* Connecting Line angled back to output side */}
-                <svg
-                  className="absolute top-1/2 -right-[18rem] w-[18rem] h-px hidden md:block"
-                  overflow="visible"
-                >
-                  <line
-                    x1="0"
-                    y1="0"
-                    x2="100%"
-                    y2="0"
-                    stroke="#CBD5E1"
-                    strokeWidth="2"
-                    strokeDasharray="4 4"
-                  />
-                </svg>
               </div>
             </div>
           </div>

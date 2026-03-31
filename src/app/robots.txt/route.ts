@@ -1,14 +1,6 @@
 import { getBaseUrl } from '../../lib/urls/urls';
 
-const marketingAllows = [
-  'Allow: /',
-  'Allow: /pricing',
-  'Allow: /blog',
-  'Allow: /llms.txt',
-  'Allow: /llms-full.txt',
-];
-
-const userAreas = [
+const disallowRules = [
   'Disallow: /api/',
   'Disallow: /_next/',
   'Disallow: /static/',
@@ -36,21 +28,19 @@ export function GET(): Response {
 
   const lines: string[] = ['# Crawl rules'];
 
-  // Default rule for all crawlers
-  lines.push('User-agent: *', ...marketingAllows, ...userAreas, '');
+  // Default rule: allow everything except user/system areas
+  lines.push('User-agent: *', 'Allow: /', ...disallowRules, '');
 
-  // AI-focused crawlers: allow marketing/product content, block user-generated areas
-  aiAgents.forEach((agent) => {
-    lines.push(`User-agent: ${agent}`, ...marketingAllows, ...userAreas, '');
-  });
-
-  // Googlebot keeps standard access to public marketing pages
-  lines.push('User-agent: Googlebot', ...marketingAllows, ...userAreas, '');
+  // AI-focused crawlers: same rules with LLM content pointers
+  for (const agent of aiAgents) {
+    lines.push(`User-agent: ${agent}`, 'Allow: /', ...disallowRules, '');
+  }
 
   // Metadata for AI discovery
   lines.push(
     `LLM-Content: ${baseUrl}/llms.txt`,
     `LLM-Full-Content: ${baseUrl}/llms-full.txt`,
+    '',
     `Sitemap: ${baseUrl}/sitemap.xml`
   );
 

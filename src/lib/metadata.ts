@@ -45,7 +45,7 @@ export function constructMetadata({
       title,
       description,
       images: [ogImageUrl.toString()],
-      site: getBaseUrl(),
+      site: '@tanchaowen84',
     },
     icons: {
       icon: '/favicon.ico',

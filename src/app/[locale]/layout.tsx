@@ -3,6 +3,10 @@ import { fontNotoSans, fontNotoSansMono, fontNotoSerif } from '@/assets/fonts';
 import AffonsoScript from '@/components/affiliate/affonso';
 import PromotekitScript from '@/components/affiliate/promotekit';
 import { AdSense } from '@/components/analytics/adsense';
+import {
+  OrganizationJsonLd,
+  WebSiteJsonLd,
+} from '@/components/seo/json-ld';
 import { routing } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { type Locale, NextIntlClientProvider, hasLocale } from 'next-intl';
@@ -42,6 +46,8 @@ export default async function LocaleLayout({
         {/* <AdSense /> */}
         <AffonsoScript />
         <PromotekitScript />
+        <OrganizationJsonLd />
+        <WebSiteJsonLd />
       </head>
       <body
         suppressHydrationWarning

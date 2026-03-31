@@ -226,9 +226,9 @@
     }
   },
   "BlogPage": {
-    "title": "Blog",
-    "description": "Latest news and updates from our team",
-    "subtitle": "Latest news and updates from our team",
+    "title": "InfoGiph Blog — Infographic Design Tips & Tutorials",
+    "description": "Learn how to create stunning animated infographics, visual content tips, design tutorials, and best practices from the InfoGiph team.",
+    "subtitle": "Tips, tutorials, and inspiration for visual content creators",
     "author": "Author",
     "categories": "Categories",
     "tableOfContents": "Table of Contents",
