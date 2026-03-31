@@ -52,30 +52,30 @@ import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
-const getIcon = (name: string) => {
-  if (!name) return <Layers size={24} />;
+const getIcon = (name: string, size = 24) => {
+  if (!name) return <Layers size={size} />;
   const n = name.toLowerCase();
   if (n.includes('db') || n.includes('database') || n.includes('sql'))
-    return <Database size={24} />;
-  if (n.includes('cloud')) return <Cloud size={24} />;
+    return <Database size={size} />;
+  if (n.includes('cloud')) return <Cloud size={size} />;
   if (n.includes('web') || n.includes('globe') || n.includes('internet'))
-    return <Globe size={24} />;
+    return <Globe size={size} />;
   if (n.includes('msg') || n.includes('chat') || n.includes('whatsapp') || n.includes('messenger'))
-    return <MessageSquare size={24} />;
+    return <MessageSquare size={size} />;
   if (n.includes('ai') || n.includes('bot') || n.includes('gpt'))
-    return <Bot size={24} />;
+    return <Bot size={size} />;
   if (n.includes('drive') || n.includes('storage'))
-    return <HardDrive size={24} />;
+    return <HardDrive size={size} />;
   if (n.includes('mobile') || n.includes('app') || n.includes('phone'))
-    return <Smartphone size={24} />;
-  if (n.includes('mail') || n.includes('email')) return <Mail size={24} />;
-  if (n.includes('search')) return <Search size={24} />;
+    return <Smartphone size={size} />;
+  if (n.includes('mail') || n.includes('email')) return <Mail size={size} />;
+  if (n.includes('search')) return <Search size={size} />;
   if (n.includes('process') || n.includes('logic'))
-    return <Workflow size={24} />;
+    return <Workflow size={size} />;
   if (n.includes('zapier') || n.includes('automation'))
-    return <Zap size={24} />;
-  if (n.includes('social') || n.includes('share')) return <Share2 size={24} />;
-  return <Layers size={24} />;
+    return <Zap size={size} />;
+  if (n.includes('social') || n.includes('share')) return <Share2 size={size} />;
+  return <Layers size={size} />;
 };
 
 const TEMPLATES = [
