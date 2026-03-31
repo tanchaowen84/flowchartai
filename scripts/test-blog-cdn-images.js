@@ -13,7 +13,7 @@
  */
 
 import { readFileSync, readdirSync } from 'fs';
-import { join, dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,8 +32,8 @@ const CONFIG = {
 // 获取所有博客文章
 function getAllBlogPosts() {
   const blogFiles = readdirSync(CONFIG.paths.blogDir)
-    .filter(file => file.endsWith('.mdx'))
-    .map(file => join(CONFIG.paths.blogDir, file));
+    .filter((file) => file.endsWith('.mdx'))
+    .map((file) => join(CONFIG.paths.blogDir, file));
 
   console.log(`📄 找到 ${blogFiles.length} 篇博客文章`);
   return blogFiles;
@@ -117,7 +117,7 @@ function formatFileSize(bytes) {
   if (!bytes) return 'Unknown';
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
 // 主函数
@@ -157,7 +157,9 @@ async function main() {
       const testResult = await testUrl(imageInfo.cdnPath);
 
       if (testResult.success) {
-        console.log(`   ✅ 状态: ${testResult.status} ${testResult.statusText}`);
+        console.log(
+          `   ✅ 状态: ${testResult.status} ${testResult.statusText}`
+        );
         console.log(`   📄 类型: ${testResult.contentType || 'Unknown'}`);
         console.log(`   📏 大小: ${formatFileSize(testResult.contentLength)}`);
 
@@ -166,7 +168,9 @@ async function main() {
           ...testResult,
         });
       } else {
-        console.log(`   ❌ 失败: ${testResult.error || `HTTP ${testResult.status}`}`);
+        console.log(
+          `   ❌ 失败: ${testResult.error || `HTTP ${testResult.status}`}`
+        );
 
         results.failed.push({
           ...imageInfo,
@@ -183,17 +187,19 @@ async function main() {
 
     if (results.success.length > 0) {
       console.log(`\n✅ 可访问的CDN图片:`);
-      results.success.forEach(result => {
+      results.success.forEach((result) => {
         console.log(`   🖼️  ${result.fileName}`);
         console.log(`   🔗 ${result.cdnPath}`);
-        console.log(`   📏 ${formatFileSize(result.contentLength)} (${result.contentType})`);
+        console.log(
+          `   📏 ${formatFileSize(result.contentLength)} (${result.contentType})`
+        );
         console.log('');
       });
     }
 
     if (results.failed.length > 0) {
       console.log(`\n❌ 不可访问的图片:`);
-      results.failed.forEach(result => {
+      results.failed.forEach((result) => {
         console.log(`   🖼️  ${result.fileName}`);
         console.log(`   🔗 ${result.cdnPath}`);
         console.log(`   ❌ ${result.error}`);
@@ -213,7 +219,6 @@ async function main() {
     if (results.success.length === cdnImages.length) {
       console.log(`🎉 所有CDN图片链接都可以正常访问！`);
     }
-
   } catch (error) {
     console.error('❌ 脚本执行失败:', error);
     process.exit(1);

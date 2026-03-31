@@ -24,7 +24,18 @@ import { LOCALES, routing } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { useLocaleStore } from '@/stores/locale-store';
 import { usePaymentStore } from '@/stores/payment-store';
-import type { User } from 'better-auth';
+// import type { User } from 'better-auth';
+import type { Session } from 'next-auth';
+
+// Define a simplified User type for NextAuth.js
+interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+}
+
+// Remove the duplicate interface definition since we've defined the type above
 import {
   ChevronsUpDown,
   Languages,
@@ -77,20 +88,16 @@ export function SidebarUser({ user, className }: SidebarUserProps) {
   const showLocaleSwitch = LOCALES.length > 1;
 
   const handleSignOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          console.log('sign out success');
-          // Reset payment state on sign out
-          resetState();
-          router.replace('/');
-        },
-        onError: (error) => {
-          console.error('sign out error:', error);
-          toast.error(t('Common.logoutFailed'));
-        },
-      },
-    });
+    try {
+      await authClient.signOut();
+      console.log('sign out success');
+      // Reset payment state on sign out
+      resetState();
+      router.replace('/');
+    } catch (error) {
+      console.error('sign out error:', error);
+      toast.error(t('Common.logoutFailed'));
+    }
   };
 
   return (
@@ -104,14 +111,16 @@ export function SidebarUser({ user, className }: SidebarUserProps) {
               data-[state=open]:text-sidebar-accent-foreground"
             >
               <UserAvatar
-                name={user.name}
-                image={user.image}
+                name={user.name ?? ''}
+                image={user.image ?? ''}
                 className="size-8 border"
               />
 
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-semibold">
+                  {user.name || 'User'}
+                </span>
+                <span className="truncate text-xs">{user.email || ''}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -125,13 +134,15 @@ export function SidebarUser({ user, className }: SidebarUserProps) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <UserAvatar
-                  name={user.name}
-                  image={user.image}
+                  name={user.name ?? ''}
+                  image={user.image ?? ''}
                   className="size-8 border"
                 />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold">
+                    {user.name ?? ''}
+                  </span>
+                  <span className="truncate text-xs">{user.email ?? ''}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

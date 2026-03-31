@@ -1,8 +1,7 @@
-import { betterFetch } from '@better-fetch/fetch';
 import createMiddleware from 'next-intl/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
 import { LOCALES, routing } from './i18n/routing';
-import type { Session } from './lib/auth-types';
+import { createSupabaseMiddlewareClient } from './lib/supabase-middleware';
 import {
   DEFAULT_LOGIN_REDIRECT,
   protectedRoutes,
@@ -11,75 +10,75 @@ import {
 
 const intlMiddleware = createMiddleware(routing);
 
-/**
- * 1. Next.js middleware
- * https://nextjs.org/docs/app/building-your-application/routing/middleware
- *
- * 2. Better Auth middleware
- * https://www.better-auth.com/docs/integrations/next#middleware
- *
- * In Next.js middleware, it's recommended to only check for the existence of a session cookie
- * to handle redirection. To avoid blocking requests by making API or database calls.
- */
 export default async function middleware(req: NextRequest) {
-  const { nextUrl, headers } = req;
+  const { nextUrl } = req;
   console.log('>> middleware start, pathname', nextUrl.pathname);
 
-  // do not use getSession() here, it will cause error related to edge runtime
-  // const session = await getSession();
-  const { data: session } = await betterFetch<Session>(
-    '/api/auth/get-session',
-    {
-      baseURL: req.nextUrl.origin,
-      headers: {
-        cookie: req.headers.get('cookie') || '', // Forward the cookies from the request
-      },
-    }
-  );
-  const isLoggedIn = !!session;
-  // console.log('middleware, isLoggedIn', isLoggedIn);
-
-  // Get the pathname of the request (e.g. /zh/dashboard to /dashboard)
+  // Get the pathname without locale prefix (e.g. /zh/dashboard → /dashboard)
   const pathnameWithoutLocale = getPathnameWithoutLocale(
     nextUrl.pathname,
     LOCALES
   );
 
-  // If the route can not be accessed by logged in users, redirect if the user is logged in
-  if (isLoggedIn) {
-    const isNotAllowedRoute = routesNotAllowedByLoggedInUsers.some((route) =>
+  // Skip authentication check for animate route to avoid slow loading
+  const isAnimateRoute = pathnameWithoutLocale === '/animate';
+
+  let isLoggedIn = false;
+
+  if (!isAnimateRoute) {
+    // Create Supabase middleware client which handles session refresh
+    const { supabase, supabaseResponse } = createSupabaseMiddlewareClient(req);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    isLoggedIn = !!user;
+
+    // If the route can not be accessed by logged in users, redirect
+    if (isLoggedIn) {
+      const isNotAllowedRoute = routesNotAllowedByLoggedInUsers.some((route) =>
+        new RegExp(`^${route}$`).test(pathnameWithoutLocale)
+      );
+      if (isNotAllowedRoute) {
+        console.log(
+          '<< middleware end, not allowed route, already logged in, redirecting to dashboard'
+        );
+        return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+      }
+    }
+
+    const isProtectedRoute = protectedRoutes.some((route) =>
       new RegExp(`^${route}$`).test(pathnameWithoutLocale)
     );
-    if (isNotAllowedRoute) {
+
+    // If the route is protected and user is not logged in, redirect to login
+    if (!isLoggedIn && isProtectedRoute) {
+      let callbackUrl = nextUrl.pathname;
+      if (nextUrl.search) {
+        callbackUrl += nextUrl.search;
+      }
+      const encodedCallbackUrl = encodeURIComponent(callbackUrl);
       console.log(
-        '<< middleware end, not allowed route, already logged in, redirecting to dashboard'
+        '<< middleware end, not logged in, redirecting to login, callbackUrl',
+        callbackUrl
       );
-      return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+      return NextResponse.redirect(
+        new URL(`/auth/login?callbackUrl=${encodedCallbackUrl}`, nextUrl)
+      );
     }
+
+    // Apply intlMiddleware and merge Supabase session cookies
+    const intlResponse = intlMiddleware(req);
+
+    // Copy Supabase session-refresh cookies into the intl response
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      intlResponse.cookies.set(cookie.name, cookie.value);
+    }
+
+    console.log('<< middleware end, applying intlMiddleware');
+    return intlResponse;
   }
 
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    new RegExp(`^${route}$`).test(pathnameWithoutLocale)
-  );
-  // console.log('middleware, isProtectedRoute', isProtectedRoute);
-
-  // If the route is a protected route, redirect to login if user is not logged in
-  if (!isLoggedIn && isProtectedRoute) {
-    let callbackUrl = nextUrl.pathname;
-    if (nextUrl.search) {
-      callbackUrl += nextUrl.search;
-    }
-    const encodedCallbackUrl = encodeURIComponent(callbackUrl);
-    console.log(
-      '<< middleware end, not logged in, redirecting to login, callbackUrl',
-      callbackUrl
-    );
-    return NextResponse.redirect(
-      new URL(`/auth/login?callbackUrl=${encodedCallbackUrl}`, nextUrl)
-    );
-  }
-
-  // Apply intlMiddleware for all routes
+  // For animate route, skip auth check entirely
   console.log('<< middleware end, applying intlMiddleware');
   return intlMiddleware(req);
 }
@@ -95,11 +94,8 @@ function getPathnameWithoutLocale(pathname: string, locales: string[]): string {
 /**
  * Next.js internationalized routing
  * specify the routes the middleware applies to
- *
- * https://next-intl.dev/docs/routing#base-path
  */
 export const config = {
-  // The `matcher` is relative to the `basePath`
   matcher: [
     // Match all pathnames except for
     // - if they start with `/api`, `/_next` or `/_vercel`

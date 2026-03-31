@@ -1,17 +1,10 @@
-import {
-  canUserUseAI,
-  getUserAIUsageStats,
-  getUserPlanLevel,
-} from '@/lib/ai-usage';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { canUserUseAI, getUserAIUsageStats } from '@/lib/ai-usage-supabase';
+import { getSession } from '@/lib/server';
 
 export async function GET() {
   try {
-    // 身份验证
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    // Authentication check
+    const session = await getSession();
 
     if (!session?.user?.id) {
       return new Response(
@@ -28,18 +21,16 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    // 获取使用量统计、限制信息和计划类型
-    const [stats, limits, planLevel] = await Promise.all([
+    // Get usage stats and limits
+    const [stats, limits] = await Promise.all([
       getUserAIUsageStats(userId),
       canUserUseAI(userId),
-      getUserPlanLevel(userId),
     ]);
 
     return new Response(
       JSON.stringify({
         stats,
         limits,
-        planLevel,
       }),
       {
         status: 200,

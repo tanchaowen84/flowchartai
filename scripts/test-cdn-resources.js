@@ -8,7 +8,7 @@
 const https = require('https');
 
 // CDN 基础 URL
-const CDN_BASE_URL = 'https://cdn.flowchartai.org/static';
+const CDN_BASE_URL = 'https://cdn.infogiph.com/static';
 
 // 测试资源列表（从更新的文件中提取）
 const TEST_RESOURCES = [
@@ -98,7 +98,7 @@ function formatSize(bytes) {
   if (!bytes) return 'Unknown';
   const sizes = ['B', 'KB', 'MB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / 1024 ** i) * 100) / 100 + ' ' + sizes[i];
 }
 
 /**

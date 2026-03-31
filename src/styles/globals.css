@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -69,10 +68,10 @@
   --shadow-2xl: var(--shadow-2xl);
 
   /* fonts */
-  --font-sans: var(--font-noto-sans);
+  --font-sans: var(--font-gambarino);
   --font-mono: var(--font-noto-sans-mono);
   --font-serif: var(--font-noto-serif);
-  --font-bricolage-grotesque: var(--font-bricolage-grotesque);
+  --font-gambarino: var(--font-gambarino);
 
   /* animate */
   --animate-shiny-text: shiny-text 8s infinite;
@@ -218,7 +217,7 @@
   --sidebar-accent-foreground: oklch(0.37 0.03 259.73);
   --sidebar-border: oklch(0.87 0.01 258.34);
   --sidebar-ring: oklch(0.59 0.2 277.12);
-  --font-sans: var(--font-noto-sans);
+  --font-sans: var(--font-gambarino);
   --font-serif: var(--font-noto-serif);
   --font-mono: var(--font-noto-sans-mono);
   --radius: 0.5rem;
@@ -270,7 +269,7 @@
   --sidebar-accent-foreground: oklch(0.87 0.01 258.34);
   --sidebar-border: oklch(0.45 0.03 256.8);
   --sidebar-ring: oklch(0.68 0.16 276.93);
-  --font-sans: var(--font-noto-sans);
+  --font-sans: var(--font-gambarino);
   --font-serif: var(--font-noto-serif);
   --font-mono: var(--font-noto-sans-mono);
   --radius: 0.5rem;

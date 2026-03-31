@@ -1,9 +1,6 @@
 'use client';
 
-import { GoogleOneTapProvider } from '@/components/auth/google-one-tap-provider';
-import { ConsentBanner } from '@/components/consent/consent-banner';
 import { ActiveThemeProvider } from '@/components/layout/active-theme-provider';
-import { FlowchartDataProvider } from '@/components/layout/flowchart-data-provider';
 import { PaymentProvider } from '@/components/layout/payment-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { websiteConfig } from '@/config/website';
@@ -36,13 +33,7 @@ export function Providers({ children }: PropsWithChildren) {
       <ActiveThemeProvider>
         <RootProvider theme={theme}>
           <TooltipProvider>
-            <PaymentProvider>
-              <FlowchartDataProvider>
-                {/* GoogleOneTapProvider 暂时禁用以解决 FedCM 兼容性问题 */}
-                {children}
-                <ConsentBanner />
-              </FlowchartDataProvider>
-            </PaymentProvider>
+            <PaymentProvider>{children}</PaymentProvider>
           </TooltipProvider>
         </RootProvider>
       </ActiveThemeProvider>

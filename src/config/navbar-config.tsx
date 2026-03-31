@@ -250,18 +250,6 @@ export function getNavbarLinks(): NestedMenuItem[] {
     //       external: false,
     //     },
     //     {
-    //       title: t('blocks.items.signup.title'),
-    //       icon: <UserPlusIcon className="size-4 shrink-0" />,
-    //       href: Routes.SignupBlocks,
-    //       external: false,
-    //     },
-    //     {
-    //       title: t('blocks.items.forgot-password.title'),
-    //       icon: <LockKeyholeIcon className="size-4 shrink-0" />,
-    //       href: Routes.ForgotPasswordBlocks,
-    //       external: false,
-    //     },
-    //     {
     //       title: t('blocks.items.contact.title'),
     //       icon: <MailIcon className="size-4 shrink-0" />,
     //       href: Routes.ContactBlocks,

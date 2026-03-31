@@ -24,7 +24,7 @@ const translations = {
         {
           title: 'About cookies',
           description:
-            'Cookies help us deliver FlowChart AI. You decide whether analytics and advertising cookies are allowed.',
+            'Cookies help us deliver InfoGiph. You decide whether analytics and advertising cookies are allowed.',
         },
         {
           title: 'Analytics cookies',

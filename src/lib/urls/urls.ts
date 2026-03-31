@@ -32,9 +32,6 @@ export function getUrlWithLocale(url: string, locale?: Locale | null): string {
  * Adds locale to the callbackURL parameter in authentication URLs
  *
  * Example:
- * Input: http://localhost:3000/api/auth/reset-password/token?callbackURL=/auth/reset-password
- * Output: http://localhost:3000/api/auth/reset-password/token?callbackURL=/zh/auth/reset-password
- *
  * http://localhost:3000/api/auth/verify-email?token=eyJhbGciOiJIUzI1NiJ9&callbackURL=/dashboard
  * Output: http://localhost:3000/api/auth/verify-email?token=eyJhbGciOiJIUzI1NiJ9&callbackURL=/zh/dashboard
  *

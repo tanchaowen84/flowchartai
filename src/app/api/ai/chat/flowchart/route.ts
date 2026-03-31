@@ -1,7 +1,6 @@
 import { canUserUseAI, recordAIUsage } from '@/lib/ai-usage';
-import { auth } from '@/lib/auth';
 import { IMAGE_TO_FLOWCHART_PROMPT } from '@/lib/prompts/image-flowchart';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/server';
 import OpenAI from 'openai';
 
 // OpenRouter 客户端配置
@@ -12,7 +11,7 @@ function createOpenAIClient() {
     defaultHeaders: {
       'HTTP-Referer':
         process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-      'X-Title': 'FlowChart AI',
+      'X-Title': 'InfoGiph',
     },
   });
 }
@@ -93,7 +92,7 @@ This causes 90% of rendering failures! Use plain text only!
 
 REMEMBER: One syntax error can break the entire diagram. Be strict about forbidden characters!
 
-You are FlowChart AI, an assistant dedicated to helping users create richly detailed flowcharts. Always reply in the same language the user uses (default to English if unclear).
+You are InfoGiph, an assistant dedicated to helping users create richly detailed flowcharts. Always reply in the same language the user uses (default to English if unclear).
 
 CURRENT CANVAS CONTEXT:
 ${contextSection}
@@ -216,9 +215,7 @@ export async function POST(req: Request) {
 
   try {
     // 1. 身份验证 - 要求用户登录
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const session = await getSession();
 
     if (session?.user?.id) {
       userId = session.user.id;

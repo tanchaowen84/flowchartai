@@ -1,11 +1,19 @@
+'use client';
+
 import { authClient } from '@/lib/auth-client';
 
 export const useCurrentUser = () => {
-  const { data: session, error } = authClient.useSession();
-  // console.log('useCurrentUser, session:', session);
-  if (error) {
-    console.error('useCurrentUser, error:', error);
-    return null;
-  }
+  const { data: session } = authClient.useSession();
+
   return session?.user;
+};
+
+export const useCurrentUserWithStatus = () => {
+  const { data: session, isPending } = authClient.useSession();
+
+  return {
+    user: session?.user,
+    isLoading: isPending,
+    isAuthenticated: !!session?.user,
+  };
 };

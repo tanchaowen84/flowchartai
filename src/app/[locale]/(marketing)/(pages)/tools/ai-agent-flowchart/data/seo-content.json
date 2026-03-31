@@ -1,0 +1,99 @@
+{
+  "seo": {
+    "whatIsIt": {
+      "title": "What is an AI Agent Flowchart?",
+      "content": "An AI agent flowchart is a visual representation of the logic, decision-making processes, and interactions of an autonomous AI agent. It maps out how the agent perceives its environment, processes information, makes decisions, and executes actions. This tool helps developers and system architects design, visualize, and debug complex agent behaviors, ensuring that the AI operates as intended within its defined constraints."
+    },
+    "howItWorks": {
+      "title": "How it Works",
+      "content": "Our AI agent flowchart tool translates your agent's logic into a clear, structured diagram. It analyzes your agent's configuration or description and automatically generates a flowchart that represents its workflow.",
+      "steps": [
+        {
+          "title": "Define Agent Logic",
+          "description": "Input your agent's goals, tools, and decision-making criteria. You can describe the workflow in natural language or provide a configuration file."
+        },
+        {
+          "title": "Automated Mapping",
+          "description": "The system processes your input to identify states, transitions, actions, and decision points, creating a logical flow."
+        },
+        {
+          "title": "Visual Generation",
+          "description": "A comprehensive flowchart is generated, visualizing the agent's path from input to improved outcome, highlighting loops and branches."
+        },
+        {
+          "title": "Iterate and Refine",
+          "description": "Review the generated flowchart to identify bottlenecks or logic errors. You can easily tweak the definition to update the diagram instantly."
+        }
+      ]
+    },
+    "useCases": {
+      "title": "Use Cases",
+      "content": "AI agent flowcharts are essential for anyone building or managing autonomous systems, providing clarity and documentation for complex behaviors.",
+      "cases": [
+        {
+          "title": "Agent Design",
+          "description": "Plan out the architecture of your AI agent before writing code. Visualize how it should handle different scenarios and edge cases."
+        },
+        {
+          "title": "Debugging Logic",
+          "description": "Trace the execution path of your agent to understand why it made a specific decision or where it got stuck in a loop."
+        },
+        {
+          "title": "Documentation",
+          "description": "Create clear, visual documentation for your AI agents to share with stakeholders, ensuring everyone understands the system's behavior."
+        },
+        {
+          "title": "Compliance & Safety",
+          "description": "Verify that your agent's decision-making process adheres to safety guidelines and operational constraints by visualizing its allowed paths."
+        }
+      ]
+    },
+    "features": {
+      "title": "Features",
+      "content": "Designed specifically for AI development, our tool includes features that address the unique challenges of visualizing agent workflows.",
+      "features": [
+        {
+          "title": "Agent-Specific Nodes",
+          "description": "Use specialized symbols for perception, reasoning, action, and memory updates to accurately represent agent internal states."
+        },
+        {
+          "title": "Loop Detection",
+          "description": "Automatically identify potential infinite loops or recursive patterns in your agent's logic that could lead to failures."
+        },
+        {
+          "title": "Multi-Agent Support",
+          "description": "Visualize interactions between multiple agents, showing how they communicate and coordinate to achieve a common goal."
+        },
+        {
+          "title": "Integration Ready",
+          "description": "Compatible with popular agent frameworks, allowing you to import definitions and export diagrams seamlessly."
+        },
+        {
+          "title": "Interactive Editing",
+          "description": "Click and drag to modify the flowchart manually, adding annotations or adjusting the layout for better readability."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "questions": [
+        {
+          "question": "Can I visualize multi-agent systems?",
+          "answer": "Yes, our tool supports visualizing interactions between multiple agents, helping you understand complex coordination patterns."
+        },
+        {
+          "question": "Is it compatible with LangChain or AutoGen?",
+          "answer": "We support importing configurations from popular frameworks to quickly generate flowcharts from your existing code."
+        },
+        {
+          "question": "Can I export the flowchart?",
+          "answer": "Absolutely. You can export your diagrams in various formats including PNG, SVG, and PDF for inclusion in reports and presentations."
+        },
+        {
+          "question": "How detailed can the flowchart be?",
+          "answer": "The level of detail is customizable. You can view a high-level overview or drill down into specific sub-routines and decision logic."
+        }
+      ]
+    }
+  }
+}

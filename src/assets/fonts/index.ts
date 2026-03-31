@@ -1,9 +1,5 @@
-import {
-  Bricolage_Grotesque,
-  Noto_Sans,
-  Noto_Sans_Mono,
-  Noto_Serif,
-} from 'next/font/google';
+import { Noto_Sans, Noto_Sans_Mono, Noto_Serif } from 'next/font/google';
+import localFont from 'next/font/local';
 
 /**
  * 1. Fonts Documentation
@@ -56,10 +52,10 @@ export const fontNotoSansMono = Noto_Sans_Mono({
   weight: ['400'],
 });
 
-// https://fonts.google.com/specimen/Bricolage+Grotesque
-export const fontBricolageGrotesque = Bricolage_Grotesque({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-bricolage-grotesque',
-  weight: ['400', '500', '600', '700'],
-});
+// Gambarino local font - disabled due to corrupted font file
+// export const fontGambarino = localFont({
+//   src: './Gambarino-Regular.woff2',
+//   variable: '--font-gambarino',
+//   weight: '400',
+//   display: 'swap',
+// });

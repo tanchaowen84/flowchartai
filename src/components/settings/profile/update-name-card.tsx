@@ -38,7 +38,7 @@ export function UpdateNameCard({ className }: UpdateNameCardProps) {
   const t = useTranslations('Dashboard.settings.profile');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | undefined>('');
-  const { data: session, refetch } = authClient.useSession();
+  const { data: session } = authClient.useSession();
 
   // Create a schema for name validation
   const formSchema = z.object({
@@ -76,35 +76,13 @@ export function UpdateNameCard({ className }: UpdateNameCardProps) {
       return;
     }
 
-    await authClient.updateUser(
-      {
-        name: values.name,
-      },
-      {
-        onRequest: (ctx) => {
-          // console.log('update name, request:', ctx.url);
-          setIsSaving(true);
-          setError('');
-        },
-        onResponse: (ctx) => {
-          // console.log('update name, response:', ctx.response);
-          setIsSaving(false);
-        },
-        onSuccess: (ctx) => {
-          // update name success, user information stored in ctx.data
-          // console.log("update name, success:", ctx.data);
-          toast.success(t('name.success'));
-          refetch();
-          form.reset();
-        },
-        onError: (ctx) => {
-          // update name fail, display the error message
-          console.error('update name error:', ctx.error);
-          setError(`${ctx.error.status}: ${ctx.error.message}`);
-          toast.error(t('name.fail'));
-        },
-      }
-    );
+    // For Google OAuth, we can't update the user's name through our API
+    // The name is managed by Google
+    toast.info(t('name.fail'));
+    // Reset the form to the original name
+    if (session?.user?.name) {
+      form.setValue('name', session.user.name);
+    }
   };
 
   return (

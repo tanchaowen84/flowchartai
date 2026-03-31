@@ -4,7 +4,7 @@ import { useConsent } from '@/hooks/use-consent';
 import Script from 'next/script';
 
 /**
- * Google AdSense component for FlowchartAI
+ * Google AdSense component for Infogiph
  * Loads the AdSense script for ad serving and site verification
  */
 export function AdSense() {

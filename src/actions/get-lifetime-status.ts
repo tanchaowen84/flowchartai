@@ -42,8 +42,8 @@ export const getLifetimeStatusAction = actionClient
       };
     }
 
-    // Only allow users to check their own status unless they're admins
-    if (session.user.id !== userId && session.user.role !== 'admin') {
+    // Only allow users to check their own status (admin check temporarily disabled)
+    if (session.user.id !== userId) {
       console.warn(
         `current user ${session.user.id} is not authorized to get lifetime status for user ${userId}`
       );

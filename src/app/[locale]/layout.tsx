@@ -1,14 +1,12 @@
 import { Analytics } from '@/analytics/analytics';
-import {
-  fontBricolageGrotesque,
-  fontNotoSans,
-  fontNotoSansMono,
-  fontNotoSerif,
-} from '@/assets/fonts';
+import { fontNotoSans, fontNotoSansMono, fontNotoSerif } from '@/assets/fonts';
 import AffonsoScript from '@/components/affiliate/affonso';
 import PromotekitScript from '@/components/affiliate/promotekit';
 import { AdSense } from '@/components/analytics/adsense';
-import { TailwindIndicator } from '@/components/layout/tailwind-indicator';
+import {
+  OrganizationJsonLd,
+  WebSiteJsonLd,
+} from '@/components/seo/json-ld';
 import { routing } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { type Locale, NextIntlClientProvider, hasLocale } from 'next-intl';
@@ -45,9 +43,11 @@ export default async function LocaleLayout({
   return (
     <html suppressHydrationWarning lang={locale}>
       <head>
-        <AdSense />
+        {/* <AdSense /> */}
         <AffonsoScript />
         <PromotekitScript />
+        <OrganizationJsonLd />
+        <WebSiteJsonLd />
       </head>
       <body
         suppressHydrationWarning
@@ -56,7 +56,7 @@ export default async function LocaleLayout({
           fontNotoSans.className,
           fontNotoSerif.variable,
           fontNotoSansMono.variable,
-          fontBricolageGrotesque.variable
+          fontNotoSans.variable
         )}
       >
         <NextIntlClientProvider>
@@ -64,7 +64,6 @@ export default async function LocaleLayout({
             {children}
 
             <Toaster richColors position="top-right" offset={64} />
-            <TailwindIndicator />
             <Analytics />
           </Providers>
         </NextIntlClientProvider>

@@ -13,6 +13,109 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 
+  // Add CORS headers and API route headers
+  async headers() {
+    return [
+      {
+        source: '/manifest.webmanifest',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
+          },
+        ],
+      },
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://www.infogiph.com',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, X-Requested-With',
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Add redirects for proper domain handling
+  async redirects() {
+    return [
+      // Redirect non-www to www to prevent CORS issues with auth
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'infogiph.com',
+          },
+        ],
+        destination: 'https://www.infogiph.com/:path*',
+        permanent: true,
+      },
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'flowchartai-wine.vercel.app',
+          },
+        ],
+        destination: 'https://www.infogiph.com/:path*',
+        permanent: true,
+      },
+      {
+        source: '/blog/flowchart-symbols',
+        destination: '/blog/flowchart-symbols-guide',
+        permanent: true,
+      },
+      {
+        source: '/:locale/blog/flowchart-symbols',
+        destination: '/:locale/blog/flowchart-symbols-guide',
+        permanent: true,
+      },
+      {
+        source: '/tools/ai-flowchart-generator',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/:locale/tools/ai-flowchart-generator',
+        destination: '/:locale',
+        permanent: true,
+      },
+      {
+        source: '/tools/flowchart-maker-ai',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/:locale/tools/flowchart-maker-ai',
+        destination: '/:locale',
+        permanent: true,
+      },
+    ];
+  },
+
   images: {
     // Cloudflare Workers requires unoptimized images
     unoptimized: true,
@@ -51,41 +154,6 @@ const nextConfig: NextConfig = {
   // Production optimizations
   experimental: {
     optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
-  },
-
-  async redirects() {
-    return [
-      {
-        source: '/blog/flowchart-symbols',
-        destination: '/blog/flowchart-symbols-guide',
-        permanent: true,
-      },
-      {
-        source: '/:locale/blog/flowchart-symbols',
-        destination: '/:locale/blog/flowchart-symbols-guide',
-        permanent: true,
-      },
-      {
-        source: '/tools/ai-flowchart-generator',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/:locale/tools/ai-flowchart-generator',
-        destination: '/:locale',
-        permanent: true,
-      },
-      {
-        source: '/tools/flowchart-maker-ai',
-        destination: '/',
-        permanent: true,
-      },
-      {
-        source: '/:locale/tools/flowchart-maker-ai',
-        destination: '/:locale',
-        permanent: true,
-      },
-    ];
   },
 };
 

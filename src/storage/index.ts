@@ -1,6 +1,7 @@
 import { websiteConfig } from '@/config/website';
 import { storageConfig } from './config/storage-config';
 import { S3Provider } from './provider/s3';
+import { SupabaseProvider } from './provider/supabase';
 import type { StorageConfig, StorageProvider, UploadFileResult } from './types';
 
 const API_STORAGE_UPLOAD = '/api/storage/upload';
@@ -37,6 +38,8 @@ export const initializeStorageProvider = (): StorageProvider => {
   if (!storageProvider) {
     if (websiteConfig.storage.provider === 's3') {
       storageProvider = new S3Provider();
+    } else if (websiteConfig.storage.provider === 'supabase') {
+      storageProvider = new SupabaseProvider();
     } else {
       throw new Error(
         `Unsupported storage provider: ${websiteConfig.storage.provider}`

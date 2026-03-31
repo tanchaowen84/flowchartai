@@ -1,8 +1,8 @@
 {
   "Metadata": {
-    "name": "FlowChart AI",
-    "title": "Flowchart AI: Convert Text & Images to editable Flowcharts",
-    "description": "Transform text and images into stunning flowcharts instantly with our advanced Flowchart AI. Convert documents, descriptions, and visuals into professional diagrams in seconds. Free to try!"
+    "name": "InfoGiph",
+    "title": "InfoGiph: Make interactive infographics for free",
+    "description": "Create stunning animated infographics from your text in seconds. InfoGiph makes sharing your ideas quick, engaging, and effective. Free to try!"
   },
   "Common": {
     "login": "Log in",
@@ -57,10 +57,10 @@
   "PricePlans": {
     "free": {
       "name": "Free",
-      "description": "Start exploring FlowChart AI-powered flowchart generation — for free, forever.",
+      "description": "Start exploring InfoGiph-powered flowchart generation — for free, forever.",
       "features": {
         "feature-1": "1 AI request per day",
-        "feature-2": "FlowChart AI-assisted generation and editing",
+        "feature-2": "InfoGiph-assisted generation and editing",
         "feature-3": "Unlimited diagram storage",
         "feature-4": "Text and image input supported",
         "feature-5": "Community support"
@@ -73,10 +73,10 @@
     },
     "hobby": {
       "name": "Hobby",
-      "description": "Great for individuals who need FlowChart AI-powered flowchart generation on a budget.",
+      "description": "Great for individuals who need InfoGiph-powered flowchart generation on a budget.",
       "features": {
         "feature-1": "100 AI requests per month",
-        "feature-2": "Full access to FlowChart AI agent for generation and editing",
+        "feature-2": "Full access to InfoGiph agent for generation and editing",
         "feature-3": "Unlimited diagram storage",
         "feature-4": "Text and image input supported",
         "feature-5": "Email support (24–48h response, max 7 days)",
@@ -89,10 +89,10 @@
     },
     "professional": {
       "name": "Professional",
-      "description": "Perfect for power users and professionals who want unlimited FlowChart AI access and priority support.",
+      "description": "Perfect for power users and professionals who want unlimited InfoGiph access and priority support.",
       "features": {
         "feature-1": "Unlimited AI requests",
-        "feature-2": "Priority FlowChart AI processing",
+        "feature-2": "Priority InfoGiph processing",
         "feature-3": "Unlimited diagram storage",
         "feature-4": "Real-time AI-assisted editing",
         "feature-5": "Email & technical support (under 24h, max 48h)",
@@ -226,9 +226,9 @@
     }
   },
   "BlogPage": {
-    "title": "Blog",
-    "description": "Latest news and updates from our team",
-    "subtitle": "Latest news and updates from our team",
+    "title": "InfoGiph Blog — Infographic Design Tips & Tutorials",
+    "description": "Learn how to create stunning animated infographics, visual content tips, design tutorials, and best practices from the InfoGiph team.",
+    "subtitle": "Tips, tutorials, and inspiration for visual content creators",
     "author": "Author",
     "categories": "Categories",
     "tableOfContents": "Table of Contents",
@@ -316,7 +316,7 @@
       }
     },
     "footer": {
-      "tagline": "Create beautiful flowcharts with FlowChart AI - fast, intelligent, and effortless",
+      "tagline": "Create beautiful flowcharts with InfoGiph - fast, intelligent, and effortless",
       "product": {
         "title": "Product",
         "items": {
@@ -573,7 +573,7 @@
     "hero": {
       "title": "Create <flow>Flowcharts</flow> with <ai>AI</ai> in Seconds",
       "description": "Convert text, prompts, or images into flowcharts instantly with our free AI Flowchart Generator. Visualize ideas, processes, and workflows in seconds — no design skills needed.",
-      "introduction": "Introducing FlowChart AI",
+      "introduction": "Introducing InfoGiph",
       "primary": "Start Creating",
       "secondary": "See Demo"
     },
@@ -583,14 +583,14 @@
     "tutorials": {
       "title": "FLOWCHART TUTORIALS",
       "subtitle": "Learn faster with guided walkthroughs",
-      "description": "Watch how we diagram real processes, follow along with screenshots, and pick up tips for building better flowcharts in FlowChart AI.",
+      "description": "Watch how we diagram real processes, follow along with screenshots, and pick up tips for building better flowcharts in InfoGiph.",
       "moreTitle": "More tutorials",
       "allLink": "View all tutorials"
     },
     "useCases": {
       "title": "FLOWCHART TEMPLATES",
       "subtitle": "Kickstart your next diagram in one click",
-      "description": "Grab a ready-made template, drop it into the FlowChart AI canvas, and tailor it to your process in minutes.",
+      "description": "Grab a ready-made template, drop it into the InfoGiph canvas, and tailor it to your process in minutes.",
       "tryNow": "Browse templates",
       "items": {
         "item-1": {
@@ -634,7 +634,7 @@
     "demo": {
       "title": "SEE FLOWCHART AI IN ACTION",
       "subtitle": "Choose the path that fits how you work",
-      "description": "FlowChart AI meets you where you are—whether you're jotting down steps, capturing a whiteboard snapshot, or reopening a trusted layout—before the canvas even loads.",
+      "description": "InfoGiph meets you where you are—whether you're jotting down steps, capturing a whiteboard snapshot, or reopening a trusted layout—before the canvas even loads.",
       "tryItNow": "Explore How It Works",
       "features": {
         "feature-1": {
@@ -660,44 +660,44 @@
     "howItWorks": {
       "title": "Start in 3 Easy Steps",
       "subtitle": "No Experience Needed",
-      "description": "FlowChart AI makes creating flowcharts as simple as typing your thoughts. Whether you're a beginner or a pro, you can go from messy ideas to structured diagrams in minutes—without any design tools.",
+      "description": "InfoGiph makes creating flowcharts as simple as typing your thoughts. Whether you're a beginner or a pro, you can go from messy ideas to structured diagrams in minutes—without any design tools.",
       "steps": {
         "step-1": {
           "title": "Just Type What You Need",
-          "description": "Start by describing your process, structure, or system in natural language. FlowChart AI understands what you mean—even if it's not perfectly written.",
+          "description": "Start by describing your process, structure, or system in natural language. InfoGiph understands what you mean—even if it's not perfectly written.",
           "details": [
-            "Describe your workflow in plain English—FlowChart AI handles the diagram generation",
-            "FlowChart AI supports business logic, software systems, and educational use cases",
+            "Describe your workflow in plain English—InfoGiph handles the diagram generation",
+            "InfoGiph supports business logic, software systems, and educational use cases",
             "AI-powered understanding of both concise and complex process descriptions"
           ]
         },
         "step-2": {
-          "title": "FlowChart AI Builds Your Diagram",
-          "description": "FlowChart AI transforms your input into clean, structured flowcharts using intelligent shape detection and layout optimization.",
+          "title": "InfoGiph Builds Your Diagram",
+          "description": "InfoGiph transforms your input into clean, structured flowcharts using intelligent shape detection and layout optimization.",
           "details": [
-            "Automatically generates accurate diagrams with FlowChart AI’s layout engine",
+            "Automatically generates accurate diagrams with InfoGiph’s layout engine",
             "Optimized visual structure for readability and presentation",
-            "No need to manually draw—FlowChart AI does it all for you"
+            "No need to manually draw—InfoGiph does it all for you"
           ]
         },
         "step-3": {
           "title": "Edit, Manage & Save",
-          "description": "Make adjustments using FlowChart AI’s intuitive editor. Save diagrams to your personal workspace, manage your flowcharts, and return to refine or export when needed.",
+          "description": "Make adjustments using InfoGiph’s intuitive editor. Save diagrams to your personal workspace, manage your flowcharts, and return to refine or export when needed.",
           "details": [
-            "Edit using FlowChart AI’s drag-and-drop canvas—fast and intuitive",
-            "Organize all your diagrams in a personal FlowChart AI workspace",
+            "Edit using InfoGiph’s drag-and-drop canvas—fast and intuitive",
+            "Organize all your diagrams in a personal InfoGiph workspace",
             "Export in Excalidraw format; PNG, SVG, and PDF exports coming soon"
           ]
         }
       },
-      "getStarted": "Using FlowChart AI Now"
+      "getStarted": "Using InfoGiph Now"
     },
     "aiCapabilities": {
       "title": "IMAGE TO FLOWCHART",
       "subtitle": "Turn screenshots, scans, and scribbles into editable diagrams",
-      "description": "Upload any image, diagram, or hand-drawn sketch — FlowChart AI instantly detects shapes, arrows, and text to rebuild it as an editable flowchart. Convert screenshots, scanned documents, or whiteboard photos into structured, digital diagrams you can refine, export, and share.",
+      "description": "Upload any image, diagram, or hand-drawn sketch — InfoGiph instantly detects shapes, arrows, and text to rebuild it as an editable flowchart. Convert screenshots, scanned documents, or whiteboard photos into structured, digital diagrams you can refine, export, and share.",
       "sideTitle": "Why it feels effortless",
-      "sideDescription": "Skip the tedious redrawing phase—FlowChart AI recognizes your rough inputs and returns a polished, editable diagram ready for the next review.",
+      "sideDescription": "Skip the tedious redrawing phase—InfoGiph recognizes your rough inputs and returns a polished, editable diagram ready for the next review.",
       "workflowTitle": "HOW IT WORKS",
       "workflow": {
         "step-1": "Upload any snapshot or export (PNG, JPG, WEBP, GIF)",
@@ -709,7 +709,7 @@
         "items": [
           {
             "title": "Whiteboard Sketch",
-            "description": "Snap a photo of your brainstorm wall and let FlowChart AI clean it up into a tidy, editable flowchart.",
+            "description": "Snap a photo of your brainstorm wall and let InfoGiph clean it up into a tidy, editable flowchart.",
             "ctaLabel": "Convert This Image",
             "ctaPrompt": "Whiteboard photo of a sprint planning workflow with columns for todo, in progress, qa, done. Rebuild a clean editable flowchart from it."
           },
@@ -729,9 +729,9 @@
       }
     },
     "comparison": {
-      "title": "Why Choose FlowChart AI?",
+      "title": "Why Choose InfoGiph?",
       "subtitle": "See the Difference",
-      "description": "Compare FlowChart AI with traditional flowchart tools and see why professionals choose us.",
+      "description": "Compare InfoGiph with traditional flowchart tools and see why professionals choose us.",
       "traditional": {
         "title": "Traditional Tools",
         "subtitle": "Time-consuming and complex",
@@ -745,7 +745,7 @@
         "item-8": "Platform-specific compatibility issues"
       },
       "flowchartAi": {
-        "title": "FlowChart AI",
+        "title": "InfoGiph",
         "subtitle": "Fast, intelligent, and intuitive",
         "item-1": "Generate flowcharts in seconds with AI",
         "item-2": "Natural language input - no training needed",
@@ -798,7 +798,7 @@
     "features": {
       "title": "TEXT TO FLOWCHART",
       "subtitle": "Turn plain text into professional flowcharts in seconds",
-      "description": "Paste your notes, instructions, or ideas — FlowChart AI automatically detects steps, decisions, and connections to create a clear structured flow you can edit instantly.",
+      "description": "Paste your notes, instructions, or ideas — InfoGiph automatically detects steps, decisions, and connections to create a clear structured flow you can edit instantly.",
       "items": {
         "item-1": {
           "title": "Describe the steps once",
@@ -810,7 +810,7 @@
         },
         "item-3": {
           "title": "Polish it on the canvas",
-          "description": "Rename shapes, drag nodes, or merge paths—the canvas reacts in real time, so FlowChart AI understands your tweaks without another request."
+          "description": "Rename shapes, drag nodes, or merge paths—the canvas reacts in real time, so InfoGiph understands your tweaks without another request."
         },
         "item-4": {
           "title": "Reuse it everywhere",
@@ -818,7 +818,7 @@
         }
       },
       "overviewTitle": "Why using text to make flowcharts?",
-      "overviewDescription": "Flowchart AI turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter.",
+      "overviewDescription": "InfoGiph turns a quick description into a clear first draft, so you skip blank canvases and go straight to tweaks that matter.",
       "examplesSection": {
         "title": "Text to Flowchart Examples",
         "items": [
@@ -889,15 +889,15 @@
     "pricing": {
       "title": "Pricing",
       "subtitle": "Pricing",
-      "description": "Choose the plan that works best for you and unlock FlowChart AI features that match your team’s pace"
+      "description": "Choose the plan that works best for you and unlock InfoGiph features that match your team’s pace"
     },
     "faqs": {
       "title": "FAQ",
       "subtitle": "Frequently Asked Questions",
       "items": {
         "item-1": {
-          "question": "Is there a free version of FlowChart AI?",
-          "answer": "Yes. FlowChart AI is open-sourced under the MIT License and available on GitHub. You can self-host and modify it freely. We also offer a free tier — every registered user can generate one AI flowchart per day for free."
+          "question": "Is there a free version of InfoGiph?",
+          "answer": "Yes. InfoGiph is open-sourced under the MIT License and available on GitHub. You can self-host and modify it freely. We also offer a free tier — every registered user can generate one AI flowchart per day for free."
         },
         "item-2": {
           "question": "What formats can I export my diagrams to?",
@@ -905,31 +905,31 @@
         },
         "item-3": {
           "question": "Can I manage my flowcharts and access them later?",
-          "answer": "Yes. FlowChart AI provides a personal workspace where you can save, manage, and edit your flowcharts anytime, from anywhere."
+          "answer": "Yes. InfoGiph provides a personal workspace where you can save, manage, and edit your flowcharts anytime, from anywhere."
         },
         "item-4": {
-          "question": "What AI capabilities does FlowChart AI offer?",
-          "answer": "FlowChart AI allows users to describe their processes or workflows in natural language. The AI interprets the input, handles intelligent layout and diagram structure, and generates editable flowcharts accordingly."
+          "question": "What AI capabilities does InfoGiph offer?",
+          "answer": "InfoGiph allows users to describe their processes or workflows in natural language. The AI interprets the input, handles intelligent layout and diagram structure, and generates editable flowcharts accordingly."
         },
         "item-5": {
           "question": "How can I upgrade or change my plan?",
           "answer": "Yes. You can freely upgrade, downgrade, or cancel your plan through your account's billing settings."
         },
         "item-6": {
-          "question": "How complex of a flowchart can FlowChart AI generate?",
+          "question": "How complex of a flowchart can InfoGiph generate?",
           "answer": "There is no strict limit on the complexity of flowcharts. The actual capability depends on the content and structure of your input."
         },
         "item-7": {
           "question": "How do I write effective prompts?",
-          "answer": "Use clear natural language and structured steps. You may optionally upload reference images to aid AI understanding. FlowChart AI will then convert your input into a structured diagram."
+          "answer": "Use clear natural language and structured steps. You may optionally upload reference images to aid AI understanding. InfoGiph will then convert your input into a structured diagram."
         },
         "item-8": {
           "question": "Can teams collaborate on flowcharts?",
-          "answer": "Currently, FlowChart AI is built for individual use. Team collaboration and shared workspaces are part of our future roadmap."
+          "answer": "Currently, InfoGiph is built for individual use. Team collaboration and shared workspaces are part of our future roadmap."
         },
         "item-9": {
           "question": "Can I generate diagrams from uploaded documents?",
-          "answer": "At the moment, FlowChart AI supports text and image inputs only. Support for document uploads including PDF, Markdown, and other formats is under active development."
+          "answer": "At the moment, InfoGiph supports text and image inputs only. Support for document uploads including PDF, Markdown, and other formats is under active development."
         }
       }
     },
@@ -1029,7 +1029,7 @@
     },
     "calltoaction": {
       "title": "Ready to Create Amazing Flowcharts?",
-      "description": "Join thousands of users who are already creating professional diagrams with FlowChart AI",
+      "description": "Join thousands of users who are already creating professional diagrams with InfoGiph",
       "primaryButton": "Start Creating",
       "secondaryButton": "Learn More"
     }

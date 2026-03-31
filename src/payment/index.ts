@@ -1,6 +1,5 @@
 import { websiteConfig } from '@/config/website';
 import { CreemProvider } from './provider/creem';
-import { StripeProvider } from './provider/stripe';
 import type {
   CheckoutResult,
   CreateCheckoutParams,
@@ -34,9 +33,7 @@ export const getPaymentProvider = (): PaymentProvider => {
  */
 export const initializePaymentProvider = (): PaymentProvider => {
   if (!paymentProvider) {
-    if (websiteConfig.payment.provider === 'stripe') {
-      paymentProvider = new StripeProvider();
-    } else if (websiteConfig.payment.provider === 'creem') {
+    if (websiteConfig.payment.provider === 'creem') {
       paymentProvider = new CreemProvider();
     } else {
       throw new Error(

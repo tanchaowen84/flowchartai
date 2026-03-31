@@ -7,7 +7,7 @@
 const https = require('https');
 
 // CDN 基础 URL
-const CDN_BASE_URL = 'https://cdn.flowchartai.org/static';
+const CDN_BASE_URL = 'https://cdn.infogiph.com/static';
 
 // 新添加的图片列表
 const NEW_IMAGES = [

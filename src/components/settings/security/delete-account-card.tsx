@@ -36,7 +36,7 @@ export function DeleteAccountCard() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [error, setError] = useState<string | undefined>('');
-  const { data: session, refetch } = authClient.useSession();
+  const { data: session } = authClient.useSession();
   const router = useLocaleRouter();
 
   // Check if user exists
@@ -47,33 +47,18 @@ export function DeleteAccountCard() {
 
   // Handle account deletion
   const handleDeleteAccount = async () => {
-    await authClient.deleteUser(
-      {},
-      {
-        onRequest: () => {
-          setIsDeleting(true);
-          setError('');
-        },
-        onResponse: () => {
-          setIsDeleting(false);
-          setShowConfirmation(false);
-        },
-        onSuccess: () => {
-          toast.success(t('success'));
-          refetch();
-          router.replace('/');
-        },
-        onError: (ctx) => {
-          console.error('delete account error:', ctx.error);
-          // { "message": "Session expired. Re-authenticate to perform this action.",
-          // "code": "SESSION_EXPIRED_REAUTHENTICATE_TO_PERFORM_THIS_ACTION",
-          // "status": 400, "statusText": "BAD_REQUEST" }
-          // set freshAge to 0 to disable session refreshness check for user deletion
-          setError(`${ctx.error.status}: ${ctx.error.message}`);
-          toast.error(t('fail'));
-        },
-      }
-    );
+    try {
+      // For Google OAuth, we can't delete the user through our API
+      // Users need to delete their account through Google's account settings
+      toast.info(t('fail'));
+      setShowConfirmation(false);
+    } catch (error) {
+      console.error('delete account error:', error);
+      setError(error instanceof Error ? error.message : t('fail'));
+      toast.error(t('fail'));
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (

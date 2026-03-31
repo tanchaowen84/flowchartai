@@ -80,9 +80,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency = 'monthly';
       }
 
-      return routing.locales.map((locale) => ({
-        url: getUrl(route, locale),
-        lastModified: new Date(),
+      return getEntries(route).map((entry) => ({
+        ...entry,
+        lastModified: new Date('2026-03-30'),
         priority,
         changeFrequency,
       }));
@@ -94,9 +94,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const docsParams = source.generateParams();
     sitemapList.push(
       ...docsParams.flatMap((param) =>
-        routing.locales.map((locale) => ({
-          url: getUrl(`/docs/${param.slug.join('/')}`, locale),
-          lastModified: new Date(),
+        getEntries(`/docs/${param.slug.join('/')}`).map((entry) => ({
+          ...entry,
+          lastModified: new Date('2026-03-30'),
           priority: 0.8,
           changeFrequency: 'weekly' as const,
         }))
@@ -109,8 +109,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (publishedPosts.length > 0) {
     sitemapList.push(
       ...publishedPosts.flatMap((post) =>
-        routing.locales.map((locale) => ({
-          url: getUrl(post.slug, locale),
+        getEntries(post.slug).map((entry) => ({
+          ...entry,
           lastModified: new Date(post.date),
           priority: 0.7,
           changeFrequency: 'weekly' as const,

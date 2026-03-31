@@ -22,10 +22,7 @@ export enum Routes {
 
   // auth routes
   Login = '/auth/login',
-  Register = '/auth/register',
   AuthError = '/auth/error',
-  ForgotPassword = '/auth/forgot-password',
-  ResetPassword = '/auth/reset-password',
 
   // dashboard routes
   Dashboard = '/dashboard',
@@ -45,7 +42,7 @@ export enum Routes {
 /**
  * The routes that can not be accessed by logged in users
  */
-export const routesNotAllowedByLoggedInUsers = [Routes.Login, Routes.Register];
+export const routesNotAllowedByLoggedInUsers = [Routes.Login];
 
 /**
  * The routes that are protected and require authentication

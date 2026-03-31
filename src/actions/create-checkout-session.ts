@@ -70,7 +70,7 @@ export const createCheckoutAction = actionClient
       const customMetadata = {
         ...metadata,
         userId: session.user.id,
-        userName: session.user.name,
+        userName: session.user.name || '',
       };
 
       // Create the checkout session with localized URLs
@@ -82,7 +82,7 @@ export const createCheckoutAction = actionClient
       const params: CreateCheckoutParams = {
         planId,
         priceId,
-        customerEmail: session.user.email,
+        customerEmail: session.user.email || '',
         metadata: customMetadata,
         successUrl,
         cancelUrl,

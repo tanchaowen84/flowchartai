@@ -77,38 +77,10 @@ export function UpdatePasswordCard({ className }: UpdatePasswordCardProps) {
 
   // Handle form submission
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    await authClient.changePassword(
-      {
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-        revokeOtherSessions: true,
-      },
-      {
-        onRequest: (ctx) => {
-          // console.log('update password, request:', ctx.url);
-          setIsSaving(true);
-          setError('');
-        },
-        onResponse: (ctx) => {
-          // console.log('update password, response:', ctx.response);
-          setIsSaving(false);
-        },
-        onSuccess: (ctx) => {
-          // update password success, user information stored in ctx.data
-          // console.log("update password, success:", ctx.data);
-          toast.success(t('success'));
-          router.refresh();
-          form.reset();
-        },
-        onError: (ctx) => {
-          // update password fail, display the error message
-          // { "message": "Invalid password", "code": "INVALID_PASSWORD", "status": 400, "statusText": "BAD_REQUEST" }
-          console.error('update password error:', ctx.error);
-          setError(`${ctx.error.status}: ${ctx.error.message}`);
-          toast.error(t('fail'));
-        },
-      }
-    );
+    // For Google OAuth, we can't update the password through our API
+    // Users need to manage their password through Google's account settings
+    toast.info(t('fail'));
+    form.reset();
   };
 
   return (

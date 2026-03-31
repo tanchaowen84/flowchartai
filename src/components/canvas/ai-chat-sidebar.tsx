@@ -225,9 +225,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (!canUseAI) {
       // Check if it's a daily limit for free users
       if (usageData?.timeFrame === 'daily') {
-        console.log(
-          '🎯 Daily limit detected - showing PricingModal directly'
-        );
+        console.log('🎯 Daily limit detected - showing PricingModal directly');
         // Set daily limit context and show pricing modal directly
         setDailyLimitUsageInfo({
           timeFrame: 'daily',
@@ -887,9 +885,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (!canUseAI) {
       // Check if it's a daily limit for free users
       if (usageData?.timeFrame === 'daily') {
-        console.log(
-          '🎯 Daily limit detected - showing PricingModal directly'
-        );
+        console.log('🎯 Daily limit detected - showing PricingModal directly');
         // Set daily limit context and show pricing modal directly
         setDailyLimitUsageInfo({
           timeFrame: 'daily',
@@ -1384,9 +1380,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <h2 className="text-base font-medium text-gray-900">
-              FlowChart AI
-            </h2>
+            <h2 className="text-base font-medium text-gray-900">InfoGiph</h2>
             <Button
               onClick={handleNewConversation}
               variant="outline"
@@ -1624,7 +1618,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           <DialogHeader className="hidden">
             <DialogTitle>Sign In</DialogTitle>
           </DialogHeader>
-          <LoginForm callbackUrl={loginCallbackUrl || currentPath} className="border-none" />
+          <LoginForm
+            callbackUrl={loginCallbackUrl || currentPath}
+            className="border-none"
+          />
         </DialogContent>
       </Dialog>
 

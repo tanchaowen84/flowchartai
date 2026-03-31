@@ -14,7 +14,16 @@ import { getAvatarLinks } from '@/config/avatar-config';
 import { LocaleLink, useLocaleRouter } from '@/i18n/navigation';
 import { authClient } from '@/lib/auth-client';
 import { usePaymentStore } from '@/stores/payment-store';
-import type { User } from 'better-auth';
+// import type { User } from 'better-auth';
+import type { Session } from 'next-auth';
+
+// Define a simplified User type for NextAuth.js
+interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+}
 import { LogOutIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -36,28 +45,24 @@ export function UserButtonMobile({ user }: UserButtonProps) {
   };
 
   const handleSignOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          console.log('sign out success');
-          // Reset payment state on sign out
-          resetState();
-          localeRouter.replace('/');
-        },
-        onError: (error) => {
-          console.error('sign out error:', error);
-          toast.error(t('Common.logoutFailed'));
-        },
-      },
-    });
+    try {
+      await authClient.signOut();
+      console.log('sign out success');
+      // Reset payment state on sign out
+      resetState();
+      localeRouter.replace('/');
+    } catch (error: any) {
+      console.error('sign out error:', error);
+      toast.error(t('Common.logoutFailed'));
+    }
   };
 
   return (
     <Drawer open={open} onClose={closeDrawer}>
       <DrawerTrigger onClick={() => setOpen(true)}>
         <UserAvatar
-          name={user.name}
-          image={user.image}
+          name={user.name ?? ''}
+          image={user.image ?? ''}
           className="size-8 border cursor-pointer"
         />
       </DrawerTrigger>
@@ -72,14 +77,14 @@ export function UserButtonMobile({ user }: UserButtonProps) {
           </DrawerHeader>
           <div className="flex items-center justify-start gap-4 p-2">
             <UserAvatar
-              name={user.name}
-              image={user.image}
+              name={user.name ?? ''}
+              image={user.image ?? ''}
               className="size-8 border cursor-pointer"
             />
             <div className="flex flex-col">
-              <p className="font-medium">{user.name}</p>
+              <p className="font-medium">{user.name ?? ''}</p>
               <p className="w-[200px] truncate text-muted-foreground">
-                {user.email}
+                {user.email ?? ''}
               </p>
             </div>
           </div>

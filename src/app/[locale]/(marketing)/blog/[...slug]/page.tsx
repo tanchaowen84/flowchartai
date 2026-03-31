@@ -2,6 +2,10 @@ import AllPostsButton from '@/components/blog/all-posts-button';
 import BlogGrid from '@/components/blog/blog-grid';
 import { BlogToc } from '@/components/blog/blog-toc';
 import { NewsletterCard } from '@/components/newsletter/newsletter-card';
+import {
+  BlogPostingJsonLd,
+  BreadcrumbJsonLd,
+} from '@/components/seo/json-ld';
 import { CustomMDXContent } from '@/components/shared/custom-mdx-content';
 import { websiteConfig } from '@/config/website';
 import { LocaleLink } from '@/i18n/navigation';
@@ -122,8 +126,25 @@ export default async function BlogPostPage(props: BlogPostPageProps) {
   // get related posts
   const relatedPosts = await getRelatedPosts(post);
 
+  const canonicalUrl = getUrlWithLocale(post.slug, locale);
+
   return (
     <div className="flex flex-col gap-8">
+      <BlogPostingJsonLd
+        title={post.title}
+        description={post.description}
+        url={canonicalUrl}
+        datePublished={post.date}
+        image={post.image}
+        authorName={post.author?.name}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: 'Home', href: '/' },
+          { name: 'Blog', href: '/blog' },
+          { name: post.title, href: post.slug },
+        ]}
+      />
       {/* content section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* left column (blog post content) */}

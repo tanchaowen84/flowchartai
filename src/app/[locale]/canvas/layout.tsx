@@ -14,7 +14,7 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: 'CanvasPage' });
 
   return constructMetadata({
-    title: `${t('title')} - FlowChart AI`,
+    title: `${t('title')} - InfoGiph`,
     description: t('description'),
     canonicalUrl: getUrlWithLocale('/canvas', locale),
     noIndex: true,

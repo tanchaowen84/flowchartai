@@ -25,7 +25,6 @@ export const websiteConfig: WebsiteConfig = {
     social: {
       github: 'https://github.com/tanchaowen84/flowchartai',
       twitter: 'https://x.com/tanchaowen84',
-      discord: 'https://discord.gg/EhuSZNHNQh',
     },
   },
   features: {
@@ -40,7 +39,7 @@ export const websiteConfig: WebsiteConfig = {
     defaultLoginRedirect: '/dashboard',
   },
   analytics: {
-    enableVercelAnalytics: false,
+    enableVercelAnalytics: true,
     enableSpeedInsights: false,
   },
   auth: {
@@ -67,8 +66,8 @@ export const websiteConfig: WebsiteConfig = {
   },
   mail: {
     provider: 'resend',
-    fromEmail: 'FlowChart AI <noreply@flowchartai.org>',
-    supportEmail: 'FlowChart AI Support <support@flowchartai.org>',
+    fromEmail: 'InfoGiph <noreply@infogiph.com>',
+    supportEmail: 'InfoGiph Support <support@infogiph.com>',
   },
   newsletter: {
     provider: 'resend',

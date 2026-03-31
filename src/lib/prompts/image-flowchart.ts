@@ -1,4 +1,4 @@
-export const IMAGE_TO_FLOWCHART_PROMPT = `You are FlowChart AI. The user will provide a single image that should contain a process flow diagram.
+export const IMAGE_TO_FLOWCHART_PROMPT = `You are InfoGiph. The user will provide a single image that should contain a process flow diagram.
 
 Goals:
 1. Detect the diagram style shown in the image.

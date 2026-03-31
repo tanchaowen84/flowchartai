@@ -1,4 +1,4 @@
-import ExcalidrawWrapper from '@/components/canvas/excalidraw-wrapper';
+import EditFlowchartClient from './client-page';
 
 interface EditFlowchartPageProps {
   params: Promise<{
@@ -12,18 +12,12 @@ export default async function EditFlowchartPage({
 }: EditFlowchartPageProps) {
   const { id } = await params;
 
-  return (
-    <div className="h-screen w-screen">
-      <ExcalidrawWrapper flowchartId={id} />
-    </div>
-  );
+  return <EditFlowchartClient flowchartId={id} />;
 }
 
 export async function generateMetadata({ params }: EditFlowchartPageProps) {
-  const { id } = await params;
-
   return {
-    title: 'Edit Flowchart - FlowChart AI',
+    title: 'Edit Flowchart - InfoGiph',
     description: 'Edit your flowchart with AI assistance',
     robots: {
       index: false,

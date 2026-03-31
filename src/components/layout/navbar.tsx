@@ -256,18 +256,6 @@ export function Navbar({ scroll }: NavBarProps) {
                     {t('Common.login')}
                   </Button>
                 </LoginWrapper>
-
-                <LocaleLink
-                  href={Routes.Register}
-                  className={cn(
-                    buttonVariants({
-                      variant: 'default',
-                      size: 'sm',
-                    })
-                  )}
-                >
-                  {t('Common.signUp')}
-                </LocaleLink>
               </div>
             )}
 

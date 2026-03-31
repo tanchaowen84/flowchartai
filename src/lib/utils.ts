@@ -1,14 +1,14 @@
 import type { AiAssistantMode } from '@/lib/ai-modes';
 import { authClient } from '@/lib/auth-client';
-import type { ClassValue } from 'clsx';
-import { clsx } from 'clsx';
 import {
   buildCallbackUrl,
   generateStateId,
   savePendingFlowchartData,
 } from '@/lib/flowchart-callback-handler';
-import { twMerge } from 'tailwind-merge';
+import type { ClassValue } from 'clsx';
+import { clsx } from 'clsx';
 import { toast } from 'sonner';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -56,7 +56,10 @@ export async function startFlowchartSession({
     }
 
     if (imagePayload) {
-      localStorage.setItem('flowchart_auto_image', JSON.stringify(imagePayload));
+      localStorage.setItem(
+        'flowchart_auto_image',
+        JSON.stringify(imagePayload)
+      );
     } else {
       localStorage.removeItem('flowchart_auto_image');
     }
@@ -83,7 +86,9 @@ export async function startFlowchartSession({
     router.push('/canvas');
   } else {
     // Guest用户：保存状态并显示登录模态框
-    console.log('🎯 Guest user detected in startFlowchartSession - redirecting to login');
+    console.log(
+      '🎯 Guest user detected in startFlowchartSession - redirecting to login'
+    );
 
     try {
       const stateId = generateStateId();
@@ -119,7 +124,6 @@ export async function startFlowchartSession({
       router.push(loginUrl);
 
       console.log('✅ Pending data saved and redirecting to login');
-
     } catch (error) {
       console.error('Error saving pending data:', error);
       toast.error('Failed to prepare your request. Please try again.');

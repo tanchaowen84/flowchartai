@@ -8,8 +8,8 @@ import { VerifyEmail } from './templates/verify-email';
  * list all the email templates here
  */
 export const EmailTemplates = {
-  forgotPassword: ForgotPassword,
   verifyEmail: VerifyEmail,
+  forgotPassword: ForgotPassword,
   subscribeNewsletter: SubscribeNewsletter,
   contactMessage: ContactMessage,
 } as const;

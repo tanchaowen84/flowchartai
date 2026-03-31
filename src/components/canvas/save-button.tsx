@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import { useFlowchartSave } from '@/hooks/use-flowchart-save';
+import { cn } from '@/lib/utils';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { AlertCircle, Check, Loader2, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 
 interface SaveButtonProps {
   excalidrawAPI: ExcalidrawImperativeAPI | null;
@@ -91,19 +91,21 @@ export function SaveButton({
   };
 
   return (
-    <div className={isMerged ? "contents" : "flex flex-col items-end"}>
+    <div className={isMerged ? 'contents' : 'flex flex-col items-end'}>
       <Button
         onClick={handleSave}
         disabled={saving || !excalidrawAPI}
         variant={getVariant()}
         size="sm"
         className={cn(
-          "gap-2 transition-all duration-200",
-          isMerged && "h-9 px-4 rounded-r-lg rounded-l-none border-0"
+          'gap-2 transition-all duration-200',
+          isMerged && 'h-9 px-4 rounded-r-lg rounded-l-none border-0'
         )}
       >
         {getIcon()}
-        <span className={isMerged ? "text-sm font-medium" : ""}>{getText()}</span>
+        <span className={isMerged ? 'text-sm font-medium' : ''}>
+          {getText()}
+        </span>
       </Button>
 
       {/* Show error message */}

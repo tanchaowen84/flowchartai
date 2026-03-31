@@ -30,7 +30,7 @@ export function UpdateAvatarCard({ className }: UpdateAvatarCardProps) {
   const t = useTranslations('Dashboard.settings.profile');
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | undefined>('');
-  const { data: session, refetch } = authClient.useSession();
+  const { data: session } = authClient.useSession();
   const [avatarUrl, setAvatarUrl] = useState('');
   const [tempAvatarUrl, setTempAvatarUrl] = useState('');
 
@@ -76,37 +76,13 @@ export function UpdateAvatarCard({ className }: UpdateAvatarCardProps) {
       const { url } = result;
       console.log('uploadFileFromBrowser, url', url);
 
-      // Update the user's avatar using authClient
-      await authClient.updateUser(
-        {
-          image: url,
-        },
-        {
-          onRequest: () => {
-            // console.log('update avatar, request:', ctx.url);
-          },
-          onResponse: () => {
-            // console.log('update avatar, response:', ctx.response);
-          },
-          onSuccess: () => {
-            // console.log('update avatar, success:', ctx.data);
-            // Set the permanent avatar URL on success
-            setAvatarUrl(url);
-            toast.success(t('avatar.success'));
-            // Refetch the session to get the latest data
-            refetch();
-          },
-          onError: (ctx) => {
-            console.error('update avatar error:', ctx.error);
-            setError(`${ctx.error.status}: ${ctx.error.message}`);
-            // Restore the previous avatar on error
-            if (session?.user?.image) {
-              setAvatarUrl(session.user.image);
-            }
-            toast.error(t('avatar.fail'));
-          },
-        }
-      );
+      // For Google OAuth, we can't update the user's avatar through our API
+      // The avatar is managed by Google
+      toast.info(t('avatar.fail'));
+      // Restore the Google avatar
+      if (session?.user?.image) {
+        setAvatarUrl(session.user.image);
+      }
     } catch (error) {
       console.error('update avatar error:', error);
       setError(error instanceof Error ? error.message : t('avatar.fail'));
@@ -142,7 +118,7 @@ export function UpdateAvatarCard({ className }: UpdateAvatarCardProps) {
         <div className="flex flex-col items-center sm:flex-row gap-4 sm:gap-8">
           {/* avatar */}
           <Avatar className="h-16 w-16 border">
-            <AvatarImage src={avatarUrl ?? ''} alt={user.name} />
+            <AvatarImage src={avatarUrl ?? ''} alt={user.name ?? ''} />
             <AvatarFallback>
               <User2Icon className="h-8 w-8 text-muted-foreground" />
             </AvatarFallback>
