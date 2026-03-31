@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Star, Sun } from 'lucide-react';
 import { useState } from 'react';
+import { GalleryDiagram, GALLERY_DIAGRAMS, OrgChartDiagram } from './gallery-diagram';
 
 const TESTIMONIALS = [
   {
@@ -48,20 +49,24 @@ export function InfogiphTestimonials() {
           </h2>
         </div>
 
-        {/* Gallery Grid (Simplified Mock) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-32">
-          {[1, 2, 3].map((i) => (
+        {/* Gallery Grid - Animated Infographic Diagrams */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-32">
+          {GALLERY_DIAGRAMS.map((diagram) => (
             <div
-              key={i}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 h-64 flex flex-col items-center justify-center p-6 hover:shadow-md transition-shadow"
+              key={diagram.label}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 h-64 flex flex-col items-center justify-center overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
             >
-              <div className="w-full h-full border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50">
-                <span className="text-gray-400 font-medium">
-                  Sample Diagram {i}
-                </span>
-              </div>
+              <GalleryDiagram
+                data={diagram.data}
+                accentColor={diagram.accentColor}
+                label={diagram.label}
+              />
             </div>
           ))}
+          {/* Org Chart Diagram */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 h-auto min-h-64 flex flex-col items-center justify-center overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+            <OrgChartDiagram />
+          </div>
         </div>
 
         {/* Testimonials Section */}
