@@ -27,6 +27,14 @@ import type {
   ExcalidrawInitialDataState,
 } from '@excalidraw/excalidraw/types';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   AlertCircle,
   Check,
   Copy,
@@ -38,7 +46,6 @@ import {
   User,
   XIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import AiChatSidebar from './ai-chat-sidebar';
@@ -556,7 +563,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       <div className="h-screen w-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2Icon className="animate-spin h-12 w-12 text-primary" />
-          <p className="text-lg text-gray-600">Loading flowchart...</p>
+          <p className="text-lg text-muted-foreground">Loading flowchart...</p>
         </div>
       </div>
     );
@@ -568,10 +575,10 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       <div className="h-screen w-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <div className="text-red-500 text-6xl">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800">
+          <h2 className="text-2xl font-bold text-foreground">
             Failed to Load Flowchart
           </h2>
-          <p className="text-gray-600">{error}</p>
+          <p className="text-muted-foreground">{error}</p>
           <Button onClick={() => router.push('/dashboard')} variant="outline">
             Back to Dashboard
           </Button>
@@ -778,124 +785,79 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       )}
 
       {/* Export Modal */}
-      <AnimatePresence>
-        {isExportModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={() => setIsExportModalOpen(false)}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="relative mx-4 w-full max-w-md bg-white rounded-xl border-2 border-white shadow-xl md:mx-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <motion.button
-                className="absolute -top-16 right-0 rounded-full bg-neutral-900/50 p-2 text-xl text-white ring-1 backdrop-blur-md hover:bg-neutral-900/70 transition-colors"
-                onClick={() => setIsExportModalOpen(false)}
-              >
-                <XIcon className="size-5" />
-              </motion.button>
+      <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export Flowchart</DialogTitle>
+            <DialogDescription>
+              Choose your preferred export format
+            </DialogDescription>
+          </DialogHeader>
 
-              {/* Export options content */}
-              <div className="p-5">
-                <div className="pb-3">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Export Flowchart
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Choose your preferred export format
-                  </p>
-                </div>
-
-                {/* Export status */}
-                {exportStatus === 'success' && (
-                  <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-md">
-                    <div className="flex items-center gap-2 text-green-800">
-                      <Check className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        Export successful!
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {exportStatus === 'error' && (
-                  <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
-                    <div className="flex items-center gap-2 text-red-800">
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm font-medium">{exportError}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid gap-2 pb-4">
-                  {exportFormats.map((format) => (
-                    <Card
-                      key={format.id}
-                      className={cn(
-                        'cursor-pointer transition-all duration-200 hover:shadow-sm',
-                        selectedFormat === format.id
-                          ? 'border-blue-500 bg-blue-50 shadow-sm'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      )}
-                      onClick={() => setSelectedFormat(format.id)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">
-                              {format.title}
-                            </h3>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {format.description}
-                            </p>
-                          </div>
-                          {selectedFormat === format.id && (
-                            <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
-                              <Check className="w-2.5 h-2.5 text-white" />
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsExportModalOpen(false)}
-                    disabled={isExporting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => handleExportWithModal(selectedFormat)}
-                    disabled={isExporting}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isExporting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Exporting...
-                      </>
-                    ) : (
-                      `Export ${exportFormats.find((f) => f.id === selectedFormat)?.title}`
-                    )}
-                  </Button>
-                </div>
+          {exportStatus === 'success' && (
+            <div className="p-2 bg-green-50 border border-green-200 rounded-md dark:bg-green-950/30 dark:border-green-800">
+              <div className="flex items-center gap-2 text-green-800 dark:text-green-300">
+                <Check className="w-4 h-4" />
+                <span className="text-sm font-medium">Export successful!</span>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          )}
+
+          {exportStatus === 'error' && (
+            <div className="p-2 bg-red-50 border border-red-200 rounded-md dark:bg-red-950/30 dark:border-red-800">
+              <div className="flex items-center gap-2 text-red-800 dark:text-red-300">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">{exportError}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-2">
+            {exportFormats.map((format) => (
+              <Card
+                key={format.id}
+                className={cn(
+                  'cursor-pointer transition-all duration-200 hover:shadow-sm',
+                  selectedFormat === format.id
+                    ? 'border-primary bg-primary/5 shadow-sm'
+                    : 'hover:border-muted-foreground/30'
+                )}
+                onClick={() => setSelectedFormat(format.id)}
+              >
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-sm">{format.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{format.description}</p>
+                    </div>
+                    {selectedFormat === format.id && (
+                      <div className="w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportModalOpen(false)} disabled={isExporting}>
+              Cancel
+            </Button>
+            <Button onClick={() => handleExportWithModal(selectedFormat)} disabled={isExporting}>
+              {isExporting ? (
+                <>
+                  <Loader2Icon className="w-4 h-4 animate-spin mr-2" />
+                  Exporting...
+                </>
+              ) : (
+                `Export ${exportFormats.find((f) => f.id === selectedFormat)?.title}`
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* AI Chat Sidebar */}
       <AiChatSidebar
