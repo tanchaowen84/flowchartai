@@ -11,12 +11,14 @@ import { HowItWorksSection } from '@/components/blocks/how-it-works';
 import PricingSection from '@/components/blocks/pricing/pricing';
 import { TutorialsSection } from '@/components/blocks/tutorials';
 import { UseCasesSection } from '@/components/blocks/use-cases';
+import { JsonLd } from '@/components/seo/json-ld';
+import { websiteConfig } from '@/config/website';
+import { defaultMessages } from '@/i18n/messages';
 import { constructMetadata } from '@/lib/metadata';
-import { getUrlWithLocale } from '@/lib/urls/urls';
+import { getImageUrl, getUrlWithLocale } from '@/lib/urls/urls';
 import type { Metadata } from 'next';
 import type { Locale } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
-import Script from 'next/script';
 
 /**
  * https://next-intl.dev/docs/environments/actions-metadata-route-handlers#metadata-api
@@ -44,6 +46,25 @@ export default async function HomePage(props: HomePageProps) {
   const params = await props.params;
   const { locale } = params;
   const t = await getTranslations('HomePage');
+  const homePageUrl = getUrlWithLocale('', locale);
+  const organizationLogoUrl = getImageUrl(
+    websiteConfig.metadata.images?.logoLight || '/logo.png'
+  );
+
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: defaultMessages.Metadata.name,
+    url: homePageUrl,
+  };
+
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    logo: organizationLogoUrl,
+    name: defaultMessages.Metadata.name,
+    url: homePageUrl,
+  };
 
   const faqSchema = {
     '@context': 'https://schema.org',
@@ -126,6 +147,10 @@ export default async function HomePage(props: HomePageProps) {
 
   return (
     <>
+      <JsonLd data={websiteSchema} id="website-schema" />
+      <JsonLd data={organizationSchema} id="organization-schema" />
+      <JsonLd data={faqSchema} id="faq-schema" />
+
       <div className="flex flex-col">
         <HeroSection />
 
@@ -149,14 +174,6 @@ export default async function HomePage(props: HomePageProps) {
 
         <CallToActionSection />
       </div>
-
-      <Script
-        id="faq-schema"
-        type="application/ld+json"
-        strategy="afterInteractive"
-      >
-        {JSON.stringify(faqSchema)}
-      </Script>
     </>
   );
 }
