@@ -52,7 +52,7 @@ export default async function HomePage(props: HomePageProps) {
     websiteConfig.metadata.images?.logoLight || '/logo.png'
   );
   const organizationId = `${siteUrl}#organization`;
-  const websiteId = `${siteUrl}#website`;
+  const websiteId = `${homePageUrl}#website`;
   const faqPageId = `${homePageUrl}#faq`;
   const socialProfiles = Object.values(
     websiteConfig.metadata.social ?? {}
@@ -72,7 +72,7 @@ export default async function HomePage(props: HomePageProps) {
         publisher: {
           '@id': organizationId,
         },
-        url: siteUrl,
+        url: homePageUrl,
       },
       {
         '@type': 'Organization',
