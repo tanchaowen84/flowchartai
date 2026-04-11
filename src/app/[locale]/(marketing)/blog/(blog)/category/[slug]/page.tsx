@@ -8,6 +8,8 @@ import type { Locale } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
+export const dynamicParams = false;
+
 // Generate all static params for SSG (locale + category)
 export function generateStaticParams() {
   const params: { locale: string; slug: string }[] = [];
