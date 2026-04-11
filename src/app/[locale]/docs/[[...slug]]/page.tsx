@@ -21,6 +21,8 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   const slugParams = source.generateParams();
   const params = LOCALES.flatMap((locale) =>

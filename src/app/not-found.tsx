@@ -1,6 +1,5 @@
-'use client';
-
-import Error from 'next/error';
+import { NotFoundContent } from '@/components/layout/not-found-content';
+import Link from 'next/link';
 
 /**
  * Catching non-localized requests
@@ -15,7 +14,11 @@ export default function GlobalNotFound() {
   return (
     <html lang="en">
       <body>
-        <Error statusCode={404} />
+        <NotFoundContent
+          title="404"
+          message="Sorry, the page you are looking for does not exist."
+          homeLink={<Link href="/">Back to home</Link>}
+        />
       </body>
     </html>
   );

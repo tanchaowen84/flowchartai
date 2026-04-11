@@ -20,6 +20,8 @@ import { notFound } from 'next/navigation';
 
 import '@/styles/mdx.css';
 
+export const dynamicParams = false;
+
 /**
  * Gets the blog post from the params
  * @param slug - The slug of the blog post
