@@ -3,6 +3,7 @@ import createMiddleware from 'next-intl/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
 import { LOCALES, routing } from './i18n/routing';
 import type { Session } from './lib/auth-types';
+import { isKnownUnlocalizedPath } from './lib/routing/known-unlocalized-paths';
 import {
   DEFAULT_LOGIN_REDIRECT,
   protectedRoutes,
@@ -79,6 +80,14 @@ export default async function middleware(req: NextRequest) {
     );
   }
 
+  const hasLocalePrefix = pathnameHasLocale(nextUrl.pathname, LOCALES);
+  if (!hasLocalePrefix && !isKnownUnlocalizedPath(nextUrl.pathname)) {
+    console.log(
+      '<< middleware end, unknown unlocalized path, skipping intl rewrite'
+    );
+    return NextResponse.next();
+  }
+
   // Apply intlMiddleware for all routes
   console.log('<< middleware end, applying intlMiddleware');
   return intlMiddleware(req);
@@ -90,6 +99,11 @@ export default async function middleware(req: NextRequest) {
 function getPathnameWithoutLocale(pathname: string, locales: string[]): string {
   const localePattern = new RegExp(`^/(${locales.join('|')})/`);
   return pathname.replace(localePattern, '/');
+}
+
+function pathnameHasLocale(pathname: string, locales: string[]): boolean {
+  const firstSegment = pathname.split('/').filter(Boolean)[0];
+  return !!firstSegment && locales.includes(firstSegment);
 }
 
 /**

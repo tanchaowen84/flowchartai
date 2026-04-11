@@ -8,6 +8,8 @@ import { allPosts } from 'content-collections';
 import type { Locale } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   const paginationSize = websiteConfig.blog.paginationSize;
   const params: { locale: string; page: string }[] = [];
