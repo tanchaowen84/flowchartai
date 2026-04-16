@@ -2,6 +2,7 @@ import { websiteConfig } from '@/config/website';
 import { getLocalePathname } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 import { source } from '@/lib/docs/source';
+import { isExplicitlyNoIndexMarketingPage } from '@/lib/marketing-page-indexing';
 import { allPosts } from 'content-collections';
 import type { MetadataRoute } from 'next';
 import type { Locale } from 'next-intl';
@@ -37,7 +38,9 @@ function getEnabledStaticRoutes(): string[] {
     conditionalRoutes.push('/ai/text', '/ai/image', '/ai/video', '/ai/audio');
   }
 
-  return [...baseRoutes, ...conditionalRoutes];
+  return [...baseRoutes, ...conditionalRoutes].filter(
+    (route) => !isExplicitlyNoIndexMarketingPage(route)
+  );
 }
 
 /**
@@ -68,9 +71,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       } else if (route === '/blog') {
         priority = 0.8; // high priority for blog main page
         changeFrequency = 'daily';
-      } else if (route === '/about' || route === '/contact') {
-        priority = 0.7; // medium priority for info pages
-        changeFrequency = 'monthly';
       } else if (
         route.includes('/privacy') ||
         route.includes('/terms') ||

@@ -1,5 +1,6 @@
 import { ContactFormCard } from '@/components/contact/contact-form-card';
 import Container from '@/components/layout/container';
+import { isExplicitlyNoIndexMarketingPage } from '@/lib/marketing-page-indexing';
 import { constructMetadata } from '@/lib/metadata';
 import { getUrlWithLocale } from '@/lib/urls/urls';
 import type { Metadata } from 'next';
@@ -19,7 +20,7 @@ export async function generateMetadata({
     title: pt('title') + ' | ' + t('title'),
     description: pt('description'),
     canonicalUrl: getUrlWithLocale('/contact', locale),
-    noIndex: true,
+    noIndex: isExplicitlyNoIndexMarketingPage('/contact'),
   });
 }
 
