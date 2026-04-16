@@ -1,4 +1,5 @@
 import { ReleaseCard } from '@/components/release/release-card';
+import { isExplicitlyNoIndexMarketingPage } from '@/lib/marketing-page-indexing';
 import { constructMetadata } from '@/lib/metadata';
 import { getReleases } from '@/lib/release/get-releases';
 import { getUrlWithLocale } from '@/lib/urls/urls';
@@ -24,7 +25,7 @@ export async function generateMetadata({
     title: pt('title') + ' | ' + t('title'),
     description: pt('description'),
     canonicalUrl: getUrlWithLocale('/changelog', locale),
-    noIndex: true,
+    noIndex: isExplicitlyNoIndexMarketingPage('/changelog'),
   });
 }
 

@@ -3,6 +3,7 @@ import { BlurFadeDemo } from '@/components/magicui/example/blur-fade-example';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { websiteConfig } from '@/config/website';
+import { isExplicitlyNoIndexMarketingPage } from '@/lib/marketing-page-indexing';
 import { constructMetadata } from '@/lib/metadata';
 import { getUrlWithLocale } from '@/lib/urls/urls';
 import { cn } from '@/lib/utils';
@@ -24,7 +25,7 @@ export async function generateMetadata({
     title: pt('title') + ' | ' + t('title'),
     description: pt('description'),
     canonicalUrl: getUrlWithLocale('/about', locale),
-    noIndex: true,
+    noIndex: isExplicitlyNoIndexMarketingPage('/about'),
   });
 }
 
