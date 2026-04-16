@@ -19,6 +19,7 @@
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "indexnow:submit": "tsx scripts/submit-indexnow.ts",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "test-cdn": "node scripts/test-cdn.js",
     "migrate-assets": "node scripts/migrate-assets.js",
