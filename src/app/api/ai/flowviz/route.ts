@@ -35,10 +35,10 @@ export async function POST(req: Request) {
       }
     }
 
-    const { topic } = await req.json();
+    const { topic, image } = await req.json();
 
-    if (!topic) {
-      return new Response(JSON.stringify({ error: 'Topic is required' }), {
+    if (!topic && !image) {
+      return new Response(JSON.stringify({ error: 'Topic or image is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -70,11 +70,26 @@ Return valid JSON ONLY. It must strictly match the following format without any 
   ]
 }`;
 
+    // Build user message — multimodal if an image was provided
+    const userContent: any[] = [];
+    if (topic) {
+      userContent.push({ type: 'text', text: `Topic: ${topic}` });
+    }
+    if (image) {
+      userContent.push({
+        type: 'text',
+        text: topic
+          ? 'Use the attached image as context for the diagram.'
+          : 'Analyze this image and create a structural integration diagram based on what you see.',
+      });
+      userContent.push({ type: 'image_url', image_url: { url: image } });
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'google/gemini-2.5-flash',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Topic: ${topic}` },
+        { role: 'user', content: userContent.length === 1 ? userContent[0].text : userContent },
       ],
       response_format: { type: 'json_object' },
       temperature: 0.3,

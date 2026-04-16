@@ -1,220 +1,208 @@
 import { useState } from 'react';
-import { toCanvas, toSvg } from 'html-to-image';
+import { domToCanvas, domToDataUrl } from 'modern-screenshot';
 import { toast } from 'sonner';
 import GIF from 'gif.js.optimized';
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
+// ─── size presets ─────────────────────────────────────────────────────────────
 
-/**
- * Walk an (orig, clone) pair and copy the browser's current computed values for
- * the properties that Framer-Motion / WAAPI animate (transform, opacity) plus
- * CSS-only SVG presentation props (stroke, stroke-width from Tailwind classes).
- * We deliberately skip "fill" when it is already an SVG url() reference, and
- * skip "filter" so that the svg filter="url(#…)" attribute is preserved.
- */
-function inlineSVGStyles(orig: Element, clone: Element): void {
-  if (!(orig instanceof SVGElement || orig instanceof HTMLElement)) return;
+export type ExportPreset =
+  | 'original'
+  | 'square'
+  | 'story'
+  | 'portrait'
+  | 'landscape'
+  | 'widescreen';
 
-  const cs = getComputedStyle(orig as HTMLElement);
-  const cl = clone as HTMLElement;
+export const EXPORT_PRESETS: Record<
+  ExportPreset,
+  { label: string; w?: number; h?: number }
+> = {
+  original: { label: 'Original size' },
+  square: { label: '1:1 Square (1080×1080)', w: 1080, h: 1080 },
+  story: { label: '9:16 Story (1080×1920)', w: 1080, h: 1920 },
+  portrait: { label: '4:5 Portrait (1080×1350)', w: 1080, h: 1350 },
+  landscape: { label: '16:9 Landscape (1920×1080)', w: 1920, h: 1080 },
+  widescreen: { label: '4:3 Widescreen (1440×1080)', w: 1440, h: 1080 },
+};
 
-  // Framer-Motion / WAAPI animated values
-  const transform = cs.getPropertyValue('transform');
-  if (transform && transform !== 'none') {
-    cl.style.setProperty('transform', transform);
-    const to = cs.getPropertyValue('transform-origin');
-    if (to) cl.style.setProperty('transform-origin', to);
-  }
-  const opacity = cs.getPropertyValue('opacity');
-  if (opacity !== '1') cl.style.setProperty('opacity', opacity);
+// ─── watermark ────────────────────────────────────────────────────────────────
 
-  // Stroke / stroke-width set only via Tailwind CSS classes (not via SVG attrs)
-  const svgOrig = orig as SVGElement;
-  if (!svgOrig.hasAttribute('stroke')) {
-    const sv = cs.getPropertyValue('stroke');
-    if (sv && sv !== 'none' && sv !== '') cl.style.setProperty('stroke', sv);
-  }
-  if (!svgOrig.hasAttribute('stroke-width')) {
-    const swv = cs.getPropertyValue('stroke-width');
-    if (swv) cl.style.setProperty('stroke-width', swv);
-  }
+function drawWatermark(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const fontSize = Math.max(14, Math.round(Math.min(w, h) * 0.022));
+  const pad = Math.round(fontSize * 1.1);
+  const text = 'infogiph.com';
+  ctx.save();
+  ctx.font = `600 ${fontSize}px Geist, -apple-system, "Segoe UI", Roboto, sans-serif`;
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'right';
+  const tw = ctx.measureText(text).width;
+  const bw = tw + pad;
+  const bh = fontSize + pad * 0.5;
+  const bx = w - bw - pad * 0.6;
+  const by = h - bh - pad * 0.6;
+  const r = Math.min(bh / 2, 10);
+  ctx.fillStyle = 'rgba(15,23,42,0.72)';
+  ctx.beginPath();
+  ctx.moveTo(bx + r, by);
+  ctx.lineTo(bx + bw - r, by);
+  ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+  ctx.lineTo(bx + bw, by + bh - r);
+  ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
+  ctx.lineTo(bx + r, by + bh);
+  ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
+  ctx.lineTo(bx, by + r);
+  ctx.quadraticCurveTo(bx, by, bx + r, by);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillText(text, bx + bw - pad * 0.5, by + bh - pad * 0.25);
+  ctx.restore();
+}
 
-  // Recurse – but never descend into <foreignObject>; those become <image> elements
-  if (orig.tagName.toLowerCase() !== 'foreignobject') {
-    const oc = [...orig.children];
-    const cc = [...clone.children];
-    for (let i = 0; i < Math.min(oc.length, cc.length); i++) {
-      inlineSVGStyles(oc[i], cc[i]);
+// ─── finalise (preset + watermark) ────────────────────────────────────────────
+
+function finaliseCanvas(
+  source: HTMLCanvasElement,
+  preset: ExportPreset,
+): HTMLCanvasElement {
+  const p = EXPORT_PRESETS[preset];
+  const target = document.createElement('canvas');
+  target.width = p.w ?? source.width;
+  target.height = p.h ?? source.height;
+  const ctx = target.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, target.width, target.height);
+  const scale = Math.min(
+    target.width / source.width,
+    target.height / source.height,
+  );
+  const dw = source.width * scale;
+  const dh = source.height * scale;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(
+    source,
+    (target.width - dw) / 2,
+    (target.height - dh) / 2,
+    dw,
+    dh,
+  );
+  drawWatermark(ctx, target.width, target.height);
+  return target;
+}
+
+// ─── capture helpers ──────────────────────────────────────────────────────────
+
+async function capture(el: HTMLElement, scale = 2): Promise<HTMLCanvasElement> {
+  return domToCanvas(el, {
+    scale,
+    backgroundColor: '#ffffff',
+    debug: false,
+  });
+}
+
+// SMIL properties that we inline onto parents so the serialised DOM reflects
+// the animation state at time `t`.
+const SMIL_PROPS = [
+  'transform',
+  'opacity',
+  'cx',
+  'cy',
+  'r',
+  'x',
+  'y',
+  'stroke-dashoffset',
+  'stroke-dasharray',
+  'fill-opacity',
+  'stroke-opacity',
+];
+
+type Saved = {
+  el: Element;
+  parent: Element;
+  origDisplay: string;
+  inlined: { prop: string; orig: string }[];
+};
+
+function collectSMIL(svg: SVGSVGElement): Saved[] {
+  const out: Saved[] = [];
+  svg
+    .querySelectorAll('animate, animateMotion, animateTransform')
+    .forEach((el) => {
+      const parent = el.parentElement;
+      if (parent) {
+        out.push({
+          el,
+          parent,
+          origDisplay: (el as HTMLElement).style.display,
+          inlined: [],
+        });
+      }
+    });
+  return out;
+}
+
+function inlineSMIL(entries: Saved[]) {
+  for (const e of entries) {
+    const cs = getComputedStyle(e.parent as HTMLElement);
+    e.inlined = [];
+    for (const prop of SMIL_PROPS) {
+      const val = cs.getPropertyValue(prop);
+      if (val && val !== '' && val !== 'none' && val !== '0') {
+        const orig = (e.parent as HTMLElement).style.getPropertyValue(prop);
+        (e.parent as HTMLElement).style.setProperty(prop, val);
+        e.inlined.push({ prop, orig });
+      }
     }
+    (e.el as HTMLElement).style.display = 'none';
   }
 }
 
-/**
- * Capture an SVG-based container to a canvas without the nested-foreignObject
- * bug:
- *   1. Pre-rasterise each <foreignObject> into a PNG data-URL using a
- *      *position:fixed, top:0, left:0* temp-div so html-to-image renders it
- *      normally (not off-screen).
- *   2. Clone the <svg>, inline computed transforms/stroke/opacity, replace every
- *      <foreignObject> with an <image href="data:…">.
- *   3. Serialise the clean SVG → Blob URL → <img> → canvas.  No html-to-image
- *      foreignObject wrapper is involved, so there is no nesting.
- */
-async function captureToCanvas(
-  container: HTMLElement,
-  pixelRatio = 2,
-): Promise<HTMLCanvasElement> {
-  const svgEl = container.querySelector('svg') as SVGElement | null;
-
-  // ── No SVG: fall back to html-to-image directly (no nested-FO risk) ─────────
-  if (!svgEl) {
-    return toCanvas(container, {
-      cacheBust: true,
-      pixelRatio,
-      backgroundColor: '#ffffff',
-    });
-  }
-
-  const svgRect = svgEl.getBoundingClientRect();
-  const W = Math.round(svgRect.width);
-  const H = Math.round(svgRect.height);
-  if (!W || !H) throw new Error('[export] SVG has zero dimensions');
-
-  // ── Step 1: pre-render each <foreignObject> ──────────────────────────────────
-  const origFOs = [...svgEl.querySelectorAll('foreignObject')];
-  const foImages: {
-    idx: number; x: string; y: string; w: string; h: string; dataUrl: string;
-  }[] = [];
-
-  for (let i = 0; i < origFOs.length; i++) {
-    const fo = origFOs[i];
-    const fw = parseFloat(fo.getAttribute('width') || '0');
-    const fh = parseFloat(fo.getAttribute('height') || '0');
-    if (fw < 1 || fh < 1) continue;
-
-    // Position at (0,0) so html-to-image sees it as in-viewport → correct render
-    const tmp = document.createElement('div');
-    Object.assign(tmp.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: `${fw}px`,
-      height: `${fh}px`,
-      overflow: 'hidden',
-      zIndex: '-99999',        // behind everything, not user-visible
-      pointerEvents: 'none',
-    });
-    for (const child of fo.children) tmp.appendChild(child.cloneNode(true));
-    document.body.appendChild(tmp);
-
-    let dataUrl = '';
-    try {
-      const fc = await toCanvas(tmp, {
-        width: fw,
-        height: fh,
-        pixelRatio,
-        cacheBust: true,
-        backgroundColor: null as unknown as string,
-      });
-      dataUrl = fc.toDataURL('image/png');
-    } catch (e) {
-      console.warn('[export] foreignObject pre-render failed', e);
-    } finally {
-      document.body.removeChild(tmp);
+function restoreSMIL(entries: Saved[]) {
+  for (const e of entries) {
+    for (const { prop, orig } of e.inlined) {
+      if (orig) {
+        (e.parent as HTMLElement).style.setProperty(prop, orig);
+      } else {
+        (e.parent as HTMLElement).style.removeProperty(prop);
+      }
     }
-
-    if (dataUrl) {
-      foImages.push({
-        idx: i,
-        x: fo.getAttribute('x') || '0',
-        y: fo.getAttribute('y') || '0',
-        w: String(fw),
-        h: String(fh),
-        dataUrl,
-      });
-    }
+    (e.el as HTMLElement).style.display = e.origDisplay;
+    e.inlined = [];
   }
-
-  // ── Step 2: clone SVG + inline animated styles ───────────────────────────────
-  const svgClone = svgEl.cloneNode(true) as SVGElement;
-  svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  svgClone.setAttribute('width', String(W));
-  svgClone.setAttribute('height', String(H));
-  inlineSVGStyles(svgEl, svgClone);
-
-  // ── Step 3: swap <foreignObject> → <image> in the clone ─────────────────────
-  const cloneFOs = [...svgClone.querySelectorAll('foreignObject')];
-  for (const r of foImages) {
-    if (r.idx >= cloneFOs.length) continue;
-    const imgEl = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-    imgEl.setAttribute('x', r.x);
-    imgEl.setAttribute('y', r.y);
-    imgEl.setAttribute('width', r.w);
-    imgEl.setAttribute('height', r.h);
-    imgEl.setAttribute('href', r.dataUrl);
-    cloneFOs[r.idx].parentNode?.replaceChild(imgEl, cloneFOs[r.idx]);
-  }
-
-  // ── Step 4: serialise → Blob URL → <img> → canvas ────────────────────────────
-  const serialiser = new XMLSerializer();
-  let svgStr = serialiser.serializeToString(svgClone);
-  // Ensure the SVG namespace is declared (XMLSerializer may omit it)
-  if (!svgStr.includes('xmlns="http://www.w3.org/2000/svg"')) {
-    svgStr = svgStr.replace(/^<svg\b/, '<svg xmlns="http://www.w3.org/2000/svg"');
-  }
-
-  const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-  const blobUrl = URL.createObjectURL(blob);
-
-  const canvas = document.createElement('canvas');
-  canvas.width = W * pixelRatio;
-  canvas.height = H * pixelRatio;
-  const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  await new Promise<void>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(blobUrl);
-      resolve();
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(blobUrl);
-      reject(new Error('[export] SVG → image render failed'));
-    };
-    img.src = blobUrl;
-  });
-
-  return canvas;
 }
 
 // ─── hook ────────────────────────────────────────────────────────────────────
 
-export function useFlowchartExport(containerRef: React.RefObject<HTMLDivElement | null>) {
+export function useFlowchartExport(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
-  const downloadFile = (dataUrl: string | Blob, filename: string) => {
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = typeof dataUrl === 'string' ? dataUrl : URL.createObjectURL(dataUrl);
-    link.click();
+  const download = (data: string | Blob, filename: string) => {
+    const a = document.createElement('a');
+    a.download = filename;
+    a.href = typeof data === 'string' ? data : URL.createObjectURL(data);
+    a.click();
+    if (typeof data !== 'string') setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
   };
 
-  const exportPNG = async (title: string) => {
+  // ── PNG ──────────────────────────────────────────────────────────────────────
+
+  const exportPNG = async (title: string, preset: ExportPreset = 'original') => {
     if (!containerRef.current) return;
     setIsExporting(true);
     setExportProgress(20);
     try {
-      const canvas = await captureToCanvas(containerRef.current, 2);
+      const raw = await capture(containerRef.current, 3);
+      const out = finaliseCanvas(raw, preset);
       setExportProgress(100);
-      downloadFile(canvas.toDataURL('image/png'), `${title || 'flowchart'}.png`);
-      toast.success('Successfully exported as PNG');
+      download(out.toDataURL('image/png'), `${title || 'infogiph'}.png`);
+      toast.success('PNG exported');
     } catch (err) {
-      console.error(err);
+      console.error('[export:png]', err);
       toast.error('Failed to export PNG');
     } finally {
       setIsExporting(false);
@@ -222,19 +210,42 @@ export function useFlowchartExport(containerRef: React.RefObject<HTMLDivElement 
     }
   };
 
-  const exportSVG = async (title: string) => {
+  // ── SVG ──────────────────────────────────────────────────────────────────────
+
+  const exportSVG = async (title: string, preset: ExportPreset = 'original') => {
     if (!containerRef.current) return;
     setIsExporting(true);
-    setExportProgress(100);
+    setExportProgress(40);
     try {
-      const dataUrl = await toSvg(containerRef.current, {
-        cacheBust: true,
+      const dataUrl = await domToDataUrl(containerRef.current, {
+        scale: 2,
         backgroundColor: '#ffffff',
       });
-      downloadFile(dataUrl, `${title || 'flowchart'}.svg`);
-      toast.success('Successfully exported as SVG');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise<void>((res, rej) => {
+        img.onload = () => res();
+        img.onerror = () => rej(new Error('SVG decode failed'));
+        img.src = dataUrl;
+      });
+      const raw = document.createElement('canvas');
+      raw.width = img.naturalWidth || containerRef.current.clientWidth * 2;
+      raw.height = img.naturalHeight || containerRef.current.clientHeight * 2;
+      raw.getContext('2d')?.drawImage(img, 0, 0, raw.width, raw.height);
+      const out = finaliseCanvas(raw, preset);
+
+      const wrapper = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${out.width}" height="${out.height}" viewBox="0 0 ${out.width} ${out.height}">
+  <image width="${out.width}" height="${out.height}" href="${out.toDataURL('image/png')}" />
+</svg>`;
+      download(
+        new Blob([wrapper], { type: 'image/svg+xml;charset=utf-8' }),
+        `${title || 'infogiph'}.svg`,
+      );
+      setExportProgress(100);
+      toast.success('SVG exported');
     } catch (err) {
-      console.error(err);
+      console.error('[export:svg]', err);
       toast.error('Failed to export SVG');
     } finally {
       setIsExporting(false);
@@ -242,71 +253,119 @@ export function useFlowchartExport(containerRef: React.RefObject<HTMLDivElement 
     }
   };
 
-  const captureFrames = async (fps = 10, durationSecs = 3): Promise<HTMLCanvasElement[]> => {
-    if (!containerRef.current) return [];
-    const frames: HTMLCanvasElement[] = [];
-    const totalFrames = fps * durationSecs;
-    const delay = 1000 / fps;
+  // ── Frame capture (deterministic SMIL seek) ─────────────────────────────────
 
-    for (let i = 0; i < totalFrames; i++) {
-      const canvas = await captureToCanvas(containerRef.current, 1);
-      frames.push(canvas);
-      setExportProgress(Math.round(((i + 1) / totalFrames) * 50));
-      await new Promise(r => setTimeout(r, delay));
+  const captureFrames = async (
+    fps: number,
+    durationSecs: number,
+  ): Promise<HTMLCanvasElement[]> => {
+    if (!containerRef.current) return [];
+    const container = containerRef.current;
+    const svg = container.querySelector('svg') as SVGSVGElement | null;
+
+    const canSeek =
+      svg &&
+      typeof svg.pauseAnimations === 'function' &&
+      typeof svg.setCurrentTime === 'function' &&
+      typeof svg.unpauseAnimations === 'function';
+
+    const total = Math.round(fps * durationSecs);
+    const frames: HTMLCanvasElement[] = [];
+    const entries = svg ? collectSMIL(svg) : [];
+
+    if (canSeek) svg!.pauseAnimations();
+
+    try {
+      for (let i = 0; i < total; i++) {
+        if (canSeek) {
+          svg!.setCurrentTime(i / fps);
+          await raf();
+          await raf();
+          inlineSMIL(entries);
+        } else {
+          await delay(1000 / fps);
+        }
+        frames.push(await capture(container, 2));
+        if (canSeek) restoreSMIL(entries);
+        setExportProgress(Math.round(((i + 1) / total) * 50));
+      }
+    } finally {
+      if (canSeek) {
+        restoreSMIL(entries);
+        svg!.unpauseAnimations();
+      }
     }
     return frames;
   };
 
-  const exportGIF = async (title: string) => {
+  // ── GIF ──────────────────────────────────────────────────────────────────────
+
+  const exportGIF = async (title: string, preset: ExportPreset = 'original') => {
     if (!containerRef.current) return;
     setIsExporting(true);
     setExportProgress(0);
     try {
-      toast.info('Rendering GIF, please wait…');
-      const frames = await captureFrames(8, 2.5); // 20 frames
-      if (!frames.length) throw new Error('No frames captured');
+      toast.info('Rendering GIF — this may take a moment…');
+      const FPS = 12;
+      const DUR = 3;
+      const rawFrames = await captureFrames(FPS, DUR);
+      if (!rawFrames.length) throw new Error('No frames captured');
+      const frames = rawFrames.map((f) => finaliseCanvas(f, preset));
 
       const gif = new GIF({
         workers: 2,
-        quality: 10,
-        workerScript: '/gif.worker.js', // served from public/
+        quality: 8,
+        width: frames[0].width,
+        height: frames[0].height,
+        workerScript: '/gif.worker.js',
       });
 
-      for (const frame of frames) gif.addFrame(frame, { delay: 125, copy: true });
+      for (const f of frames) gif.addFrame(f, { delay: Math.round(1000 / FPS), copy: true });
 
       gif.on('progress', (p: number) => setExportProgress(50 + Math.round(p * 50)));
       gif.on('finished', (blob: Blob) => {
-        downloadFile(blob, `${title || 'flowchart'}.gif`);
-        toast.success('Successfully exported as GIF');
+        download(blob, `${title || 'infogiph'}.gif`);
+        toast.success('GIF exported');
         setIsExporting(false);
         setExportProgress(0);
       });
       gif.render();
     } catch (err) {
-      console.error(err);
+      console.error('[export:gif]', err);
       toast.error('Failed to export GIF');
       setIsExporting(false);
       setExportProgress(0);
     }
   };
 
-  const exportMP4 = async (title: string) => {
+  // ── MP4 ──────────────────────────────────────────────────────────────────────
+
+  const exportMP4 = async (title: string, preset: ExportPreset = 'original') => {
     if (!containerRef.current) return;
     setIsExporting(true);
     setExportProgress(0);
     try {
-      toast.info('Rendering MP4, please wait…');
+      toast.info('Rendering MP4 — this may take a moment…');
       if (typeof window === 'undefined' || !('VideoEncoder' in window)) {
-        throw new Error('VideoEncoder API not supported in this browser');
+        throw new Error('MP4 export requires Chrome or Edge (WebCodecs API)');
       }
 
-      const frames = await captureFrames(15, 3); // 45 frames
-      if (!frames.length) throw new Error('No frames captured');
+      const FPS = 24;
+      const DUR = 3;
+      const rawFrames = await captureFrames(FPS, DUR);
+      if (!rawFrames.length) throw new Error('No frames captured');
+      const frames = rawFrames.map((f) => finaliseCanvas(f, preset));
 
-      const width = frames[0].width;
-      const height = frames[0].height;
-      const evenW = width % 2 === 0 ? width : width - 1;
-      const evenH = height % 2 === 0 ? height : height - 1;
+      const w = frames[0].width;
+      const h = frames[0].height;
+      const evenW = w - (w % 2);
+      const evenH = h - (h % 2);
+      const area = evenW * evenH;
+
+      let codec = 'avc1.42001f';
+      if (area > 921_600) codec = 'avc1.420028';
+      if (area > 2_097_152) codec = 'avc1.42002a';
+      if (area > 2_359_296) codec = 'avc1.420033';
 
       const muxer = new Muxer({
         target: new ArrayBufferTarget(),
@@ -314,44 +373,47 @@ export function useFlowchartExport(containerRef: React.RefObject<HTMLDivElement 
         fastStart: 'in-memory',
       });
 
-      const videoEncoder = new (window as any).VideoEncoder({
+      const encoder = new (window as any).VideoEncoder({
         output: (chunk: any, meta: any) => muxer.addVideoChunk(chunk, meta),
         error: (e: any) => console.error(e),
       });
-      videoEncoder.configure({
-        codec: 'avc1.42001f',
+      encoder.configure({
+        codec,
         width: evenW,
         height: evenH,
-        bitrate: 2_500_000,
-        framerate: 15,
+        bitrate: 8_000_000,
+        framerate: FPS,
       });
 
       for (let i = 0; i < frames.length; i++) {
         let src = frames[i];
-        if (width !== evenW || height !== evenH) {
+        if (w !== evenW || h !== evenH) {
           src = document.createElement('canvas');
           src.width = evenW;
           src.height = evenH;
           src.getContext('2d')?.drawImage(frames[i], 0, 0, evenW, evenH);
         }
         const bitmap = await createImageBitmap(src);
-        const frame = new (window as any).VideoFrame(bitmap, {
-          timestamp: i * (1_000_000 / 15),
+        const vf = new (window as any).VideoFrame(bitmap, {
+          timestamp: i * (1_000_000 / FPS),
         });
-        videoEncoder.encode(frame);
-        frame.close();
+        encoder.encode(vf, { keyFrame: i % FPS === 0 });
+        vf.close();
         bitmap.close();
         setExportProgress(50 + Math.round(((i + 1) / frames.length) * 50));
       }
 
-      await videoEncoder.flush();
+      await encoder.flush();
       muxer.finalize();
 
       const { buffer } = muxer.target as ArrayBufferTarget;
-      downloadFile(new Blob([buffer], { type: 'video/mp4' }), `${title || 'flowchart'}.mp4`);
-      toast.success('Successfully exported as MP4');
+      download(
+        new Blob([buffer], { type: 'video/mp4' }),
+        `${title || 'infogiph'}.mp4`,
+      );
+      toast.success('MP4 exported');
     } catch (err: any) {
-      console.error(err);
+      console.error('[export:mp4]', err);
       toast.error('Failed to export MP4', { description: err.message });
     } finally {
       setIsExporting(false);
@@ -361,3 +423,8 @@ export function useFlowchartExport(containerRef: React.RefObject<HTMLDivElement 
 
   return { exportPNG, exportSVG, exportGIF, exportMP4, isExporting, exportProgress };
 }
+
+// ─── utils ──────────────────────────────────────────────────────────────────
+
+const raf = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));

@@ -1,5 +1,11 @@
 import { Analytics } from '@/analytics/analytics';
-import { fontNotoSans, fontNotoSansMono, fontNotoSerif } from '@/assets/fonts';
+import {
+  fontGeistMono,
+  fontGeistSans,
+  fontNotoSans,
+  fontNotoSansMono,
+  fontNotoSerif,
+} from '@/assets/fonts';
 import AffonsoScript from '@/components/affiliate/affonso';
 import PromotekitScript from '@/components/affiliate/promotekit';
 import { AdSense } from '@/components/analytics/adsense';
@@ -56,7 +62,9 @@ export default async function LocaleLayout({
           fontNotoSans.className,
           fontNotoSerif.variable,
           fontNotoSansMono.variable,
-          fontNotoSans.variable
+          fontNotoSans.variable,
+          fontGeistSans.variable,
+          fontGeistMono.variable
         )}
       >
         <NextIntlClientProvider>

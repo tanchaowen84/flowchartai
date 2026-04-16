@@ -14,7 +14,11 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useFlowchartExport } from '@/hooks/use-export';
+import {
+  EXPORT_PRESETS,
+  type ExportPreset,
+  useFlowchartExport,
+} from '@/hooks/use-export';
 import { useCurrentUserWithStatus } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
 import { useLocalePathname } from '@/i18n/navigation';
@@ -28,6 +32,7 @@ import {
   Database,
   Download,
   Edit,
+  ChevronLeft,
   Globe,
   HardDrive,
   Layers,
@@ -51,6 +56,134 @@ import {
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import {
+  AirflowIcon,
+  AlgoliaIcon,
+  Auth0Icon,
+  CloudflareIcon,
+  DbtIcon,
+  GitHubIcon,
+  GoogleAnalyticsIcon,
+  GoogleDriveIcon,
+  InstagramIcon,
+  LetterIcon,
+  MailchimpIcon,
+  NotionIcon,
+  OpenAIIcon,
+  PineconeIcon,
+  PostgresIcon,
+  RedisIcon,
+  SalesforceIcon,
+  ShopifyIcon,
+  SlackIcon,
+  SnowflakeIcon,
+  StripeIcon,
+  TableauIcon,
+  TikTokIcon,
+  UPSIcon,
+  WhatsAppIcon,
+  YouTubeIcon,
+} from './brand-icons';
+import {
+  AnimatedPreview,
+  type PreviewMode,
+  type PreviewSpec,
+} from '@/components/blocks/infogiph-home/animated-preview';
+
+// Best-effort mapping of a free-text satellite label to a recognisable icon
+// tile. Tries the brand SVGs first, then falls back to a tinted letter tile.
+const iconForLabel = (label: string): React.ReactNode => {
+  const n = (label || '').toLowerCase();
+  if (/whatsapp|whats\s?app/.test(n))
+    return <WhatsAppIcon className="w-full h-full" style={{ color: '#25D366' }} />;
+  if (/slack/.test(n)) return <SlackIcon className="w-full h-full" />;
+  if (/github|git\b/.test(n)) return <GitHubIcon className="w-full h-full" />;
+  if (/notion/.test(n)) return <NotionIcon className="w-full h-full" />;
+  if (/openai|gpt|llm|claude|anthropic/.test(n))
+    return <OpenAIIcon className="w-full h-full" />;
+  if (/stripe|billing|payment|pay\b/.test(n))
+    return <StripeIcon className="w-full h-full" style={{ color: '#635BFF' }} />;
+  if (/instagram|insta/.test(n))
+    return <InstagramIcon className="w-full h-full" style={{ color: '#E4405F' }} />;
+  if (/tiktok|tik\s?tok/.test(n)) return <TikTokIcon className="w-full h-full" />;
+  if (/youtube|you\s?tube/.test(n))
+    return <YouTubeIcon className="w-full h-full" style={{ color: '#FF0000' }} />;
+  if (/drive|gdrive|google\s?drive/.test(n))
+    return <GoogleDriveIcon className="w-full h-full" />;
+  if (/shopify|shop\b/.test(n))
+    return <ShopifyIcon className="w-full h-full" style={{ color: '#95BF47' }} />;
+  const palette = ['#e63946', '#1AC6FF', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#0ea5e9'];
+  const color = palette[Math.abs(hashCode(label)) % palette.length];
+  const letter = (label || '?').trim().charAt(0).toUpperCase() || '?';
+  return <LetterIcon className="w-full h-full" letter={letter} color={color} />;
+};
+
+const hashCode = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
+  return h;
+};
+
+// Rebuild a PreviewSpec from an AI result using the active template's layout
+// so the output stays in the same animated-beam visual style the user picked.
+const buildPreviewFromAI = (
+  result: any,
+  base: (typeof TEMPLATES)[number] | null,
+): PreviewSpec | null => {
+  if (!result || !base) return null;
+  const spec = base.preview;
+  const centerLabel = result.center?.label || (spec as any).center?.label || base.label;
+  const centerIcon =
+    (spec as any).center?.icon ||
+    <Sparkles className="w-full h-full text-white" />;
+  const center = { key: 'center', label: centerLabel, icon: centerIcon };
+  const sats: any[] = result.satellites || [];
+  const satNodes = sats.map((s, i) => ({
+    key: `sat-${i}`,
+    label: s.label,
+    icon: iconForLabel(s.label),
+  }));
+
+  switch (spec.layout) {
+    case 'hub-lr': {
+      const mid = Math.ceil(satNodes.length / 2);
+      return {
+        layout: 'hub-lr',
+        mode: spec.mode,
+        bg: spec.bg,
+        left: satNodes.slice(0, mid),
+        right: satNodes.slice(mid),
+        center,
+      };
+    }
+    case 'radial':
+      return {
+        layout: 'radial',
+        mode: spec.mode,
+        bg: spec.bg,
+        center,
+        satellites: satNodes,
+      };
+    case 'pipeline': {
+      const mid = Math.floor(satNodes.length / 2);
+      const nodes = [...satNodes];
+      nodes.splice(mid, 0, center);
+      return { layout: 'pipeline', mode: spec.mode, bg: spec.bg, nodes };
+    }
+    case 'tree': {
+      const children = satNodes.slice(0, 3).map((n, i) => ({
+        ...n,
+        children: i === 1 ? satNodes.slice(3, 5) : undefined,
+      }));
+      return {
+        layout: 'tree',
+        mode: spec.mode,
+        bg: spec.bg,
+        root: { ...center, children },
+      };
+    }
+  }
+};
 
 const getIcon = (name: string, size = 24) => {
   if (!name) return <Layers size={size} />;
@@ -78,7 +211,14 @@ const getIcon = (name: string, size = 24) => {
   return <Layers size={size} />;
 };
 
-const TEMPLATES = [
+const TEMPLATES: Array<{
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  topic: string;
+  data: any;
+  preview: PreviewSpec;
+}> = [
   {
     id: 'chatbot',
     label: 'Chatbot Architecture',
@@ -94,6 +234,22 @@ const TEMPLATES = [
         { label: 'Analytics', icon: 'search' },
         { label: 'CRM', icon: 'layers' },
       ],
+    },
+    preview: {
+      layout: 'hub-lr',
+      mode: 'beams',
+      accent: '#8b5cf6',
+      left: [
+        { key: 'wa', label: 'WhatsApp', icon: <WhatsAppIcon className="w-full h-full" style={{ color: '#25D366' }} /> },
+        { key: 'sl', label: 'Slack', icon: <SlackIcon className="w-full h-full" /> },
+        { key: 'ig', label: 'Instagram', icon: <InstagramIcon className="w-full h-full" style={{ color: '#E4405F' }} /> },
+      ],
+      right: [
+        { key: 'ai', label: 'OpenAI', icon: <OpenAIIcon className="w-full h-full" /> },
+        { key: 'nt', label: 'Notion', icon: <NotionIcon className="w-full h-full" /> },
+        { key: 'crm', label: 'Salesforce', icon: <SalesforceIcon className="w-full h-full" /> },
+      ],
+      center: { key: 'bot', label: 'Chatbot', icon: <Bot className="w-full h-full text-white" /> },
     },
   },
   {
@@ -112,6 +268,22 @@ const TEMPLATES = [
         { label: 'Storage', icon: 'drive' },
       ],
     },
+    preview: {
+      layout: 'hub-lr',
+      mode: 'dots',
+      accent: '#0ea5e9',
+      left: [
+        { key: 'st', label: 'Stripe', icon: <StripeIcon className="w-full h-full" style={{ color: '#635BFF' }} /> },
+        { key: 'a0', label: 'Auth0', icon: <Auth0Icon className="w-full h-full" /> },
+        { key: 'pg', label: 'Postgres', icon: <PostgresIcon className="w-full h-full" /> },
+      ],
+      right: [
+        { key: 'gd', label: 'Drive', icon: <GoogleDriveIcon className="w-full h-full" /> },
+        { key: 'mail', label: 'Email', icon: <Mail className="w-full h-full text-[#EA4335]" /> },
+        { key: 'gh', label: 'GitHub', icon: <GitHubIcon className="w-full h-full" /> },
+      ],
+      center: { key: 'cloud', label: 'API Gateway', icon: <Cloud className="w-full h-full text-white" /> },
+    },
   },
   {
     id: 'ecommerce',
@@ -127,6 +299,20 @@ const TEMPLATES = [
         { label: 'Shipping', icon: 'share' },
         { label: 'Notifications', icon: 'email' },
         { label: 'Analytics', icon: 'search' },
+      ],
+    },
+    preview: {
+      layout: 'radial',
+      mode: 'pulses',
+      accent: '#f97316',
+      center: { key: 'shop', label: 'Store', icon: <LayoutGrid className="w-full h-full text-white" /> },
+      satellites: [
+        { key: 'sh', label: 'Shopify', icon: <ShopifyIcon className="w-full h-full" style={{ color: '#95BF47' }} /> },
+        { key: 'st', label: 'Stripe', icon: <StripeIcon className="w-full h-full" style={{ color: '#635BFF' }} /> },
+        { key: 'mc', label: 'Mailchimp', icon: <MailchimpIcon className="w-full h-full" /> },
+        { key: 'up', label: 'UPS', icon: <UPSIcon className="w-full h-full" /> },
+        { key: 'ga', label: 'Analytics', icon: <GoogleAnalyticsIcon className="w-full h-full" /> },
+        { key: 'pg', label: 'Products', icon: <PostgresIcon className="w-full h-full" /> },
       ],
     },
   },
@@ -146,6 +332,18 @@ const TEMPLATES = [
         { label: 'API', icon: 'cloud' },
       ],
     },
+    preview: {
+      layout: 'pipeline',
+      mode: 'arrows',
+      accent: '#14b8a6',
+      nodes: [
+        { key: 'sn', label: 'Snowflake', icon: <SnowflakeIcon className="w-full h-full" /> },
+        { key: 'dbt', label: 'dbt', icon: <DbtIcon className="w-full h-full" /> },
+        { key: 'db', label: 'Data Lake', icon: <Database className="w-full h-full text-white" /> },
+        { key: 'ai', label: 'ML', icon: <OpenAIIcon className="w-full h-full" /> },
+        { key: 'tab', label: 'Tableau', icon: <TableauIcon className="w-full h-full" /> },
+      ],
+    },
   },
   {
     id: 'social-media',
@@ -163,6 +361,22 @@ const TEMPLATES = [
         { label: 'Analytics', icon: 'search' },
       ],
     },
+    preview: {
+      layout: 'hub-lr',
+      mode: 'dots',
+      accent: '#ec4899',
+      left: [
+        { key: 'ig', label: 'Instagram', icon: <InstagramIcon className="w-full h-full" style={{ color: '#E4405F' }} /> },
+        { key: 'tt', label: 'TikTok', icon: <TikTokIcon className="w-full h-full" /> },
+        { key: 'yt', label: 'YouTube', icon: <YouTubeIcon className="w-full h-full" style={{ color: '#FF0000' }} /> },
+      ],
+      right: [
+        { key: 'wa', label: 'Messaging', icon: <WhatsAppIcon className="w-full h-full" style={{ color: '#25D366' }} /> },
+        { key: 'cdn', label: 'CDN', icon: <CloudflareIcon className="w-full h-full" /> },
+        { key: 'alg', label: 'Search', icon: <AlgoliaIcon className="w-full h-full" /> },
+      ],
+      center: { key: 'feed', label: 'Feed Engine', icon: <Share2 className="w-full h-full text-white" /> },
+    },
   },
   {
     id: 'ai-agent',
@@ -178,6 +392,20 @@ const TEMPLATES = [
         { label: 'Memory', icon: 'drive' },
         { label: 'Web Search', icon: 'search' },
         { label: 'API Calls', icon: 'cloud' },
+      ],
+    },
+    preview: {
+      layout: 'radial',
+      mode: 'beams',
+      accent: '#6366f1',
+      center: { key: 'agent', label: 'AI Agent', icon: <Sparkles className="w-full h-full text-white" /> },
+      satellites: [
+        { key: 'ai', label: 'OpenAI', icon: <OpenAIIcon className="w-full h-full" /> },
+        { key: 'pc', label: 'Pinecone', icon: <PineconeIcon className="w-full h-full" /> },
+        { key: 'gh', label: 'GitHub', icon: <GitHubIcon className="w-full h-full" /> },
+        { key: 'gd', label: 'Drive', icon: <GoogleDriveIcon className="w-full h-full" /> },
+        { key: 'nt', label: 'Notion', icon: <NotionIcon className="w-full h-full" /> },
+        { key: 'rd', label: 'Memory', icon: <RedisIcon className="w-full h-full" /> },
       ],
     },
   },
@@ -203,6 +431,45 @@ const TEMPLATES = [
         ],
       },
     },
+    preview: {
+      layout: 'tree',
+      mode: 'pulses',
+      accent: '#f59e0b',
+      root: {
+        key: 'ceo',
+        label: 'CEO',
+        icon: <Users className="w-full h-full text-white" />,
+        children: [
+          {
+            key: 'cmo',
+            label: 'CMO',
+            icon: <LetterIcon className="w-full h-full" letter="M" color="#ff6b9d" />,
+          },
+          {
+            key: 'cto',
+            label: 'CTO',
+            icon: <LetterIcon className="w-full h-full" letter="T" color="#c74bb5" />,
+            children: [
+              {
+                key: 'eng1',
+                label: 'Engineer',
+                icon: <LetterIcon className="w-full h-full" letter="E" color="#f5c84b" />,
+              },
+              {
+                key: 'eng2',
+                label: 'Engineer',
+                icon: <LetterIcon className="w-full h-full" letter="E" color="#f5c84b" />,
+              },
+            ],
+          },
+          {
+            key: 'coo',
+            label: 'COO',
+            icon: <LetterIcon className="w-full h-full" letter="O" color="#ff8a5c" />,
+          },
+        ],
+      },
+    },
   },
 ];
 
@@ -225,7 +492,7 @@ export default function FlowVizArchitect({
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [animationType, setAnimationType] = useState('dots');
+  const [animationType, setAnimationType] = useState<PreviewMode>('dots');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [diagramData, setDiagramData] = useState<any>({
     center: { label: 'AI Engine', icon: 'bot' },
@@ -238,6 +505,22 @@ export default function FlowVizArchitect({
       { label: 'Messenger', icon: 'chat' },
     ],
   });
+  const [activePreview, setActivePreview] = useState<PreviewSpec | null>(
+    TEMPLATES[0].preview,
+  );
+  const [activeTemplate, setActiveTemplate] = useState<
+    (typeof TEMPLATES)[number] | null
+  >(TEMPLATES[0]);
+  const [positionOverrides, setPositionOverrides] = useState<
+    Record<string, { x: number; y: number }>
+  >({});
+  const [labelOverrides, setLabelOverrides] = useState<Record<string, string>>(
+    {},
+  );
+  const [animationSpeed, setAnimationSpeed] = useState(1);
+  const [exportPreset, setExportPreset] = useState<ExportPreset>('original');
+  const [sidebarImage, setSidebarImage] = useState<string | null>(null);
+  const sidebarFileRef = useRef<HTMLInputElement>(null);
 
   const [currentTitle, setCurrentTitle] = useState<string>('Untitled');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -259,6 +542,7 @@ export default function FlowVizArchitect({
           const parsed = JSON.parse(flowchart.content);
           if (parsed && typeof parsed === 'object' && parsed.center && parsed.satellites) {
             setDiagramData(parsed);
+            setActivePreview(null);
           }
         } catch (e) {
           console.error('Failed to parse existing flowchart content');
@@ -271,11 +555,16 @@ export default function FlowVizArchitect({
     if (typeof window === 'undefined' || autoGenerateTriggered.current) return;
     const autoGenerate = localStorage.getItem('flowchart_auto_generate');
     const autoInput = localStorage.getItem('flowchart_auto_input');
-    if (autoGenerate !== 'true' || !autoInput) return;
+    const autoImage = localStorage.getItem('flowchart_image');
+    const autoAspect = localStorage.getItem('flowchart_aspect');
+    if (autoGenerate !== 'true' || (!autoInput && !autoImage)) return;
     if (authLoading) return;
-    setTopic(autoInput);
+    if (autoInput) setTopic(autoInput);
+    if (autoAspect) setExportPreset(autoAspect as ExportPreset);
     autoGenerateTriggered.current = true;
-    generateDiagram(undefined, autoInput);
+    generateDiagram(undefined, autoInput || undefined, autoImage || undefined);
+    localStorage.removeItem('flowchart_image');
+    localStorage.removeItem('flowchart_aspect');
   }, [authLoading, isAuthenticated]);
 
   const handleTitleChange = async (newTitle: string) => {
@@ -330,17 +619,28 @@ export default function FlowVizArchitect({
     }
   };
 
-  const generateDiagram = async (e?: React.FormEvent, customTopic?: string) => {
+  const generateDiagram = async (
+    e?: React.FormEvent,
+    customTopic?: string,
+    imageBase64?: string,
+  ) => {
     if (e) e.preventDefault();
-    const activeTopic = customTopic || topic;
-    if (!activeTopic.trim()) return;
+    const userPrompt = (customTopic || topic).trim();
+    if (!userPrompt && !imageBase64) return;
+    const activeTopic =
+      activeTemplate && userPrompt
+        ? `${activeTemplate.topic}. Additional requirements: ${userPrompt}`
+        : userPrompt;
     setLoading(true);
     setError(null);
     try {
+      const body: Record<string, string> = {};
+      if (activeTopic) body.topic = activeTopic;
+      if (imageBase64) body.image = imageBase64;
       const response = await fetch('/api/ai/flowviz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: activeTopic }),
+        body: JSON.stringify(body),
       });
       if (response.status === 401) {
         toast.error('Please sign in to use this feature');
@@ -356,13 +656,19 @@ export default function FlowVizArchitect({
       if (!response.ok) throw new Error('Generation failed');
       const result = await response.json();
       setDiagramData(result);
+      // Keep the active template's layout/mode; swap icons + labels using the
+      // AI-generated satellites so the animated-beam preview stays consistent.
+      const nextPreview = buildPreviewFromAI(result, activeTemplate);
+      setActivePreview(nextPreview);
+      setPositionOverrides({});
+      setLabelOverrides({});
       localStorage.removeItem('flowchart_auto_generate');
       localStorage.removeItem('flowchart_auto_input');
       if (currentTitle === 'Untitled') {
-        setCurrentTitle(activeTopic);
-        setTempTitle(activeTopic);
+        setCurrentTitle(userPrompt);
+        setTempTitle(userPrompt);
       }
-      saveFlowchart(result, activeTopic);
+      saveFlowchart(result, userPrompt);
     } catch (err: any) {
       setError('Failed to generate diagram.');
       toast.error(err.message || 'Failed to generate diagram');
@@ -372,8 +678,12 @@ export default function FlowVizArchitect({
   };
 
   const handleTemplateSelect = (template: (typeof TEMPLATES)[number]) => {
-    setTopic(template.topic);
+    setTopic('');
     setDiagramData(template.data);
+    setActivePreview(template.preview);
+    setActiveTemplate(template);
+    setPositionOverrides({});
+    setLabelOverrides({});
     if (currentTitle === 'Untitled') {
       setCurrentTitle(template.label);
       setTempTitle(template.label);
@@ -396,21 +706,30 @@ export default function FlowVizArchitect({
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+    <div className="infogiph-home h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* Top Toolbar */}
-      <div className="flex items-center justify-between h-14 px-4 border-b bg-background/80 backdrop-blur-sm shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between h-16 px-5 border-b border-border bg-white shrink-0">
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            aria-label="Back to home"
+            className="h-9 w-9 rounded-lg border border-border hover:bg-[#fafafa]"
+            onClick={() => router.push('/')}
+          >
+            <ChevronLeft size={18} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle templates"
+            className="h-9 w-9 rounded-lg hover:bg-[#fafafa]"
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
           </Button>
-          <Separator orientation="vertical" className="h-6" />
           {currentUser ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {isEditingTitle ? (
                 <Input
                   value={tempTitle}
@@ -420,25 +739,22 @@ export default function FlowVizArchitect({
                     else if (e.key === 'Escape') { setTempTitle(currentTitle); setIsEditingTitle(false); }
                   }}
                   onBlur={() => { handleTitleChange(tempTitle); setIsEditingTitle(false); }}
-                  className="h-7 px-2 text-sm font-medium w-48"
+                  className="h-9 px-3 text-sm font-semibold w-56 rounded-lg"
                   autoFocus
                 />
               ) : (
-                <>
-                  <span className="font-medium text-sm max-w-48 truncate">{currentTitle}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => { setTempTitle(currentTitle); setIsEditingTitle(true); }}
-                  >
-                    <Edit className="h-3.5 w-3.5 text-muted-foreground" />
-                  </Button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => { setTempTitle(currentTitle); setIsEditingTitle(true); }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold max-w-56 hover:bg-[#fafafa] transition-colors"
+                >
+                  <span className="truncate">{currentTitle}</span>
+                  <Edit className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </button>
               )}
             </div>
           ) : (
-            <span className="font-semibold text-sm">InfoGiph</span>
+            <span className="font-semibold text-sm px-2">Infogiph</span>
           )}
         </div>
 
@@ -446,42 +762,111 @@ export default function FlowVizArchitect({
           <ToggleGroup
             type="single"
             value={animationType}
-            onValueChange={(v) => v && setAnimationType(v)}
+            onValueChange={(v) => v && setAnimationType(v as PreviewMode)}
             variant="outline"
             size="sm"
+            className="rounded-lg bg-white border border-border p-0.5"
           >
-            <ToggleGroupItem value="dots" className="gap-1.5 text-xs px-2.5">
+            <ToggleGroupItem value="dots" className="gap-1.5 text-xs px-2.5 rounded-md data-[state=on]:bg-foreground data-[state=on]:text-background">
               <CircleDot size={14} /> Dots
             </ToggleGroupItem>
-            <ToggleGroupItem value="beams" className="gap-1.5 text-xs px-2.5">
+            <ToggleGroupItem value="beams" className="gap-1.5 text-xs px-2.5 rounded-md data-[state=on]:bg-foreground data-[state=on]:text-background">
               <LineChart size={14} /> Beams
             </ToggleGroupItem>
-            <ToggleGroupItem value="pulses" className="gap-1.5 text-xs px-2.5">
+            <ToggleGroupItem value="pulses" className="gap-1.5 text-xs px-2.5 rounded-md data-[state=on]:bg-foreground data-[state=on]:text-background">
               <Activity size={14} /> Pulses
             </ToggleGroupItem>
-            <ToggleGroupItem value="arrows" className="gap-1.5 text-xs px-2.5">
+            <ToggleGroupItem value="arrows" className="gap-1.5 text-xs px-2.5 rounded-md data-[state=on]:bg-foreground data-[state=on]:text-background">
               <ArrowRight size={14} /> Arrows
             </ToggleGroupItem>
           </ToggleGroup>
 
-          <Separator orientation="vertical" className="h-6" />
+          <div className="mx-1 h-6 w-px bg-border" />
+
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-white px-2.5 py-1.5">
+            <span className="text-[11px] font-medium text-muted-foreground">
+              Speed
+            </span>
+            <input
+              type="range"
+              min={0.3}
+              max={3}
+              step={0.1}
+              value={animationSpeed}
+              onChange={(e) => setAnimationSpeed(parseFloat(e.target.value))}
+              className="w-20 accent-foreground"
+            />
+            <span className="text-[11px] font-semibold tabular-nums text-foreground/80 w-8 text-right">
+              {animationSpeed.toFixed(1)}x
+            </span>
+          </div>
+
+          <div className="mx-1 h-6 w-px bg-border" />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={isExporting} className="gap-1.5 text-xs">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs rounded-lg border-border hover:bg-[#fafafa]">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                {EXPORT_PRESETS[exportPreset].label.split(' (')[0]}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {(Object.keys(EXPORT_PRESETS) as ExportPreset[]).map((k) => (
+                <DropdownMenuItem
+                  key={k}
+                  onClick={() => setExportPreset(k)}
+                  className={
+                    exportPreset === k
+                      ? 'bg-accent text-accent-foreground'
+                      : ''
+                  }
+                >
+                  <span className="flex items-center gap-2 w-full">
+                    <span
+                      className={
+                        'h-1.5 w-1.5 rounded-full ' +
+                        (exportPreset === k ? 'bg-foreground' : 'bg-border')
+                      }
+                    />
+                    {EXPORT_PRESETS[k].label}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={isExporting} className="gap-1.5 text-xs rounded-lg border-border hover:bg-[#fafafa]">
                 {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                 Export{isExporting && exportProgress > 0 ? ` ${exportProgress}%` : ''}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => exportPNG(currentTitle)}>Download as PNG</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportSVG(currentTitle)}>Download as SVG</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportGIF(currentTitle)}>Download as GIF</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportMP4(currentTitle)}>Download as MP4</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => exportPNG(currentTitle, exportPreset)}
+              >
+                Download as PNG
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => exportSVG(currentTitle, exportPreset)}
+              >
+                Download as SVG
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => exportGIF(currentTitle, exportPreset)}
+              >
+                Download as GIF
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => exportMP4(currentTitle, exportPreset)}
+              >
+                Download as MP4
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" size="sm" className="text-xs" onClick={() => router.push('/dashboard')}>
+          <Button variant="outline" size="sm" className="text-xs rounded-lg border-border hover:bg-[#fafafa]" onClick={() => router.push('/dashboard')}>
             Dashboard
           </Button>
 
@@ -490,18 +875,26 @@ export default function FlowVizArchitect({
               size="sm"
               onClick={handleManualSave}
               disabled={isSaving}
-              className="text-xs gap-1.5"
+              className="text-xs gap-1.5 rounded-lg bg-foreground text-background hover:bg-neutral-800"
             >
               {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Save
             </Button>
           )}
 
+          <Button
+            size="sm"
+            className="ig-gradient text-xs gap-1.5 rounded-lg text-white shadow-[0_2px_10px_rgba(255,107,157,0.35)] hover:opacity-95"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Upgrade
+          </Button>
+
           {currentUser ? (
             <UserButton user={currentUser} />
           ) : (
             <LoginWrapper mode="modal" asChild callbackUrl={currentPath}>
-              <Button variant="ghost" size="sm" className="text-xs gap-1.5">
+              <Button variant="ghost" size="sm" className="text-xs gap-1.5 rounded-lg hover:bg-[#fafafa]">
                 <User className="h-3.5 w-3.5" /> Sign In
               </Button>
             </LoginWrapper>
@@ -513,79 +906,152 @@ export default function FlowVizArchitect({
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Template Picker */}
         {sidebarOpen && (
-          <div className="w-64 border-r bg-muted/30 flex flex-col shrink-0">
-            <div className="p-4 pb-2">
-              <h2 className="text-sm font-semibold text-foreground">Templates</h2>
-              <p className="text-xs text-muted-foreground mt-1">Pick a template or describe your own</p>
+          <div className="w-[260px] border-r border-border bg-[#fafafa] flex flex-col shrink-0">
+            <div className="px-5 pt-5 pb-3">
+              <h2 className="text-sm font-semibold text-foreground">
+                Templates
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Pick a template or describe your own
+              </p>
             </div>
-            <Separator />
             <ScrollArea className="flex-1">
-              <div className="p-3 space-y-1.5">
+              <div className="px-3 pb-3 space-y-1.5">
                 {TEMPLATES.map((template) => (
                   <button
                     key={template.id}
                     type="button"
                     onClick={() => handleTemplateSelect(template)}
-                    className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground group"
+                    className="group w-full flex items-center gap-3 rounded-xl border border-transparent bg-white px-3 py-2.5 text-left text-sm transition-all hover:border-border hover:shadow-sm"
                   >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground group-hover:text-accent-foreground transition-colors">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-foreground/70 group-hover:text-foreground transition-colors">
                       {template.icon}
                     </div>
                     <div className="min-w-0">
-                      <div className="font-medium text-xs truncate">{template.label}</div>
-                      <div className="text-xs text-muted-foreground truncate">{template.data.satellites?.length || (template.data.root?.children?.length ?? 0)} nodes</div>
+                      <div className="font-medium text-xs truncate text-foreground">
+                        {template.label}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {template.data.satellites?.length ||
+                          template.data.root?.children?.length ||
+                          0}{' '}
+                        nodes
+                      </div>
                     </div>
                   </button>
                 ))}
               </div>
             </ScrollArea>
-            <Separator />
-            <div className="p-3">
-              <form onSubmit={generateDiagram} className="space-y-2">
+            <div className="p-3 border-t border-border bg-white">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  generateDiagram(undefined, undefined, sidebarImage || undefined);
+                }}
+                className="space-y-2"
+              >
                 <Input
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder="Describe your system..."
-                  className="text-xs h-9"
+                  className="text-xs h-9 rounded-lg border-border bg-white focus-visible:ring-0 focus-visible:border-foreground/40"
                 />
-                <Button
-                  type="submit"
-                  disabled={loading || !topic.trim()}
-                  className="w-full gap-2 text-xs h-9"
-                  size="sm"
-                >
-                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                  Generate with AI
-                </Button>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={sidebarFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 4 * 1024 * 1024) {
+                        toast.error('Image must be under 4 MB');
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = () => setSidebarImage(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-9 rounded-lg border-border hover:bg-[#fafafa] shrink-0"
+                    onClick={() => sidebarFileRef.current?.click()}
+                  >
+                    {sidebarImage ? '✓ Image' : '+ Image'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading || (!topic.trim() && !sidebarImage)}
+                    className="flex-1 gap-2 text-xs h-9 rounded-lg bg-foreground text-background hover:bg-neutral-800 disabled:opacity-50"
+                    size="sm"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    Generate
+                  </Button>
+                </div>
               </form>
             </div>
           </div>
         )}
 
         {/* Canvas Area */}
-        <div className="flex-1 relative overflow-hidden">
-          {/* Subtle animated background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-background to-purple-50/30 dark:from-blue-950/20 dark:via-background dark:to-purple-950/10 -z-10">
-            <motion.div
-              className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"
-              animate={{ x: [0, 100, 0], y: [0, -50, 0], scale: [1, 1.1, 1] }}
-              transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-bl from-pink-400/10 to-orange-400/10 rounded-full blur-3xl"
-              animate={{ x: [0, -80, 0], y: [0, 60, 0], scale: [1, 1.2, 1] }}
-              transition={{ duration: 25, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-            />
-          </div>
-
+        <div className="flex-1 relative overflow-hidden bg-white">
           <div className="h-full flex items-center justify-center p-6">
-            <Card className="w-full h-full max-h-full border shadow-sm overflow-hidden py-0">
-              <CardContent className="p-0 h-full">
-                <div ref={exportContainerRef} className="w-full h-full flex items-center justify-center bg-card">
+            <div
+              className="relative rounded-xl border border-border bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden transition-all duration-300"
+              style={{
+                backgroundImage:
+                  'linear-gradient(rgba(15,42,62,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(15,42,62,0.06) 1px, transparent 1px)',
+                backgroundSize: '24px 24px',
+                backgroundPosition: '0 0, 0 0',
+                ...(EXPORT_PRESETS[exportPreset].w && EXPORT_PRESETS[exportPreset].h
+                  ? {
+                      aspectRatio: `${EXPORT_PRESETS[exportPreset].w} / ${EXPORT_PRESETS[exportPreset].h}`,
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      width: 'auto',
+                      height: '100%',
+                    }
+                  : {
+                      width: '100%',
+                      height: '100%',
+                    }),
+              }}
+            >
+              <div
+                ref={exportContainerRef}
+                className="w-full h-full flex items-center justify-center p-8"
+              >
+                {activePreview ? (
+                  <AnimatedPreview
+                    {...(activePreview as any)}
+                    variant="canvas"
+                    modeOverride={animationType}
+                    showModeChip={false}
+                    editable
+                    speed={animationSpeed}
+                    positionOverrides={positionOverrides}
+                    labelOverrides={labelOverrides}
+                    onPositionChange={(key, x, y) =>
+                      setPositionOverrides((p) => ({ ...p, [key]: { x, y } }))
+                    }
+                    onLabelChange={(key, label) =>
+                      setLabelOverrides((p) => ({ ...p, [key]: label }))
+                    }
+                  />
+                ) : (
                   <DiagramRenderer data={diagramData} mode={animationType} />
-                </div>
-              </CardContent>
-            </Card>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

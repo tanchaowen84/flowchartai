@@ -1,50 +1,98 @@
-import { ContactFormCard } from '@/components/contact/contact-form-card';
-import Container from '@/components/layout/container';
-import { constructMetadata } from '@/lib/metadata';
-import { getUrlWithLocale } from '@/lib/urls/urls';
+import Link from 'next/link';
 import type { Metadata } from 'next';
-import type { Locale } from 'next-intl';
-import { getTranslations } from 'next-intl/server';
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>;
-}): Promise<Metadata | undefined> {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'Metadata' });
-  const pt = await getTranslations({ locale, namespace: 'ContactPage' });
+export const metadata: Metadata = {
+  title: 'Contact Infogiph — Support, Feedback & Partnerships',
+  description:
+    'Get in touch with the Infogiph team. Report bugs, request features, ask about pricing, or explore partnership opportunities for AI-powered infographics.',
+  openGraph: {
+    title: 'Contact Infogiph',
+    description:
+      'Reach the Infogiph team for support, feedback, or partnerships.',
+  },
+};
 
-  return constructMetadata({
-    title: pt('title') + ' | ' + t('title'),
-    description: pt('description'),
-    canonicalUrl: getUrlWithLocale('/contact', locale),
-    noIndex: true,
-  });
-}
-
-/**
- * inspired by https://nsui.irung.me/contact
- */
-export default async function ContactPage() {
-  const t = await getTranslations('ContactPage');
-
+export default function ContactPage() {
   return (
-    <Container className="py-16 px-4">
-      <div className="mx-auto max-w-4xl space-y-8 pb-16">
-        {/* Header */}
-        <div className="space-y-4">
-          <h1 className="text-center text-3xl font-bold tracking-tight">
-            {t('title')}
-          </h1>
-          <p className="text-center text-lg text-muted-foreground">
-            {t('subtitle')}
+    <div className="mx-auto max-w-3xl px-4 py-20">
+      <h1 className="text-4xl font-bold tracking-tight mb-6">Contact us</h1>
+
+      <p className="text-lg text-muted-foreground leading-relaxed mb-10">
+        We read every message. Whether you have a bug report, feature request,
+        pricing question, or partnership idea — we want to hear from you.
+      </p>
+
+      <div className="grid gap-6 sm:grid-cols-2 mb-12">
+        <div className="rounded-xl border border-border p-6">
+          <h2 className="text-lg font-semibold mb-2">General support</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Questions about your account, exports, templates, or the canvas
+            editor.
           </p>
+          <a
+            href="mailto:support@infogiph.com"
+            className="text-sm font-medium text-foreground underline underline-offset-4"
+          >
+            support@infogiph.com
+          </a>
         </div>
 
-        {/* Form */}
-        <ContactFormCard />
+        <div className="rounded-xl border border-border p-6">
+          <h2 className="text-lg font-semibold mb-2">Partnerships</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Interested in integrating Infogiph into your product, content
+            pipeline, or classroom?
+          </p>
+          <a
+            href="mailto:hello@infogiph.com"
+            className="text-sm font-medium text-foreground underline underline-offset-4"
+          >
+            hello@infogiph.com
+          </a>
+        </div>
+
+        <div className="rounded-xl border border-border p-6">
+          <h2 className="text-lg font-semibold mb-2">Bug reports</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Found something broken? Open an issue on GitHub or email us
+            directly.
+          </p>
+          <a
+            href="mailto:bugs@infogiph.com"
+            className="text-sm font-medium text-foreground underline underline-offset-4"
+          >
+            bugs@infogiph.com
+          </a>
+        </div>
+
+        <div className="rounded-xl border border-border p-6">
+          <h2 className="text-lg font-semibold mb-2">Social</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Follow us for product updates, tips, and community highlights.
+          </p>
+          <span className="text-sm font-medium text-foreground">
+            @infogiph on X
+          </span>
+        </div>
       </div>
-    </Container>
+
+      <h2 className="text-2xl font-semibold mb-4">
+        Frequently asked questions
+      </h2>
+      <p className="text-muted-foreground mb-6">
+        Before reaching out, check our{' '}
+        <Link href="/" className="underline underline-offset-4 font-medium">
+          homepage FAQ section
+        </Link>{' '}
+        — your question may already be answered.
+      </p>
+
+      <Link
+        href="/canvas"
+        className="inline-flex items-center justify-center rounded-lg bg-foreground text-background px-6 py-3 text-sm font-medium hover:opacity-90 transition-opacity"
+      >
+        Try Infogiph free
+      </Link>
+    </div>
   );
 }

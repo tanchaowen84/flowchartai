@@ -396,3 +396,103 @@ body {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* ─── Infogiph home: 1:1 my-clone palette + Geist font, scoped to the home page ─── */
+.infogiph-home {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #f5f5f5;
+  --accent-foreground: #0a0a0a;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: rgba(0, 0, 0, 0.2);
+  --radius: 0.625rem;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #0a0a0a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f0f0;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: rgba(0, 0, 0, 0.2);
+
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui,
+    sans-serif;
+}
+
+.infogiph-home,
+.infogiph-home * {
+  font-family: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui,
+    sans-serif;
+}
+
+/* ─── Infogiph home utilities (mirror of my-clone's sw-* classes) ─── */
+
+/* Warm orange→pink gradient (used for Upgrade, Export, Preview banner) */
+.ig-gradient {
+  background: linear-gradient(
+    90deg,
+    #ffb27a 0%,
+    #ff8a5c 25%,
+    #ff6b9d 55%,
+    #c74bb5 85%,
+    #8438b2 100%
+  );
+}
+
+/* Orange page frame glow — mimics backgroundOrange.jpg bleed */
+.ig-frame {
+  background: radial-gradient(
+      ellipse 120% 60% at 50% 0%,
+      rgba(255, 138, 92, 0.55) 0%,
+      rgba(255, 107, 157, 0.35) 30%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 100% 50% at 50% 100%,
+      rgba(255, 138, 92, 0.45) 0%,
+      rgba(255, 107, 157, 0.25) 30%,
+      transparent 70%
+    ),
+    linear-gradient(180deg, #ffb27a, #ff8a5c 50%, #ff6b9d);
+}
+
+/* Hide scrollbars on category tabs */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Prompt card shadow on the Hero input */
+.ig-prompt-shadow {
+  box-shadow: 0 7px 21px 0 rgba(51, 51, 51, 0.05);
+}
+
+/* Gentle bounce for feature demos */
+@keyframes ig-bounce-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.ig-bounce-soft {
+  animation: ig-bounce-soft 2.8s ease-in-out infinite;
+}

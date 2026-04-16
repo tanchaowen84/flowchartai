@@ -1,5 +1,24 @@
-import { Noto_Sans, Noto_Sans_Mono, Noto_Serif } from 'next/font/google';
+import {
+  Geist,
+  Geist_Mono,
+  Noto_Sans,
+  Noto_Sans_Mono,
+  Noto_Serif,
+} from 'next/font/google';
 import localFont from 'next/font/local';
+
+// Geist is used to theme the home page to match my-clone exactly.
+export const fontGeistSans = Geist({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-geist-sans',
+});
+
+export const fontGeistMono = Geist_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-geist-mono',
+});
 
 /**
  * 1. Fonts Documentation
