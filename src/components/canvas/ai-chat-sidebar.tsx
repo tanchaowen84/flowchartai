@@ -100,6 +100,22 @@ interface AiChatSidebarProps {
   } | null;
 }
 
+function getUserFacingErrorMessage(
+  error: unknown,
+  fallbackMessage: string
+): string {
+  const typedError = error as (Error & { userFacingMessage?: string }) | null;
+
+  if (
+    error instanceof Error &&
+    typeof typedError?.userFacingMessage === 'string'
+  ) {
+    return typedError.userFacingMessage;
+  }
+
+  return fallbackMessage;
+}
+
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   className,
   isOpen,
@@ -225,9 +241,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (!canUseAI) {
       // Check if it's a daily limit for free users
       if (usageData?.timeFrame === 'daily') {
-        console.log(
-          '🎯 Daily limit detected - showing PricingModal directly'
-        );
+        console.log('🎯 Daily limit detected - showing PricingModal directly');
         // Set daily limit context and show pricing modal directly
         setDailyLimitUsageInfo({
           timeFrame: 'daily',
@@ -339,10 +353,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }
       }
 
+      const userFacingMessage = getUserFacingErrorMessage(
+        error,
+        'Sorry, I encountered an error while processing your request. Please try again.'
+      );
+
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
-        content:
-          'Sorry, I encountered an error while processing your request. Please try again.',
+        content: userFacingMessage,
         role: 'assistant',
         timestamp: new Date(),
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -352,7 +370,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       toast({
         title: 'Error',
-        description: 'Failed to process your message. Please try again.',
+        description: userFacingMessage,
         variant: 'destructive',
       });
     } finally {
@@ -839,10 +857,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }
       }
 
+      const userFacingMessage = getUserFacingErrorMessage(
+        error,
+        'Sorry, I encountered an error while regenerating your request. Please try again.'
+      );
+
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
-        content:
-          'Sorry, I encountered an error while regenerating your request. Please try again.',
+        content: userFacingMessage,
         role: 'assistant',
         timestamp: new Date(),
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -852,7 +874,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       toast({
         title: 'Error',
-        description: 'Failed to regenerate your message. Please try again.',
+        description: userFacingMessage,
         variant: 'destructive',
       });
     } finally {
@@ -887,9 +909,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (!canUseAI) {
       // Check if it's a daily limit for free users
       if (usageData?.timeFrame === 'daily') {
-        console.log(
-          '🎯 Daily limit detected - showing PricingModal directly'
-        );
+        console.log('🎯 Daily limit detected - showing PricingModal directly');
         // Set daily limit context and show pricing modal directly
         setDailyLimitUsageInfo({
           timeFrame: 'daily',
@@ -1047,10 +1067,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }
       }
 
+      const userFacingMessage = getUserFacingErrorMessage(
+        error,
+        'Sorry, I encountered an error while processing your request. Please try again.'
+      );
+
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
-        content:
-          'Sorry, I encountered an error while processing your request. Please try again.',
+        content: userFacingMessage,
         role: 'assistant',
         timestamp: new Date(),
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -1060,7 +1084,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       toast({
         title: 'Error',
-        description: 'Failed to process your message. Please try again.',
+        description: userFacingMessage,
         variant: 'destructive',
       });
     } finally {
@@ -1094,9 +1118,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+
       if (response.status === 429) {
         // Handle rate limit errors specifically
-        const errorData = await response.json().catch(() => ({}));
         if (errorData.isGuest) {
           const guestError = new Error(
             errorData.message ||
@@ -1120,7 +1145,23 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           errorData.message || 'You have reached your AI usage limit.'
         );
       }
-      throw new Error(`HTTP error! status: ${response.status}`);
+
+      const requestError = new Error(
+        typeof errorData.message === 'string'
+          ? errorData.message
+          : `HTTP error! status: ${response.status}`
+      );
+
+      if (
+        errorData.error === 'prompt_rejected' ||
+        errorData.error === 'prompt_flagged' ||
+        errorData.error === 'moderation_unavailable'
+      ) {
+        (requestError as { userFacingMessage?: string }).userFacingMessage =
+          errorData.message;
+      }
+
+      throw requestError;
     }
 
     const reader = response.body?.getReader();
@@ -1624,7 +1665,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           <DialogHeader className="hidden">
             <DialogTitle>Sign In</DialogTitle>
           </DialogHeader>
-          <LoginForm callbackUrl={loginCallbackUrl || currentPath} className="border-none" />
+          <LoginForm
+            callbackUrl={loginCallbackUrl || currentPath}
+            className="border-none"
+          />
         </DialogContent>
       </Dialog>
 

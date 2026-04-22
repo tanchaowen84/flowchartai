@@ -1,5 +1,9 @@
 import { canUserUseAI, recordAIUsage } from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
+import {
+  extractLatestUserPrompt,
+  screenPromptWithCreem,
+} from '@/lib/creem-moderation';
 import { IMAGE_TO_FLOWCHART_PROMPT } from '@/lib/prompts/image-flowchart';
 import { headers } from 'next/headers';
 import OpenAI from 'openai';
@@ -266,6 +270,54 @@ export async function POST(req: Request) {
           headers: { 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    const latestUserPrompt = extractLatestUserPrompt(messages);
+
+    if (latestUserPrompt) {
+      try {
+        const moderationResult = await screenPromptWithCreem({
+          prompt: latestUserPrompt,
+          externalId: `user_${userId}_flowchart_${Date.now()}`,
+        });
+
+        if (
+          moderationResult.decision === 'deny' ||
+          moderationResult.decision === 'flag'
+        ) {
+          return new Response(
+            JSON.stringify({
+              error:
+                moderationResult.decision === 'deny'
+                  ? 'prompt_rejected'
+                  : 'prompt_flagged',
+              message:
+                moderationResult.decision === 'deny'
+                  ? 'Your prompt was rejected by our safety screening. Please revise it and try again.'
+                  : 'Your prompt could not be processed by our safety screening. Please revise it and try again.',
+              moderationDecision: moderationResult.decision,
+            }),
+            {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      } catch (error) {
+        console.error('Creem moderation error:', error);
+
+        return new Response(
+          JSON.stringify({
+            error: 'moderation_unavailable',
+            message:
+              'We could not complete safety screening for your prompt right now. Please try again in a moment.',
+          }),
+          {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
     }
 
     // 4. 准备消息
