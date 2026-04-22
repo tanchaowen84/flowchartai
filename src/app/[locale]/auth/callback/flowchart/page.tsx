@@ -25,7 +25,10 @@ export default function FlowchartCallbackPage() {
     // 设置meta description
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', 'Creating your AI flowchart, please wait...');
+      metaDescription.setAttribute(
+        'content',
+        'Creating your AI flowchart, please wait...'
+      );
     }
   }, []);
 
@@ -88,23 +91,31 @@ export default function FlowchartCallbackPage() {
         <div className="flex flex-col items-center gap-4">
           <Loader2Icon className="animate-spin h-12 w-12 text-primary" />
           <h2 className="text-xl font-semibold">Creating your flowchart...</h2>
-          <p className="text-muted-foreground">Please wait while we prepare your canvas</p>
+          <p className="text-muted-foreground">
+            Please wait while we prepare your canvas
+          </p>
         </div>
       ) : error ? (
         <div className="flex flex-col items-center gap-4 max-w-md text-center">
           <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
             <span className="text-red-600 text-xl">⚠️</span>
           </div>
-          <h2 className="text-xl font-semibold text-red-600">Something went wrong</h2>
+          <h2 className="text-xl font-semibold text-red-600">
+            Something went wrong
+          </h2>
           <p className="text-muted-foreground">{error}</p>
-          <p className="text-sm text-muted-foreground">Redirecting to canvas...</p>
+          <p className="text-sm text-muted-foreground">
+            Redirecting to canvas...
+          </p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4">
           <Loader2Icon className="animate-spin h-12 w-12 text-primary" />
           <h2 className="text-xl font-semibold">Preparing your flowchart...</h2>
           <p className="text-muted-foreground">
-            {isLoading ? 'Verifying your login status...' : 'Processing your request...'}
+            {isLoading
+              ? 'Verifying your login status...'
+              : 'Processing your request...'}
           </p>
         </div>
       )}

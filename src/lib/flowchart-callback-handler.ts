@@ -1,8 +1,5 @@
-import {
-  encodeImageToBase64,
-  createImageThumbnail,
-} from '@/lib/image-utils';
-import { useRouter } from 'next/navigation';
+import { createImageThumbnail, encodeImageToBase64 } from '@/lib/image-utils';
+import type { useRouter } from 'next/navigation';
 
 export interface PendingFlowchartData {
   input: string;
@@ -71,7 +68,8 @@ export async function savePendingFlowchartData(
 
     try {
       const base64 = await encodeImageToBase64(imageFile);
-      const thumbnail = imagePreview || (await createImageThumbnail(imageFile, 320, 200));
+      const thumbnail =
+        imagePreview || (await createImageThumbnail(imageFile, 320, 200));
 
       pendingData.imageFile = {
         name: imageFile.name,
@@ -81,7 +79,9 @@ export async function savePendingFlowchartData(
       };
     } catch (error) {
       console.error('Failed to process image file:', error);
-      throw new Error('Failed to process image file. Please try a different image.');
+      throw new Error(
+        'Failed to process image file. Please try a different image.'
+      );
     }
   }
 
@@ -90,17 +90,25 @@ export async function savePendingFlowchartData(
     const key = `pending_${stateId}`;
     sessionStorage.setItem(key, JSON.stringify(pendingData));
 
-    console.log('✅ Pending flowchart data saved:', { stateId, mode, hasImage: !!imageFile });
+    console.log('✅ Pending flowchart data saved:', {
+      stateId,
+      mode,
+      hasImage: !!imageFile,
+    });
   } catch (error) {
     console.error('Failed to save pending data to sessionStorage:', error);
-    throw new Error('Failed to save your request. Your browser storage might be full.');
+    throw new Error(
+      'Failed to save your request. Your browser storage might be full.'
+    );
   }
 }
 
 /**
  * 从sessionStorage获取待处理的流程图数据
  */
-export function getPendingFlowchartData(stateId: string): PendingFlowchartData | null {
+export function getPendingFlowchartData(
+  stateId: string
+): PendingFlowchartData | null {
   try {
     const key = `pending_${stateId}`;
     const dataStr = sessionStorage.getItem(key);
@@ -171,11 +179,14 @@ export async function createFlowchartWithAutoGeneration(
 
     // 处理图片
     if (pendingData.imageFile) {
-      localStorage.setItem('flowchart_auto_image', JSON.stringify({
-        base64: pendingData.imageFile.base64,
-        thumbnail: pendingData.imageFile.thumbnail,
-        filename: pendingData.imageFile.name,
-      }));
+      localStorage.setItem(
+        'flowchart_auto_image',
+        JSON.stringify({
+          base64: pendingData.imageFile.base64,
+          thumbnail: pendingData.imageFile.thumbnail,
+          filename: pendingData.imageFile.name,
+        })
+      );
       console.log('✅ Image data saved to localStorage');
     }
 
@@ -184,13 +195,17 @@ export async function createFlowchartWithAutoGeneration(
       const cacheData = {
         id: flowchartId,
         title: 'Untitled',
-        content: '{"type":"excalidraw","version":2,"source":"https://excalidraw.com","elements":[],"appState":{"gridSize":null,"viewBackgroundColor":"#ffffff"}}',
+        content:
+          '{"type":"excalidraw","version":2,"source":"https://excalidraw.com","elements":[],"appState":{"gridSize":null,"viewBackgroundColor":"#ffffff"}}',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
       // 将数据存储在sessionStorage中以供canvas页面快速访问
-      sessionStorage.setItem(`flowchart_cache_${flowchartId}`, JSON.stringify(cacheData));
+      sessionStorage.setItem(
+        `flowchart_cache_${flowchartId}`,
+        JSON.stringify(cacheData)
+      );
       console.log('✅ Flowchart data cached for immediate access');
     } catch (cacheError) {
       console.warn('⚠️ Failed to cache flowchart data:', cacheError);
@@ -199,7 +214,6 @@ export async function createFlowchartWithAutoGeneration(
 
     console.log('✅ All auto-generation data prepared successfully');
     return flowchartId;
-
   } catch (error) {
     console.error('❌ Error creating flowchart:', error);
     return null;
@@ -223,7 +237,11 @@ export async function handlePendingFlowchart(
     }
 
     // 创建流程图
-    const flowchartId = await createFlowchartWithAutoGeneration(pendingData, userId, router);
+    const flowchartId = await createFlowchartWithAutoGeneration(
+      pendingData,
+      userId,
+      router
+    );
     if (!flowchartId) {
       console.error('Failed to create flowchart');
       return false;
@@ -235,7 +253,6 @@ export async function handlePendingFlowchart(
     // 跳转到画布
     router.push(`/canvas/${flowchartId}`);
     return true;
-
   } catch (error) {
     console.error('Error handling pending flowchart:', error);
     return false;

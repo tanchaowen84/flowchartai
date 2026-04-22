@@ -51,7 +51,12 @@ export function GuestUsageIndicator({ className }: GuestUsageIndicatorProps) {
                 Sign In to Use AI
               </LocaleLink>
             </Button>
-            <Button size="sm" variant="outline" asChild className="w-full gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              asChild
+              className="w-full gap-2"
+            >
               <LocaleLink href="/auth/register">
                 <UserPlus className="h-3 w-3" />
                 Create Free Account

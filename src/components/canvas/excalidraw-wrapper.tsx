@@ -11,8 +11,8 @@ import '@excalidraw/excalidraw/index.css';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { websiteConfig } from '@/config/website';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useFlowchart } from '@/hooks/use-flowchart';
@@ -21,12 +21,13 @@ import {
   type AiAssistantMode,
   DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
+import { cn } from '@/lib/utils';
 import type {
   ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
 } from '@excalidraw/excalidraw/types';
-import { cn } from '@/lib/utils';
 import {
+  AlertCircle,
   Check,
   Copy,
   Download,
@@ -36,10 +37,9 @@ import {
   Loader2Icon,
   User,
   XIcon,
-  AlertCircle,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import AiChatSidebar from './ai-chat-sidebar';
 import ResizableDivider from './resizable-divider';
@@ -123,7 +123,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState('png');
   const [isExporting, setIsExporting] = useState(false);
-  const [exportStatus, setExportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [exportStatus, setExportStatus] = useState<
+    'idle' | 'success' | 'error'
+  >('idle');
   const [exportError, setExportError] = useState<string>('');
 
   // Export formats configuration (without icons)
@@ -132,20 +134,21 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       id: 'png',
       title: 'PNG Image',
       description: 'Perfect for web sharing, documents, and presentations',
-      extension: 'png'
+      extension: 'png',
     },
     {
       id: 'svg',
       title: 'SVG Vector',
-      description: 'Scalable format, ideal for editing and high-quality exports',
-      extension: 'svg'
+      description:
+        'Scalable format, ideal for editing and high-quality exports',
+      extension: 'svg',
     },
     {
       id: 'json',
       title: 'Excalidraw File',
       description: 'Native format for editing in Excalidraw later',
-      extension: 'excalidraw'
-    }
+      extension: 'excalidraw',
+    },
   ];
 
   // Compute initial data based on flowchart content
@@ -401,7 +404,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       const files = excalidrawAPI.getFiles();
 
       if (!elements || elements.length === 0) {
-        throw new Error('Canvas is empty. Please draw something before exporting.');
+        throw new Error(
+          'Canvas is empty. Please draw something before exporting.'
+        );
       }
 
       let blob: Blob;
@@ -424,7 +429,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           filename = `${currentTitle || 'flowchart'}.png`;
           break;
 
-        case 'svg':
+        case 'svg': {
           const svg = await exportToSvg({
             elements,
             appState: {
@@ -439,8 +444,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           blob = new Blob([svgData], { type: 'image/svg+xml' });
           filename = `${currentTitle || 'flowchart'}.svg`;
           break;
+        }
 
-        case 'json':
+        case 'json': {
           const { collaborators, ...cleanAppState } = appState;
           const exportData = {
             type: 'excalidraw',
@@ -454,6 +460,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           blob = new Blob([jsonData], { type: 'application/json' });
           filename = `${currentTitle || 'flowchart'}.excalidraw`;
           break;
+        }
 
         default:
           throw new Error('Unsupported format');
@@ -474,7 +481,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         setIsExportModalOpen(false);
         setExportStatus('idle');
       }, 1500);
-
     } catch (error) {
       console.error('Export error:', error);
       setExportStatus('error');
@@ -787,7 +793,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="relative mx-4 w-full max-w-md bg-white rounded-xl border-2 border-white shadow-xl md:mx-0"
               onClick={(e) => e.stopPropagation()}
             >
@@ -815,7 +821,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
                   <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-md">
                     <div className="flex items-center gap-2 text-green-800">
                       <Check className="w-4 h-4" />
-                      <span className="text-sm font-medium">Export successful!</span>
+                      <span className="text-sm font-medium">
+                        Export successful!
+                      </span>
                     </div>
                   </div>
                 )}
@@ -834,18 +842,22 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
                     <Card
                       key={format.id}
                       className={cn(
-                        "cursor-pointer transition-all duration-200 hover:shadow-sm",
+                        'cursor-pointer transition-all duration-200 hover:shadow-sm',
                         selectedFormat === format.id
-                          ? "border-blue-500 bg-blue-50 shadow-sm"
-                          : "border-gray-200 bg-white hover:border-gray-300"
+                          ? 'border-blue-500 bg-blue-50 shadow-sm'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                       )}
                       onClick={() => setSelectedFormat(format.id)}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">{format.title}</h3>
-                            <p className="text-xs text-gray-600 mt-1">{format.description}</p>
+                            <h3 className="font-medium text-gray-900">
+                              {format.title}
+                            </h3>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {format.description}
+                            </p>
                           </div>
                           {selectedFormat === format.id && (
                             <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
@@ -877,7 +889,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
                         Exporting...
                       </>
                     ) : (
-                      `Export ${exportFormats.find(f => f.id === selectedFormat)?.title}`
+                      `Export ${exportFormats.find((f) => f.id === selectedFormat)?.title}`
                     )}
                   </Button>
                 </div>

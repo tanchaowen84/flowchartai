@@ -6,7 +6,9 @@ import { z } from 'zod';
 
 // Schema for recording AI usage
 const recordUsageSchema = z.object({
-  type: z.enum(['flowchart_generation', 'canvas_analysis']).default('flowchart_generation'),
+  type: z
+    .enum(['flowchart_generation', 'canvas_analysis'])
+    .default('flowchart_generation'),
   success: z.boolean().default(true),
   metadata: z.record(z.any()).default({}),
 });

@@ -2,10 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import { LocaleLink } from '@/i18n/navigation';
+import { startFlowchartSession } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import { startFlowchartSession } from '@/lib/utils';
 
 export default function CallToActionSection() {
   const t = useTranslations('HomePage.calltoaction');

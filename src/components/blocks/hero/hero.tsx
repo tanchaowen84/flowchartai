@@ -3,17 +3,19 @@
 import { LoginForm } from '@/components/auth/login-form';
 import { Ripple } from '@/components/magicui/ripple';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import {
   AI_ASSISTANT_MODES,
   type AiAssistantMode,
   DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
+import {
+  buildCallbackUrl,
+  generateStateId,
+  savePendingFlowchartData,
+} from '@/lib/flowchart-callback-handler';
 import {
   MAX_FILE_SIZE,
   createImageThumbnail,
@@ -22,11 +24,6 @@ import {
   isValidImageFile,
 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
-import {
-  buildCallbackUrl,
-  generateStateId,
-  savePendingFlowchartData,
-} from '@/lib/flowchart-callback-handler';
 import { Camera, Send, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -110,7 +107,6 @@ export default function HeroSection() {
     }
   }, [selectedMode]);
 
-  
   // 使用useMemo缓存className计算结果
   const inputClassName = useMemo(() => {
     return cn(
@@ -321,12 +317,14 @@ export default function HeroSection() {
             console.log('✅ Pending data saved and login modal shown', {
               stateId,
               mode: selectedMode,
-              hasImage: !!imageFile
+              hasImage: !!imageFile,
             });
-
           } catch (error) {
             console.error('Error saving pending data:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Failed to prepare your request';
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : 'Failed to prepare your request';
             toast.error(errorMessage);
             setIsLoading(false);
             setShowLoginModal(false);
@@ -342,7 +340,15 @@ export default function HeroSection() {
         }
       }
     },
-    [input, selectedMode, currentUser, router, imageFile, imagePreview, clearImage]
+    [
+      input,
+      selectedMode,
+      currentUser,
+      router,
+      imageFile,
+      imagePreview,
+      clearImage,
+    ]
   );
 
   return (
@@ -557,7 +563,8 @@ export default function HeroSection() {
         <DialogContent className="p-0 max-w-md">
           <div className="p-6 pb-0 text-center">
             <p className="text-sm text-muted-foreground">
-              Your input will be saved and you won't need to re-enter it after logging in.
+              Your input will be saved and you won't need to re-enter it after
+              logging in.
             </p>
           </div>
           <LoginForm

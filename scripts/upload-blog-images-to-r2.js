@@ -13,10 +13,10 @@
  * node scripts/upload-blog-images-to-r2.js
  */
 
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { join, dirname } from 'path';
+import { readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { config } from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,13 +55,13 @@ function validateConfig() {
     'STORAGE_ACCESS_KEY_ID',
     'STORAGE_SECRET_ACCESS_KEY',
     'STORAGE_BUCKET_NAME',
-    'STORAGE_PUBLIC_URL'
+    'STORAGE_PUBLIC_URL',
   ];
 
-  const missing = required.filter(key => !process.env[key]);
+  const missing = required.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     console.error('❌ 缺少必需的环境变量:');
-    missing.forEach(key => console.error(`   - ${key}`));
+    missing.forEach((key) => console.error(`   - ${key}`));
     console.error('\n请检查 .env 文件或环境变量配置。');
     process.exit(1);
   }
@@ -75,8 +75,8 @@ function validateConfig() {
 // 获取所有博客文章
 function getAllBlogPosts() {
   const blogFiles = readdirSync(CONFIG.paths.blogDir)
-    .filter(file => file.endsWith('.mdx'))
-    .map(file => join(CONFIG.paths.blogDir, file));
+    .filter((file) => file.endsWith('.mdx'))
+    .map((file) => join(CONFIG.paths.blogDir, file));
 
   console.log(`📄 找到 ${blogFiles.length} 篇博客文章`);
   return blogFiles;
@@ -181,7 +181,10 @@ function updateBlogImagePath(blogFile, oldPath, newPath) {
 
     // 替换 frontmatter 中的 image 字段
     const updatedContent = content.replace(
-      new RegExp(`^image:\\s*${oldPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'm'),
+      new RegExp(
+        `^image:\\s*${oldPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+        'm'
+      ),
       `image: ${newPath}`
     );
 
@@ -221,7 +224,7 @@ async function main() {
     }
 
     console.log(`\n🖼️  找到 ${imageInfos.length} 个需要上传的封面图片:\n`);
-    imageInfos.forEach(info => {
+    imageInfos.forEach((info) => {
       console.log(`   📄 ${info.blogFile.split('/').pop()}`);
       console.log(`   🖼️  ${info.fileName}`);
     });
@@ -230,7 +233,7 @@ async function main() {
     const s3Client = createS3Client();
 
     // 5. 上传图片并更新路径
-    console.log(`\n📤 开始上传到 R2...\n`);
+    console.log('\n📤 开始上传到 R2...\n');
 
     const results = {
       success: [],
@@ -242,7 +245,11 @@ async function main() {
       const remotePath = `${CONFIG.cdn.basePath}/${imageInfo.fileName}`;
 
       // 上传图片
-      const uploadSuccess = await uploadToR2(s3Client, imageInfo.localPath, remotePath);
+      const uploadSuccess = await uploadToR2(
+        s3Client,
+        imageInfo.localPath,
+        remotePath
+      );
 
       if (uploadSuccess) {
         // 构建新的 CDN 路径
@@ -278,21 +285,21 @@ async function main() {
     }
 
     // 6. 生成报告
-    console.log(`\n📊 上传完成！结果统计:\n`);
+    console.log('\n📊 上传完成！结果统计:\n');
     console.log(`✅ 成功: ${results.success.length} 个`);
     console.log(`❌ 失败: ${results.failed.length} 个`);
 
     if (results.success.length > 0) {
-      console.log(`\n✅ 成功上传的图片:`);
-      results.success.forEach(result => {
+      console.log('\n✅ 成功上传的图片:');
+      results.success.forEach((result) => {
         console.log(`   🖼️  ${result.fileName}`);
         console.log(`   🔗 ${result.cdnPath}`);
       });
     }
 
     if (results.failed.length > 0) {
-      console.log(`\n❌ 失败的图片:`);
-      results.failed.forEach(result => {
+      console.log('\n❌ 失败的图片:');
+      results.failed.forEach((result) => {
         console.log(`   🖼️  ${result.fileName}`);
         console.log(`   ❌ ${result.error}`);
       });
@@ -300,13 +307,12 @@ async function main() {
 
     // 7. 提示验证
     if (results.success.length > 0) {
-      console.log(`\n🔍 建议验证 CDN 链接是否可访问`);
-      console.log(`💡 可以运行以下命令测试:\n`);
-      results.success.forEach(result => {
+      console.log('\n🔍 建议验证 CDN 链接是否可访问');
+      console.log('💡 可以运行以下命令测试:\n');
+      results.success.forEach((result) => {
         console.log(`   curl -I "${result.cdnPath}"`);
       });
     }
-
   } catch (error) {
     console.error('❌ 脚本执行失败:', error);
     process.exit(1);
