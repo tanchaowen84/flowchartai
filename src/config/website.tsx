@@ -67,7 +67,7 @@ export const websiteConfig: WebsiteConfig = {
   },
   mail: {
     provider: 'resend',
-    fromEmail: 'FlowChart AI <noreply@flowchartai.org>',
+    fromEmail: 'FlowChart AI Support <support@flowchartai.org>',
     supportEmail: 'FlowChart AI Support <support@flowchartai.org>',
   },
   newsletter: {

@@ -1,6 +1,7 @@
 import type { Locale, Messages } from 'next-intl';
 import { ContactMessage } from './templates/contact-message';
 import { ForgotPassword } from './templates/forgot-password';
+import { SignInOtp } from './templates/sign-in-otp';
 import { SubscribeNewsletter } from './templates/subscribe-newsletter';
 import { VerifyEmail } from './templates/verify-email';
 
@@ -9,6 +10,7 @@ import { VerifyEmail } from './templates/verify-email';
  */
 export const EmailTemplates = {
   forgotPassword: ForgotPassword,
+  signInOtp: SignInOtp,
   verifyEmail: VerifyEmail,
   subscribeNewsletter: SubscribeNewsletter,
   contactMessage: ContactMessage,

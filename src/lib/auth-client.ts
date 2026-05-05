@@ -1,4 +1,8 @@
-import { adminClient, inferAdditionalFields } from 'better-auth/client/plugins';
+import {
+  adminClient,
+  emailOTPClient,
+  inferAdditionalFields,
+} from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 import type { auth } from './auth';
 import { getBaseUrl } from './urls/urls';
@@ -6,11 +10,15 @@ import { getBaseUrl } from './urls/urls';
 /**
  * https://www.better-auth.com/docs/installation#create-client-instance
  */
+const authClientBaseURL =
+  typeof window === 'undefined' ? getBaseUrl() : window.location.origin;
+
 export const authClient = createAuthClient({
-  baseURL: getBaseUrl(),
+  baseURL: authClientBaseURL,
   plugins: [
     // https://www.better-auth.com/docs/plugins/admin#add-the-client-plugin
     adminClient(),
+    emailOTPClient(),
     // https://www.better-auth.com/docs/concepts/typescript#inferring-additional-fields-on-client
     inferAdditionalFields<typeof auth>(),
     // Google OneTap 暂时禁用以解决 FedCM 兼容性问题

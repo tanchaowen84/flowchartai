@@ -6,10 +6,12 @@ import { sendEmail } from '@/mail';
 import { subscribe } from '@/newsletter';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { admin, oneTap } from 'better-auth/plugins';
+import { admin, emailOTP, oneTap } from 'better-auth/plugins';
 import { parse as parseCookies } from 'cookie';
 import type { Locale } from 'next-intl';
 import { getBaseUrl, getUrlWithLocaleInCallbackUrl } from './urls/urls';
+
+const EMAIL_OTP_EXPIRES_IN_SECONDS = 5 * 60;
 
 /**
  * Better Auth configuration
@@ -47,7 +49,7 @@ export const auth = betterAuth({
       const locale = getLocaleFromRequest(request);
       const localizedUrl = getUrlWithLocaleInCallbackUrl(url, locale);
 
-      await sendEmail({
+      const sent = await sendEmail({
         to: user.email,
         template: 'forgotPassword',
         context: {
@@ -56,6 +58,10 @@ export const auth = betterAuth({
         },
         locale,
       });
+
+      if (!sent) {
+        throw new Error('Failed to send reset password email');
+      }
     },
   },
   emailVerification: {
@@ -66,7 +72,7 @@ export const auth = betterAuth({
       const locale = getLocaleFromRequest(request);
       const localizedUrl = getUrlWithLocaleInCallbackUrl(url, locale);
 
-      await sendEmail({
+      const sent = await sendEmail({
         to: user.email,
         template: 'verifyEmail',
         context: {
@@ -75,6 +81,10 @@ export const auth = betterAuth({
         },
         locale,
       });
+
+      if (!sent) {
+        throw new Error('Failed to send verification email');
+      }
     },
   },
   socialProviders: {
@@ -142,6 +152,26 @@ export const auth = betterAuth({
       defaultBanExpiresIn: undefined,
       bannedUserMessage:
         'You have been banned from this application. Please contact support if you believe this is an error.',
+    }),
+    emailOTP({
+      expiresIn: EMAIL_OTP_EXPIRES_IN_SECONDS,
+      otpLength: 6,
+      async sendVerificationOTP({ email, otp }, request) {
+        const locale = getLocaleFromRequest(request);
+        const sent = await sendEmail({
+          to: email,
+          template: 'signInOtp',
+          context: {
+            otp,
+            expiresInMinutes: EMAIL_OTP_EXPIRES_IN_SECONDS / 60,
+          },
+          locale,
+        });
+
+        if (!sent) {
+          throw new Error('Failed to send email OTP');
+        }
+      },
     }),
     // https://www.better-auth.com/docs/plugins/one-tap
     // Google One Tap integration - 暂时禁用以解决 FedCM 兼容性问题

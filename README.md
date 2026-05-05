@@ -123,6 +123,7 @@ STORAGE_PUBLIC_URL="https://cdn.yourdomain.com"
 
 # Email (Optional - for notifications)
 RESEND_API_KEY="your-resend-api-key"
+RESEND_AUDIENCE_ID="your-resend-audience-id"
 
 # Base URL
 NEXT_PUBLIC_BASE_URL="http://localhost:3000"
@@ -428,4 +429,3 @@ Special thanks to the [MkSaaS](https://mksaas.com) template that provided the fo
     <a href="https://x.com/tanchaowen84">Twitter</a>
   </p>
 </div>
-
