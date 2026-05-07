@@ -236,15 +236,17 @@ features: {
 
 ### AI Models
 FlowChart AI supports multiple AI providers through OpenRouter:
-- Google Gemini (default)
+- DeepSeek for text-to-flowchart generation
+- ByteDance Seed for image-to-flowchart generation
 - OpenAI GPT models
 - Anthropic Claude
 - And many more
 
-Change the model in `src/app/api/ai/chat/flowchart/route.ts`:
+Change the default flowchart models in `src/lib/ai-models.ts`:
 
 ```typescript
-const model = 'google/gemini-2.5-flash'; // Change to your preferred model
+export const TEXT_TO_FLOWCHART_MODEL = 'deepseek/deepseek-v4-flash';
+export const IMAGE_TO_FLOWCHART_MODEL = 'bytedance-seed/seed-2.0-mini';
 ```
 
 ### Styling
@@ -332,7 +334,7 @@ DATABASE_URL="postgresql://username:password@host:port/database"
 #### AI Generation Not Working
 - Verify OpenRouter API key is valid
 - Check API quota and billing status
-- Ensure model is available (try `google/gemini-2.5-flash`)
+- Ensure the configured model is available in `src/lib/ai-models.ts`
 
 #### Authentication Issues
 - Verify OAuth redirect URIs match exactly

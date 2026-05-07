@@ -1,3 +1,5 @@
+import { getFlowchartModelForMode } from '@/lib/ai-models';
+import type { AiAssistantMode } from '@/lib/ai-modes';
 import { recordAIUsage } from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
@@ -12,6 +14,13 @@ const recordUsageSchema = z.object({
   success: z.boolean().default(true),
   metadata: z.record(z.any()).default({}),
 });
+
+function getUsageMode(metadata: Record<string, any>): AiAssistantMode {
+  return metadata.sourceMode === 'image_to_flowchart' ||
+    metadata.isImageMode === true
+    ? 'image_to_flowchart'
+    : 'text_to_flowchart';
+}
 
 // POST /api/ai/usage/record - Record successful flowchart generation
 export async function POST(request: NextRequest) {
@@ -30,7 +39,7 @@ export async function POST(request: NextRequest) {
     // Record successful flowchart generation
     await recordAIUsage(session.user.id, validatedData.type, {
       tokensUsed: 0,
-      model: 'google/gemini-2.5-flash',
+      model: getFlowchartModelForMode(getUsageMode(validatedData.metadata)),
       success: validatedData.success,
       metadata: validatedData.metadata,
     });

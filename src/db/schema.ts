@@ -108,7 +108,7 @@ export const aiUsage = pgTable("ai_usage", {
 	userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
 	type: text('type').notNull(), // 'flowchart_generation', 'canvas_analysis', etc.
 	tokensUsed: integer('tokens_used').default(0),
-	model: text('model'), // e.g. 'google/gemini-2.5-flash-preview-05-20'
+	model: text('model'), // e.g. 'deepseek/deepseek-v4-flash'
 	success: boolean('success').notNull().default(true),
 	errorMessage: text('error_message'),
 	metadata: jsonb('metadata').default('{}'), // Additional context like mermaid code length, etc.

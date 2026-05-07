@@ -1,3 +1,5 @@
+import { getFlowchartModelForMode } from '@/lib/ai-models';
+import type { AiAssistantMode } from '@/lib/ai-modes';
 import { canUserUseAI, recordAIUsage } from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
 import {
@@ -50,9 +52,6 @@ const flowchartTool = {
     },
   },
 };
-
-// 系统提示词
-type AiAssistantMode = 'text_to_flowchart' | 'image_to_flowchart';
 
 const TEXT_MODE: AiAssistantMode = 'text_to_flowchart';
 const IMAGE_MODE: AiAssistantMode = 'image_to_flowchart';
@@ -260,7 +259,7 @@ export async function POST(req: Request) {
 
     // 3. 验证请求数据
     const body = await req.json();
-    const { messages, model = 'x-ai/grok-4-fast', aiContext } = body;
+    const { messages, aiContext } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -348,6 +347,8 @@ export async function POST(req: Request) {
         );
         requestedMode = TEXT_MODE;
       } else {
+        const model = getFlowchartModelForMode(IMAGE_MODE);
+
         if (imageCount > 1) {
           return new Response(
             JSON.stringify({
@@ -552,6 +553,7 @@ export async function POST(req: Request) {
     }
 
     const fullMessages = [systemMessage, ...contextMessages, ...messages];
+    const model = getFlowchartModelForMode(requestedMode);
 
     console.log(
       `🚀 Starting AI conversation with ${fullMessages.length} messages (User)`
@@ -716,7 +718,7 @@ export async function POST(req: Request) {
     // try {
     //   await recordAIUsage(userId, 'flowchart_generation', {
     //     tokensUsed: 0,
-    //     model: 'google/gemini-2.5-flash',
+    //     model: getFlowchartModelForMode(requestedMode),
     //     success: false,
     //     errorMessage: error.message,
     //     metadata: { mode: requestedMode },
