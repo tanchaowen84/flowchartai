@@ -49,6 +49,7 @@ import {
   AlertCircle,
   ArrowUp,
   Camera,
+  CheckCircle2,
   Edit,
   Loader2,
   MessageCircle,
@@ -82,6 +83,8 @@ interface Message {
     base64: string;
   }[];
 }
+
+type GenerationPhase = 'thinking' | 'structuring' | 'rendering' | 'canvas';
 
 interface AiChatSidebarProps {
   className?: string;
@@ -117,6 +120,94 @@ function getUserFacingErrorMessage(
   return fallbackMessage;
 }
 
+const GENERATION_STEPS: Array<{
+  phase: GenerationPhase;
+  label: string;
+}> = [
+  { phase: 'thinking', label: 'Reading your request' },
+  { phase: 'structuring', label: 'Drafting diagram logic' },
+  { phase: 'rendering', label: 'Generating Mermaid structure' },
+  { phase: 'canvas', label: 'Placing it on the canvas' },
+];
+
+const GENERATION_PHASE_COPY: Record<
+  GenerationPhase,
+  { title: string; description: string }
+> = {
+  thinking: {
+    title: 'AI is reading your request',
+    description: 'Identifying the main steps, branches, and diagram intent.',
+  },
+  structuring: {
+    title: 'AI is drafting the flow',
+    description: 'Organizing nodes and decisions before rendering the diagram.',
+  },
+  rendering: {
+    title: 'AI is generating the flowchart',
+    description: 'Preparing Mermaid output that can become editable shapes.',
+  },
+  canvas: {
+    title: 'Rendering on the canvas',
+    description: 'Converting the diagram into editable FlowChart AI elements.',
+  },
+};
+
+function GenerationProgress({ phase }: { phase: GenerationPhase }) {
+  const activeIndex = GENERATION_STEPS.findIndex(
+    (step) => step.phase === phase
+  );
+  const activeCopy = GENERATION_PHASE_COPY[phase];
+
+  return (
+    <output
+      aria-live="polite"
+      className="rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-sm text-gray-700 shadow-sm"
+    >
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 rounded-full bg-blue-600/10 p-1.5 text-blue-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-gray-900">{activeCopy.title}</p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            {activeCopy.description}
+          </p>
+          <div className="mt-3 space-y-2">
+            {GENERATION_STEPS.map((step, index) => {
+              const isComplete = index < activeIndex;
+              const isActive = index === activeIndex;
+
+              return (
+                <div
+                  key={step.phase}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  {isComplete ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                  ) : isActive ? (
+                    <span className="h-3.5 w-3.5 rounded-full border border-blue-500 bg-blue-500/20 ring-4 ring-blue-500/10" />
+                  ) : (
+                    <span className="h-3.5 w-3.5 rounded-full border border-gray-300 bg-white" />
+                  )}
+                  <span
+                    className={
+                      isActive || isComplete
+                        ? 'font-medium text-gray-800'
+                        : 'text-gray-400'
+                    }
+                  >
+                    {step.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </output>
+  );
+}
+
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   className,
   isOpen,
@@ -135,6 +226,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isStreamingResponse, setIsStreamingResponse] = useState(false);
   const [sendStatus, setSendStatus] = useState<string | null>(null);
+  const [generationPhase, setGenerationPhase] =
+    useState<GenerationPhase>('thinking');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
@@ -1132,6 +1225,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   // 处理AI对话的核心函数，支持工具调用的递归处理
   const processAIConversation = async (conversationMessages: any[]) => {
+    setGenerationPhase('thinking');
     const canvasSnapshot = getCanvasState();
     const inferredMode = canvasSnapshot?.hasAiFlowchart ? 'extend' : 'replace';
 
@@ -1268,18 +1362,25 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
           if (data.type === 'text' || data.type === 'content') {
             appendStreamingContent(data.content ?? '');
+            setGenerationPhase((currentPhase) =>
+              currentPhase === 'thinking' ? 'structuring' : currentPhase
+            );
           } else if (data.type === 'tool-call') {
             if (data.toolName === 'generate_flowchart') {
               mermaidCode = data.args.mermaid_code;
               flowchartMode = data.args.mode || 'replace';
               isFlowchartGenerated = true;
+              setGenerationPhase('rendering');
 
               const modeText =
                 flowchartMode === 'extend'
-                  ? 'Extending flowchart...'
-                  : 'Generating flowchart...';
-              appendStreamingContent(`\n\n🎨 ${modeText}`);
+                  ? 'Extending the existing flowchart.'
+                  : 'Building a new flowchart.';
+              appendStreamingContent(
+                `\n\n${modeText} Rendering it onto the canvas now.`
+              );
             } else if (data.toolName === 'get_canvas_state') {
+              setGenerationPhase('structuring');
               appendStreamingContent('\n\n🔍 Analyzing current canvas...');
               pendingToolCalls.push({
                 toolCallId: data.toolCallId,
@@ -1359,6 +1460,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     if (isFlowchartGenerated && mermaidCode) {
+      setGenerationPhase('canvas');
       console.log('🎨 Attempting to add flowchart to canvas:', {
         mermaidCode: mermaidCode.substring(0, 100) + '...',
         flowchartMode,
@@ -1380,6 +1482,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       abortControllerRef.current.abort();
       setIsLoading(false);
       setSendStatus(null);
+      setGenerationPhase('thinking');
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
     }
@@ -1395,6 +1498,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setMessages([]);
     setInput('');
     setSendStatus(null);
+    setGenerationPhase('thinking');
     setIsStreamingResponse(false);
     streamingMessageIdRef.current = null;
 
@@ -1547,20 +1651,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 </div>
               ))}
 
-              {/* Typing indicator before streaming starts */}
-              {isStreamingResponse && !streamingMessageIdRef.current && (
+              {/* Generation progress */}
+              {isStreamingResponse && (
                 <div className="max-w-full">
-                  <div className="flex items-center gap-1 py-2">
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
-                    <div
-                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.1s' }}
-                    />
-                    <div
-                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.2s' }}
-                    />
-                  </div>
+                  <GenerationProgress phase={generationPhase} />
                 </div>
               )}
             </div>
