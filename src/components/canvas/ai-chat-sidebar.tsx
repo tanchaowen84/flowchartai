@@ -162,6 +162,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     handleLimitReached: handleGuestLimitReached,
   } = useGuestAIUsage();
 
+  const activeSendStatus =
+    sendStatus ??
+    (isStreamingResponse ? 'AI is working on your flowchart...' : null);
+
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector(
@@ -1135,6 +1139,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     const canvasSnapshot = getCanvasState();
     const inferredMode = canvasSnapshot?.hasAiFlowchart ? 'extend' : 'replace';
 
+    setSendStatus('AI is reading your request...');
+
     const response = await fetch('/api/ai/chat/flowchart', {
       method: 'POST',
       headers: {
@@ -1267,6 +1273,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           const data = JSON.parse(line.slice(6));
 
           if (data.type === 'text' || data.type === 'content') {
+            setSendStatus('Drafting the response...');
             appendStreamingContent(data.content ?? '');
           } else if (data.type === 'tool-call') {
             if (data.toolName === 'generate_flowchart') {
@@ -1274,13 +1281,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               flowchartMode = data.args.mode || 'replace';
               isFlowchartGenerated = true;
 
-              const modeText =
+              setSendStatus(
                 flowchartMode === 'extend'
-                  ? 'Extending flowchart...'
-                  : 'Generating flowchart...';
-              appendStreamingContent(`\n\n🎨 ${modeText}`);
+                  ? 'Updating the flowchart on canvas...'
+                  : 'Rendering the flowchart on canvas...'
+              );
             } else if (data.toolName === 'get_canvas_state') {
-              appendStreamingContent('\n\n🔍 Analyzing current canvas...');
+              setSendStatus('Reading the current canvas...');
               pendingToolCalls.push({
                 toolCallId: data.toolCallId,
                 toolName: data.toolName,
@@ -1359,6 +1366,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     if (isFlowchartGenerated && mermaidCode) {
+      setSendStatus('Adding the flowchart to the canvas...');
       console.log('🎨 Attempting to add flowchart to canvas:', {
         mermaidCode: mermaidCode.substring(0, 100) + '...',
         flowchartMode,
@@ -1550,16 +1558,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               {/* Typing indicator before streaming starts */}
               {isStreamingResponse && !streamingMessageIdRef.current && (
                 <div className="max-w-full">
-                  <div className="flex items-center gap-1 py-2">
-                    <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
-                    <div
-                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.1s' }}
-                    />
-                    <div
-                      className="h-2 w-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: '0.2s' }}
-                    />
+                  <div
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-sm text-blue-700"
+                    aria-live="polite"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{activeSendStatus}</span>
                   </div>
                 </div>
               )}
@@ -1659,10 +1663,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               className="mt-2 ml-1 flex items-center gap-1.5 text-xs text-gray-400"
               aria-live="polite"
             >
-              {sendStatus && (
+              {activeSendStatus && (
                 <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
               )}
-              <span>{sendStatus ?? 'Press Enter to send'}</span>
+              <span>{activeSendStatus ?? 'Press Enter to send'}</span>
             </p>
           </div>
 
