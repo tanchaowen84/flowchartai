@@ -50,6 +50,7 @@ import {
   ArrowUp,
   Camera,
   Edit,
+  Loader2,
   MessageCircle,
   Pencil,
   Plus,
@@ -133,6 +134,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isStreamingResponse, setIsStreamingResponse] = useState(false);
+  const [sendStatus, setSendStatus] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
@@ -236,9 +238,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       return;
     }
 
+    setIsLoading(true);
+    setSendStatus('Checking your AI usage...');
+
     // Logged in user - check subscription limits
     const canUseAI = await checkUsageLimit();
     if (!canUseAI) {
+      setIsLoading(false);
+      setSendStatus(null);
       // Check if it's a daily limit for free users
       if (usageData?.timeFrame === 'daily') {
         console.log('🎯 Daily limit detected - showing PricingModal directly');
@@ -253,6 +260,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }
       return;
     }
+
+    setSendStatus('Sending your request...');
 
     // Create user message with the provided text
     const mimeMatch = homepageImage?.base64?.match(/^data:(.*?);/);
@@ -304,7 +313,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       canvasContextRef.current.homepageImage = undefined;
       localStorage.removeItem('flowchart_auto_image');
     }
-    setIsLoading(true);
     setIsStreamingResponse(true);
 
     // Create new abort controller for this request
@@ -375,6 +383,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       });
     } finally {
       setIsLoading(false);
+      setSendStatus(null);
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -795,8 +804,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       return;
     }
 
+    setIsLoading(true);
+    setSendStatus('Checking your AI usage...');
+
     const canUseAI = await checkUsageLimit();
     if (!canUseAI) {
+      setIsLoading(false);
+      setSendStatus(null);
       if (usageData?.timeFrame === 'daily') {
         setDailyLimitUsageInfo({
           timeFrame: 'daily',
@@ -809,7 +823,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       return;
     }
 
-    setIsLoading(true);
+    setSendStatus('Regenerating your flowchart...');
     setIsStreamingResponse(true);
 
     // Create new abort controller for this request
@@ -879,6 +893,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       });
     } finally {
       setIsLoading(false);
+      setSendStatus(null);
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -904,9 +919,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       return;
     }
 
+    setIsLoading(true);
+    setSendStatus('Checking your AI usage...');
+
     // Logged in user - check subscription limits
     const canUseAI = await checkUsageLimit();
     if (!canUseAI) {
+      setIsLoading(false);
+      setSendStatus(null);
       // Check if it's a daily limit for free users
       if (usageData?.timeFrame === 'daily') {
         console.log('🎯 Daily limit detected - showing PricingModal directly');
@@ -928,68 +948,82 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     const homepageImage = canvasContextRef.current.homepageImage;
 
-    if (selectedImages.length > 0) {
-      // Convert images to base64 and create message content array
-      const imageData = await Promise.all(
-        selectedImages.map(async (file) => {
-          const base64 = await encodeImageToBase64(file);
-          const thumbnail = await createImageThumbnail(file);
-          return { file, thumbnail, base64 };
-        })
-      );
+    try {
+      if (selectedImages.length > 0) {
+        setSendStatus('Preparing your image...');
+        // Convert images to base64 and create message content array
+        const imageData = await Promise.all(
+          selectedImages.map(async (file) => {
+            const base64 = await encodeImageToBase64(file);
+            const thumbnail = await createImageThumbnail(file);
+            return { file, thumbnail, base64 };
+          })
+        );
 
-      messageImages = imageData;
+        messageImages = imageData;
 
-      // Create multimodal content
-      const contentArray: MessageContent[] = [];
+        // Create multimodal content
+        const contentArray: MessageContent[] = [];
 
-      if (input.trim()) {
-        contentArray.push({
-          type: 'text',
-          text: input.trim(),
-        });
-      }
+        if (input.trim()) {
+          contentArray.push({
+            type: 'text',
+            text: input.trim(),
+          });
+        }
 
-      for (const { base64 } of imageData) {
-        contentArray.push({
-          type: 'image_url',
-          image_url: {
-            url: base64,
+        for (const { base64 } of imageData) {
+          contentArray.push({
+            type: 'image_url',
+            image_url: {
+              url: base64,
+            },
+          });
+        }
+
+        messageContent = contentArray;
+      } else if (homepageImage && aiMode === 'image_to_flowchart') {
+        setSendStatus('Preparing your image...');
+        const mimeMatch = homepageImage.base64.match(/^data:(.*?);/);
+        const mimeType = mimeMatch?.[1] || 'image/png';
+        const filename =
+          homepageImage.filename ||
+          `uploaded-image.${mimeType.split('/')[1] || 'png'}`;
+        messageImages = [
+          {
+            file: new File([], filename, { type: mimeType }),
+            thumbnail: homepageImage.thumbnail || homepageImage.base64,
+            base64: homepageImage.base64,
           },
-        });
-      }
+        ];
 
-      messageContent = contentArray;
-    } else if (homepageImage && aiMode === 'image_to_flowchart') {
-      const mimeMatch = homepageImage.base64.match(/^data:(.*?);/);
-      const mimeType = mimeMatch?.[1] || 'image/png';
-      const filename =
-        homepageImage.filename ||
-        `uploaded-image.${mimeType.split('/')[1] || 'png'}`;
-      messageImages = [
-        {
-          file: new File([], filename, { type: mimeType }),
-          thumbnail: homepageImage.thumbnail || homepageImage.base64,
-          base64: homepageImage.base64,
-        },
-      ];
-
-      messageContent = [
-        ...(input.trim()
-          ? [
-              {
-                type: 'text' as const,
-                text: input.trim(),
-              },
-            ]
-          : []),
-        {
-          type: 'image_url' as const,
-          image_url: {
-            url: homepageImage.base64,
+        messageContent = [
+          ...(input.trim()
+            ? [
+                {
+                  type: 'text' as const,
+                  text: input.trim(),
+                },
+              ]
+            : []),
+          {
+            type: 'image_url' as const,
+            image_url: {
+              url: homepageImage.base64,
+            },
           },
-        },
-      ];
+        ];
+      }
+    } catch (error) {
+      console.error('Failed to prepare message:', error);
+      toast({
+        title: 'Image preparation failed',
+        description: 'Please try a smaller image or upload it again.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
+      setSendStatus(null);
+      return;
     }
 
     const userMessageId = Date.now().toString();
@@ -1012,7 +1046,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       canvasContextRef.current.homepageImage = undefined;
       localStorage.removeItem('flowchart_auto_image');
     }
-    setIsLoading(true);
+    setSendStatus('Sending to AI...');
     setIsStreamingResponse(true);
 
     // Create new abort controller for this request
@@ -1089,6 +1123,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       });
     } finally {
       setIsLoading(false);
+      setSendStatus(null);
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -1344,6 +1379,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       setIsLoading(false);
+      setSendStatus(null);
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
     }
@@ -1358,6 +1394,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     // 清空对话历史
     setMessages([]);
     setInput('');
+    setSendStatus(null);
     setIsStreamingResponse(false);
     streamingMessageIdRef.current = null;
 
@@ -1618,8 +1655,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 whiteSpace: 'pre-wrap',
               }}
             />
-            <p className="text-xs text-gray-400 mt-2 ml-1">
-              Press Enter to send
+            <p
+              className="mt-2 ml-1 flex items-center gap-1.5 text-xs text-gray-400"
+              aria-live="polite"
+            >
+              {sendStatus && (
+                <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+              )}
+              <span>{sendStatus ?? 'Press Enter to send'}</span>
             </p>
           </div>
 
@@ -1644,7 +1687,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   (!input.trim() && selectedImages.length === 0) || isLoading
                 }
               >
-                Send
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending
+                  </>
+                ) : (
+                  'Send'
+                )}
               </Button>
               <Button
                 onClick={handleRegenerate}

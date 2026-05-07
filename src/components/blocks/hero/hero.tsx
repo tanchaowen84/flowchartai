@@ -24,7 +24,7 @@ import {
   isValidImageFile,
 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
-import { Camera, Send, UploadCloud } from 'lucide-react';
+import { Camera, Loader2, Send, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -60,6 +60,7 @@ export default function HeroSection() {
   // State for the input
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [selectedMode, setSelectedMode] = useState<AiAssistantMode>(
     DEFAULT_AI_ASSISTANT_MODE
@@ -250,10 +251,12 @@ export default function HeroSection() {
       }
 
       setIsLoading(true);
+      setSubmitStatus('Preparing your request...');
 
       try {
         if (currentUser) {
           // Logged in user - pre-create flowchart
+          setSubmitStatus('Creating your canvas...');
           const response = await fetch('/api/flowcharts', {
             method: 'POST',
             headers: {
@@ -269,6 +272,9 @@ export default function HeroSection() {
           const data = await response.json();
 
           // Store the input & mode for auto-generation
+          setSubmitStatus(
+            imageFile ? 'Preparing your image...' : 'Opening the editor...'
+          );
           localStorage.setItem('flowchart_auto_input', trimmedInput);
           localStorage.setItem('flowchart_auto_generate', 'true');
           localStorage.setItem('flowchart_auto_mode', selectedMode);
@@ -289,14 +295,17 @@ export default function HeroSection() {
               console.error('Failed to encode image:', error);
               toast.error('Failed to prepare image. Please try again.');
               setIsLoading(false);
+              setSubmitStatus(null);
               return;
             }
           }
 
+          setSubmitStatus('Opening the editor...');
           router.push(`/canvas/${data.id}`);
         } else {
           // Guest user - show login modal
           console.log('🎯 Guest user detected - showing login modal');
+          setSubmitStatus('Saving your request for login...');
 
           // Generate state ID and save pending data
           const stateId = generateStateId();
@@ -314,6 +323,8 @@ export default function HeroSection() {
             const callbackUrl = buildCallbackUrl(stateId);
             setLoginCallbackUrl(callbackUrl);
             setShowLoginModal(true);
+            setIsLoading(false);
+            setSubmitStatus(null);
             console.log('✅ Pending data saved and login modal shown', {
               stateId,
               mode: selectedMode,
@@ -327,6 +338,7 @@ export default function HeroSection() {
                 : 'Failed to prepare your request';
             toast.error(errorMessage);
             setIsLoading(false);
+            setSubmitStatus(null);
             setShowLoginModal(false);
           }
         }
@@ -334,6 +346,7 @@ export default function HeroSection() {
         console.error('Error creating flowchart:', error);
         toast.error('Failed to create new flowchart');
         setIsLoading(false);
+        setSubmitStatus(null);
       } finally {
         if (selectedMode === 'image_to_flowchart') {
           clearImage();
@@ -430,7 +443,11 @@ export default function HeroSection() {
                           disabled={!isSubmitEnabled}
                           className={buttonClassName}
                         >
-                          <Send className={iconClassName} />
+                          {isLoading ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <Send className={iconClassName} />
+                          )}
                         </Button>
                       </div>
                     ) : (
@@ -523,12 +540,22 @@ export default function HeroSection() {
                             disabled={!isSubmitEnabled}
                             className={buttonClassName}
                           >
-                            <Send className={iconClassName} />
+                            {isLoading ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <Send className={iconClassName} />
+                            )}
                           </Button>
                         </div>
                       </div>
                     )}
                   </form>
+                  {submitStatus && (
+                    <output className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <span>{submitStatus}</span>
+                    </output>
+                  )}
                 </div>
               </div>
             </div>
