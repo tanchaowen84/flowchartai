@@ -117,7 +117,22 @@ function getUserFacingErrorMessage(
   return fallbackMessage;
 }
 
+const ASSISTANT_THINKING_STATUS = 'Thinking...';
 const FLOWCHART_GENERATION_STATUS = 'Generating flowchart...';
+
+type AssistantResponsePhase = 'idle' | 'thinking' | 'generating_flowchart';
+
+function waitForNextPaint(): Promise<void> {
+  if (typeof requestAnimationFrame !== 'function') {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+}
 
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   className,
@@ -137,7 +152,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isStreamingResponse, setIsStreamingResponse] = useState(false);
   const [sendStatus, setSendStatus] = useState<string | null>(null);
-  const [isFlowchartToolRunning, setIsFlowchartToolRunning] = useState(false);
+  const [assistantResponsePhase, setAssistantResponsePhase] =
+    useState<AssistantResponsePhase>('idle');
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
@@ -165,9 +181,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     handleLimitReached: handleGuestLimitReached,
   } = useGuestAIUsage();
 
-  const activeSendStatus = isFlowchartToolRunning
-    ? FLOWCHART_GENERATION_STATUS
-    : sendStatus;
+  const activeSendStatus = sendStatus;
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -246,29 +260,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
-    setSendStatus('Checking your AI usage...');
-
-    // Logged in user - check subscription limits
-    const canUseAI = await checkUsageLimit();
-    if (!canUseAI) {
-      setIsLoading(false);
-      setSendStatus(null);
-      // Check if it's a daily limit for free users
-      if (usageData?.timeFrame === 'daily') {
-        console.log('🎯 Daily limit detected - showing PricingModal directly');
-        // Set daily limit context and show pricing modal directly
-        setDailyLimitUsageInfo({
-          timeFrame: 'daily',
-          nextResetTime: usageData.nextResetTime,
-        });
-        setShowPricingModal(true);
-      } else {
-        setShowUsageLimitCard(true);
-      }
-      return;
-    }
-
-    setSendStatus('Sending your request...');
+    setSendStatus(null);
 
     // Create user message with the provided text
     const mimeMatch = homepageImage?.base64?.match(/^data:(.*?);/);
@@ -321,11 +313,38 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       localStorage.removeItem('flowchart_auto_image');
     }
     setIsStreamingResponse(true);
-
-    // Create new abort controller for this request
-    abortControllerRef.current = new AbortController();
+    setAssistantResponsePhase('thinking');
 
     try {
+      await waitForNextPaint();
+
+      // Logged in user - check subscription limits after rendering the user's message
+      const canUseAI = await checkUsageLimit();
+      if (!canUseAI) {
+        setIsLoading(false);
+        setSendStatus(null);
+        setIsStreamingResponse(false);
+        setAssistantResponsePhase('idle');
+        // Check if it's a daily limit for free users
+        if (usageData?.timeFrame === 'daily') {
+          console.log(
+            '🎯 Daily limit detected - showing PricingModal directly'
+          );
+          // Set daily limit context and show pricing modal directly
+          setDailyLimitUsageInfo({
+            timeFrame: 'daily',
+            nextResetTime: usageData.nextResetTime,
+          });
+          setShowPricingModal(true);
+        } else {
+          setShowUsageLimitCard(true);
+        }
+        return;
+      }
+
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
       await processAIConversation([
         // Send complete conversation history for context
         ...messages.map((msg) => ({
@@ -391,7 +410,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       setSendStatus(null);
-      setIsFlowchartToolRunning(false);
+      setAssistantResponsePhase('idle');
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -813,31 +832,34 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
-    setSendStatus('Checking your AI usage...');
-
-    const canUseAI = await checkUsageLimit();
-    if (!canUseAI) {
-      setIsLoading(false);
-      setSendStatus(null);
-      if (usageData?.timeFrame === 'daily') {
-        setDailyLimitUsageInfo({
-          timeFrame: 'daily',
-          nextResetTime: usageData.nextResetTime,
-        });
-        setShowPricingModal(true);
-      } else {
-        setShowUsageLimitCard(true);
-      }
-      return;
-    }
-
-    setSendStatus('Regenerating your flowchart...');
+    setSendStatus(null);
     setIsStreamingResponse(true);
-
-    // Create new abort controller for this request
-    abortControllerRef.current = new AbortController();
+    setAssistantResponsePhase('thinking');
 
     try {
+      await waitForNextPaint();
+
+      const canUseAI = await checkUsageLimit();
+      if (!canUseAI) {
+        setIsLoading(false);
+        setSendStatus(null);
+        setIsStreamingResponse(false);
+        setAssistantResponsePhase('idle');
+        if (usageData?.timeFrame === 'daily') {
+          setDailyLimitUsageInfo({
+            timeFrame: 'daily',
+            nextResetTime: usageData.nextResetTime,
+          });
+          setShowPricingModal(true);
+        } else {
+          setShowUsageLimitCard(true);
+        }
+        return;
+      }
+
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
       // Use the last user message content for regeneration
       const conversationPayload: any[] = [
         ...messages.slice(0, -1).map((msg) => ({
@@ -902,7 +924,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       setSendStatus(null);
-      setIsFlowchartToolRunning(false);
+      setAssistantResponsePhase('idle');
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -929,27 +951,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
-    setSendStatus('Checking your AI usage...');
-
-    // Logged in user - check subscription limits
-    const canUseAI = await checkUsageLimit();
-    if (!canUseAI) {
-      setIsLoading(false);
-      setSendStatus(null);
-      // Check if it's a daily limit for free users
-      if (usageData?.timeFrame === 'daily') {
-        console.log('🎯 Daily limit detected - showing PricingModal directly');
-        // Set daily limit context and show pricing modal directly
-        setDailyLimitUsageInfo({
-          timeFrame: 'daily',
-          nextResetTime: usageData.nextResetTime,
-        });
-        setShowPricingModal(true);
-      } else {
-        setShowUsageLimitCard(true);
-      }
-      return;
-    }
+    setSendStatus(null);
 
     // Prepare message content
     let messageContent: string | MessageContent[] = input.trim();
@@ -1055,13 +1057,39 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       canvasContextRef.current.homepageImage = undefined;
       localStorage.removeItem('flowchart_auto_image');
     }
-    setSendStatus('Sending to AI...');
     setIsStreamingResponse(true);
-
-    // Create new abort controller for this request
-    abortControllerRef.current = new AbortController();
+    setAssistantResponsePhase('thinking');
 
     try {
+      await waitForNextPaint();
+
+      // Logged in user - check subscription limits after rendering the user's message
+      const canUseAI = await checkUsageLimit();
+      if (!canUseAI) {
+        setIsLoading(false);
+        setSendStatus(null);
+        setIsStreamingResponse(false);
+        setAssistantResponsePhase('idle');
+        // Check if it's a daily limit for free users
+        if (usageData?.timeFrame === 'daily') {
+          console.log(
+            '🎯 Daily limit detected - showing PricingModal directly'
+          );
+          // Set daily limit context and show pricing modal directly
+          setDailyLimitUsageInfo({
+            timeFrame: 'daily',
+            nextResetTime: usageData.nextResetTime,
+          });
+          setShowPricingModal(true);
+        } else {
+          setShowUsageLimitCard(true);
+        }
+        return;
+      }
+
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
       const conversationPayload: any[] = [
         ...messages.map((msg) => ({
           role: msg.role,
@@ -1133,7 +1161,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       setSendStatus(null);
-      setIsFlowchartToolRunning(false);
+      setAssistantResponsePhase('idle');
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -1145,7 +1173,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     const canvasSnapshot = getCanvasState();
     const inferredMode = canvasSnapshot?.hasAiFlowchart ? 'extend' : 'replace';
 
-    setSendStatus(FLOWCHART_GENERATION_STATUS);
+    setSendStatus(null);
+    setAssistantResponsePhase('thinking');
 
     const response = await fetch('/api/ai/chat/flowchart', {
       method: 'POST',
@@ -1279,6 +1308,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           const data = JSON.parse(line.slice(6));
 
           if (data.type === 'text' || data.type === 'content') {
+            setAssistantResponsePhase('idle');
+            setSendStatus(null);
             appendStreamingContent(data.content ?? '');
           } else if (data.type === 'tool-call') {
             if (data.toolName === 'generate_flowchart') {
@@ -1286,10 +1317,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               flowchartMode = data.args.mode || 'replace';
               isFlowchartGenerated = true;
 
-              setIsFlowchartToolRunning(true);
-              setSendStatus(FLOWCHART_GENERATION_STATUS);
+              setAssistantResponsePhase('generating_flowchart');
+              setSendStatus(null);
+              await waitForNextPaint();
             } else if (data.toolName === 'get_canvas_state') {
-              setSendStatus(FLOWCHART_GENERATION_STATUS);
+              setAssistantResponsePhase('thinking');
+              setSendStatus(null);
               pendingToolCalls.push({
                 toolCallId: data.toolCallId,
                 toolName: data.toolName,
@@ -1316,10 +1349,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     if (pendingToolCalls.length > 0) {
-      if (messageCreated) {
+      if (messageCreated && !accumulatedContent.trim()) {
         setMessages((prev) =>
           prev.filter((message) => message.id !== streamingMessageId)
         );
+      } else if (messageCreated) {
+        updateStreamingMessage((msg) => ({
+          ...msg,
+          content: accumulatedContent,
+          timestamp: new Date(),
+        }));
       }
       streamingMessageIdRef.current = null;
 
@@ -1372,8 +1411,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     if (isFlowchartGenerated && mermaidCode) {
-      setIsFlowchartToolRunning(true);
-      setSendStatus(FLOWCHART_GENERATION_STATUS);
+      setAssistantResponsePhase('generating_flowchart');
+      setSendStatus(null);
+      await waitForNextPaint();
       console.log('🎨 Attempting to add flowchart to canvas:', {
         mermaidCode: mermaidCode.substring(0, 100) + '...',
         flowchartMode,
@@ -1395,7 +1435,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       abortControllerRef.current.abort();
       setIsLoading(false);
       setSendStatus(null);
-      setIsFlowchartToolRunning(false);
+      setAssistantResponsePhase('idle');
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
     }
@@ -1411,7 +1451,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setMessages([]);
     setInput('');
     setSendStatus(null);
-    setIsFlowchartToolRunning(false);
+    setAssistantResponsePhase('idle');
     setIsStreamingResponse(false);
     streamingMessageIdRef.current = null;
 
@@ -1564,17 +1604,32 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 </div>
               ))}
 
-              {isStreamingResponse && isFlowchartToolRunning && (
-                <div className="max-w-full">
-                  <div
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-sm text-blue-700"
-                    aria-live="polite"
-                  >
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{FLOWCHART_GENERATION_STATUS}</span>
+              {isStreamingResponse &&
+                assistantResponsePhase === 'thinking' &&
+                !streamingMessageIdRef.current && (
+                  <div className="max-w-full">
+                    <div
+                      className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-2 text-sm text-gray-600"
+                      aria-live="polite"
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{ASSISTANT_THINKING_STATUS}</span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+              {isStreamingResponse &&
+                assistantResponsePhase === 'generating_flowchart' && (
+                  <div className="max-w-full">
+                    <div
+                      className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-sm text-blue-700"
+                      aria-live="polite"
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{FLOWCHART_GENERATION_STATUS}</span>
+                    </div>
+                  </div>
+                )}
             </div>
           </ScrollArea>
         </div>
