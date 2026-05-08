@@ -657,8 +657,7 @@ export async function POST(req: Request) {
               // 发送完成信号
               const finishData = JSON.stringify({
                 type: 'finish',
-                content:
-                  accumulatedContent || 'Tool calls completed successfully.',
+                content: accumulatedContent,
                 toolCallsCompleted: true,
               });
               controller.enqueue(encoder.encode(`data: ${finishData}\n\n`));

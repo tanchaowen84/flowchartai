@@ -117,6 +117,8 @@ function getUserFacingErrorMessage(
   return fallbackMessage;
 }
 
+const FLOWCHART_GENERATION_STATUS = 'Generating flowchart...';
+
 const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   className,
   isOpen,
@@ -135,6 +137,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isStreamingResponse, setIsStreamingResponse] = useState(false);
   const [sendStatus, setSendStatus] = useState<string | null>(null);
+  const [isFlowchartToolRunning, setIsFlowchartToolRunning] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
@@ -162,9 +165,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     handleLimitReached: handleGuestLimitReached,
   } = useGuestAIUsage();
 
-  const activeSendStatus =
-    sendStatus ??
-    (isStreamingResponse ? 'AI is working on your flowchart...' : null);
+  const activeSendStatus = isFlowchartToolRunning
+    ? FLOWCHART_GENERATION_STATUS
+    : sendStatus;
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -388,6 +391,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       setSendStatus(null);
+      setIsFlowchartToolRunning(false);
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -898,6 +902,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       setSendStatus(null);
+      setIsFlowchartToolRunning(false);
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -1128,6 +1133,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } finally {
       setIsLoading(false);
       setSendStatus(null);
+      setIsFlowchartToolRunning(false);
       abortControllerRef.current = null;
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
@@ -1139,7 +1145,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     const canvasSnapshot = getCanvasState();
     const inferredMode = canvasSnapshot?.hasAiFlowchart ? 'extend' : 'replace';
 
-    setSendStatus('AI is reading your request...');
+    setSendStatus(FLOWCHART_GENERATION_STATUS);
 
     const response = await fetch('/api/ai/chat/flowchart', {
       method: 'POST',
@@ -1273,7 +1279,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           const data = JSON.parse(line.slice(6));
 
           if (data.type === 'text' || data.type === 'content') {
-            setSendStatus('Drafting the response...');
             appendStreamingContent(data.content ?? '');
           } else if (data.type === 'tool-call') {
             if (data.toolName === 'generate_flowchart') {
@@ -1281,13 +1286,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               flowchartMode = data.args.mode || 'replace';
               isFlowchartGenerated = true;
 
-              setSendStatus(
-                flowchartMode === 'extend'
-                  ? 'Updating the flowchart on canvas...'
-                  : 'Rendering the flowchart on canvas...'
-              );
+              setIsFlowchartToolRunning(true);
+              setSendStatus(FLOWCHART_GENERATION_STATUS);
             } else if (data.toolName === 'get_canvas_state') {
-              setSendStatus('Reading the current canvas...');
+              setSendStatus(FLOWCHART_GENERATION_STATUS);
               pendingToolCalls.push({
                 toolCallId: data.toolCallId,
                 toolName: data.toolName,
@@ -1297,7 +1299,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           } else if (data.type === 'tool-result') {
             console.log('Tool result:', data.result);
           } else if (data.type === 'finish') {
-            if (!accumulatedContent.trim() && data.content) {
+            if (
+              !data.toolCallsCompleted &&
+              !accumulatedContent.trim() &&
+              data.content
+            ) {
               setStreamingContent(data.content);
             }
           } else if (data.type === 'done' || data === '[DONE]') {
@@ -1366,7 +1372,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     if (isFlowchartGenerated && mermaidCode) {
-      setSendStatus('Adding the flowchart to the canvas...');
+      setIsFlowchartToolRunning(true);
+      setSendStatus(FLOWCHART_GENERATION_STATUS);
       console.log('🎨 Attempting to add flowchart to canvas:', {
         mermaidCode: mermaidCode.substring(0, 100) + '...',
         flowchartMode,
@@ -1388,6 +1395,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       abortControllerRef.current.abort();
       setIsLoading(false);
       setSendStatus(null);
+      setIsFlowchartToolRunning(false);
       setIsStreamingResponse(false);
       streamingMessageIdRef.current = null;
     }
@@ -1403,6 +1411,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setMessages([]);
     setInput('');
     setSendStatus(null);
+    setIsFlowchartToolRunning(false);
     setIsStreamingResponse(false);
     streamingMessageIdRef.current = null;
 
@@ -1555,15 +1564,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 </div>
               ))}
 
-              {/* Typing indicator before streaming starts */}
-              {isStreamingResponse && !streamingMessageIdRef.current && (
+              {isStreamingResponse && isFlowchartToolRunning && (
                 <div className="max-w-full">
                   <div
                     className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-sm text-blue-700"
                     aria-live="polite"
                   >
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>{activeSendStatus}</span>
+                    <span>{FLOWCHART_GENERATION_STATUS}</span>
                   </div>
                 </div>
               )}
