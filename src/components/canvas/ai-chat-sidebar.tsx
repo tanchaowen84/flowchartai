@@ -681,6 +681,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     };
   }>({});
 
+  const finishActiveResponse = () => {
+    setIsLoading(false);
+    setSendStatus(null);
+    setAssistantResponsePhase('idle');
+    setIsStreamingResponse(false);
+    streamingMessageIdRef.current = null;
+  };
+
   const addFlowchartToCanvas = async (
     mermaidCode: string,
     mode: 'replace' | 'extend' = 'replace'
@@ -748,29 +756,41 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         generatedAt: Date.now(),
       };
 
+      finishActiveResponse();
+
       // ✅ 只有流程图成功渲染后才计费
-      try {
-        await fetch('/api/ai/usage/record', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'flowchart_generation',
-            success: true,
-            metadata: {
-              mode: mode,
-              mermaidLength: mermaidCode.length,
-              elementCount: result.elements?.length || 0,
-              // 添加图片模式标识，这样计费记录能区分来源
-              isImageMode: aiMode === 'image_to_flowchart',
-              sourceMode: aiMode,
+      void (async () => {
+        try {
+          const recordResponse = await fetch('/api/ai/usage/record', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
             },
-          }),
-        });
-      } catch (recordError) {
-        console.error('Failed to record AI usage:', recordError);
-      }
+            body: JSON.stringify({
+              type: 'flowchart_generation',
+              success: true,
+              metadata: {
+                mode: mode,
+                mermaidLength: mermaidCode.length,
+                elementCount: result.elements?.length || 0,
+                // 添加图片模式标识，这样计费记录能区分来源
+                isImageMode: aiMode === 'image_to_flowchart',
+                sourceMode: aiMode,
+              },
+            }),
+          });
+
+          if (!recordResponse.ok) {
+            console.error(
+              'Failed to record AI usage:',
+              recordResponse.status,
+              recordResponse.statusText
+            );
+          }
+        } catch (recordError) {
+          console.error('Failed to record AI usage:', recordError);
+        }
+      })();
 
       toast({
         title: toastTitle,
