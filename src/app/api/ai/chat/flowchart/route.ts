@@ -1,56 +1,65 @@
 import { getFlowchartModelForMode } from '@/lib/ai-models';
 import type { AiAssistantMode } from '@/lib/ai-modes';
-import { canUserUseAI, recordAIUsage } from '@/lib/ai-usage';
+import { canUserUseAI } from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
 import {
   extractLatestUserPrompt,
   screenPromptWithCreem,
 } from '@/lib/creem-moderation';
 import { IMAGE_TO_FLOWCHART_PROMPT } from '@/lib/prompts/image-flowchart';
+import {
+  OpenRouter,
+  tool as createOpenRouterTool,
+  hasToolCall,
+} from '@openrouter/agent';
 import { headers } from 'next/headers';
-import OpenAI from 'openai';
+import { z as z4 } from 'zod-v4';
 
-// OpenRouter 客户端配置
-function createOpenAIClient() {
-  return new OpenAI({
-    baseURL: 'https://openrouter.ai/api/v1',
+// OpenRouter Responses client for text and image modes.
+function createOpenRouterAgentClient() {
+  return new OpenRouter({
     apiKey: process.env.OPENROUTER_API_KEY,
-    defaultHeaders: {
-      'HTTP-Referer':
-        process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-      'X-Title': 'FlowChart AI',
+    httpReferer: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+    appTitle: 'FlowChart AI',
+    timeoutMs: 60000,
+    retryConfig: {
+      strategy: 'backoff',
+      backoff: {
+        initialInterval: 500,
+        maxInterval: 2000,
+        exponent: 1.5,
+        maxElapsedTime: 30000,
+      },
+      retryConnectionErrors: true,
     },
   });
 }
 
-// 流程图生成工具定义
-const flowchartTool = {
-  type: 'function' as const,
-  function: {
-    name: 'generate_flowchart',
-    description: 'Generate or update a flowchart using Mermaid syntax',
-    parameters: {
-      type: 'object',
-      properties: {
-        mermaid_code: {
-          type: 'string',
-          description:
-            'Valid Mermaid flowchart code. CRITICAL: NO special symbols in node text: ()（）【】《》「」\'\'"":;，。！？',
-        },
-        mode: {
-          type: 'string',
-          enum: ['replace', 'extend'],
-          description:
-            'Whether to replace existing flowchart completely or extend/modify it based on existing content',
-        },
-        description: {
-          type: 'string',
-          description: 'Brief description of the flowchart',
-        },
-      },
-      required: ['mermaid_code', 'mode', 'description'],
-    },
-  },
+const flowchartToolInputSchema = z4.object({
+  mermaid_code: z4
+    .string()
+    .describe(
+      'Valid Mermaid flowchart code. CRITICAL: NO special symbols in node text: ()（）【】《》「」\'\'"":;，。！？'
+    ),
+  mode: z4
+    .enum(['replace', 'extend'])
+    .describe(
+      'Whether to replace existing flowchart completely or extend/modify it based on existing content'
+    ),
+  description: z4.string().describe('Brief description of the flowchart'),
+});
+
+const flowchartTool = createOpenRouterTool({
+  name: 'generate_flowchart',
+  description: 'Generate or update a flowchart using Mermaid syntax',
+  inputSchema: flowchartToolInputSchema,
+  execute: false,
+});
+
+type FlowchartToolArguments = {
+  mermaid_code: string;
+  mode: 'replace' | 'extend';
+  description: string;
 };
 
 const TEXT_MODE: AiAssistantMode = 'text_to_flowchart';
@@ -103,6 +112,7 @@ ${contextSection}
 
 AVAILABLE TOOL:
 - **generate_flowchart** (only function tool). Call it when you need Mermaid code for a diagram. After calling, describe the result in natural language—do not print the Mermaid source.
+- IMPORTANT TOOL CALL FORMAT: When you call generate_flowchart, include a brief natural-language assistant message before the tool call. Do not leave the assistant message content empty.
 
 CORE DUTIES:
 1. CRITICAL: NEVER use special symbols in node text: ()（）【】《】「」''"":;，。！？、：；""'' - This is the most common cause of rendering failures.
@@ -192,17 +202,201 @@ function countImagesInLatestUserMessage(messages: any[]): number {
   return 0;
 }
 
-function extractJsonFromContent(rawContent: string): string {
-  const trimmed = rawContent.trim();
+function stringifyMessageContent(content: any): string {
+  if (typeof content === 'string') {
+    return content;
+  }
 
-  if (trimmed.startsWith('```')) {
-    const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    if (fencedMatch?.[1]) {
-      return fencedMatch[1].trim();
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (part?.type === 'text') {
+          return part.text || '';
+        }
+
+        if (part?.type === 'image_url') {
+          return '[Image attached]';
+        }
+
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  if (content == null) {
+    return '';
+  }
+
+  try {
+    return JSON.stringify(content);
+  } catch {
+    return String(content);
+  }
+}
+
+function buildTextModeInput(messages: any[], aiContext: any): string {
+  const recentMessages = messages.slice(-12);
+  const transcript = recentMessages
+    .map((message) => {
+      const role = typeof message?.role === 'string' ? message.role : 'unknown';
+      const content = stringifyMessageContent(message?.content).trim();
+      const toolCalls = Array.isArray(message?.tool_calls)
+        ? `\nTool calls: ${JSON.stringify(message.tool_calls)}`
+        : '';
+
+      return `${role.toUpperCase()}:\n${content}${toolCalls}`;
+    })
+    .join('\n\n');
+
+  const requestedMode = aiContext?.requestedMode
+    ? `\n\nRequested mode from UI: ${aiContext.requestedMode}`
+    : '';
+
+  return `Conversation transcript:
+${transcript}${requestedMode}
+
+Use the latest user message as the active request.`;
+}
+
+function getLatestImageRequest(
+  messages: any[]
+): { imageUrl: string; text: string } | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message?.role !== 'user' || !Array.isArray(message.content)) {
+      continue;
+    }
+
+    let imageUrl = '';
+    const textParts: string[] = [];
+
+    for (const part of message.content) {
+      if (part?.type === 'text' && typeof part.text === 'string') {
+        textParts.push(part.text);
+      }
+
+      if (
+        part?.type === 'image_url' &&
+        typeof part.image_url?.url === 'string'
+      ) {
+        imageUrl = part.image_url.url;
+      }
+    }
+
+    if (imageUrl) {
+      return {
+        imageUrl,
+        text: textParts.join('\n').trim(),
+      };
     }
   }
 
-  return trimmed;
+  return null;
+}
+
+function buildImageModeInput(messages: any[], aiContext: any) {
+  const imageRequest = getLatestImageRequest(messages);
+
+  if (!imageRequest) {
+    throw new Error('Image mode request is missing an image.');
+  }
+
+  const userText = imageRequest.text
+    ? `User request:\n${imageRequest.text}`
+    : 'User request:\nConvert the uploaded image into a Mermaid flowchart.';
+  const requestedMode = aiContext?.requestedMode
+    ? `\n\nRequested mode from UI: ${aiContext.requestedMode}`
+    : '';
+
+  return [
+    {
+      type: 'message' as const,
+      role: 'user' as const,
+      content: [
+        {
+          type: 'input_text' as const,
+          text: `${userText}${requestedMode}\n\nRead the attached image and reconstruct the diagram as Mermaid.`,
+        },
+        {
+          type: 'input_image' as const,
+          imageUrl: imageRequest.imageUrl,
+          detail: 'high' as const,
+        },
+      ],
+    },
+  ];
+}
+
+function generateImageModeInstructions(
+  canvasSummary?: string,
+  lastMermaid?: string
+): string {
+  const contextSection = [
+    canvasSummary
+      ? `CURRENT CANVAS SNAPSHOT (JSON):\n${canvasSummary}`
+      : 'CURRENT CANVAS SNAPSHOT: none provided',
+    lastMermaid
+      ? `LATEST AI MERMAID:\n\n\`\`\`mermaid\n${lastMermaid}\n\`\`\``
+      : 'LATEST AI MERMAID: none recorded',
+  ].join('\n\n');
+
+  return `${IMAGE_TO_FLOWCHART_PROMPT}
+
+CURRENT CANVAS CONTEXT:
+${contextSection}
+
+IMPORTANT RESPONSE FORMAT OVERRIDE:
+- Do not return raw JSON to the user.
+- First stream a brief natural-language note about what you detected in the image.
+- Then call generate_flowchart exactly once.
+- Put the Mermaid code in generate_flowchart.mermaid_code.
+- Use mode "replace" unless the user explicitly asks to update an existing diagram.
+- Put the detected title or a concise summary in generate_flowchart.description.`;
+}
+
+function parseFlowchartToolArguments(
+  toolArguments: unknown
+): FlowchartToolArguments | null {
+  let candidate = toolArguments;
+
+  if (typeof toolArguments === 'string') {
+    try {
+      candidate = JSON.parse(toolArguments);
+    } catch (error) {
+      console.error('Failed to parse flowchart tool arguments:', error);
+      return null;
+    }
+  }
+
+  if (!candidate || typeof candidate !== 'object') {
+    console.error('Invalid flowchart tool arguments:', candidate);
+    return null;
+  }
+
+  const payload = candidate as Record<string, unknown>;
+  const mermaidCode =
+    typeof payload.mermaid_code === 'string'
+      ? payload.mermaid_code
+      : typeof payload.mermaid === 'string'
+        ? payload.mermaid
+        : '';
+  const mode = payload.mode === 'extend' ? 'extend' : 'replace';
+  const description =
+    typeof payload.description === 'string'
+      ? payload.description
+      : 'Generated flowchart';
+
+  if (!mermaidCode.trim()) {
+    console.error('Flowchart tool arguments missing mermaid code:', candidate);
+    return null;
+  }
+
+  return {
+    mermaid_code: normalizeMermaidCode(mermaidCode),
+    mode,
+    description,
+  };
 }
 
 function normalizeMermaidCode(mermaid: string): string {
@@ -211,6 +405,172 @@ function normalizeMermaidCode(mermaid: string): string {
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/"/g, "'");
+}
+
+function createFlowchartAgentStreamResponse(completion: any): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        let accumulatedContent = '';
+        let pendingToolCall: {
+          toolCallId: string;
+          toolName: string;
+          arguments: string;
+        } | null = null;
+        let toolCallSent = false;
+        let hasFlowchartToolCall = false;
+        let finishSent = false;
+
+        const emitToolCall = () => {
+          if (
+            toolCallSent ||
+            !pendingToolCall ||
+            pendingToolCall.toolName !== 'generate_flowchart'
+          ) {
+            return;
+          }
+
+          const args = parseFlowchartToolArguments(pendingToolCall.arguments);
+
+          if (!args) {
+            return;
+          }
+
+          hasFlowchartToolCall = true;
+          toolCallSent = true;
+          const data = JSON.stringify({
+            type: 'tool-call',
+            toolCallId: pendingToolCall.toolCallId,
+            toolName: 'generate_flowchart',
+            args,
+          });
+          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+        };
+
+        const emitFinish = (toolCallsCompleted: boolean) => {
+          if (finishSent) {
+            return;
+          }
+
+          finishSent = true;
+          const finishData = JSON.stringify({
+            type: 'finish',
+            content: accumulatedContent || 'Conversation completed.',
+            toolCallsCompleted,
+          });
+          controller.enqueue(encoder.encode(`data: ${finishData}\n\n`));
+        };
+
+        for await (const event of completion.getFullResponsesStream()) {
+          if (
+            event.type === 'response.output_text.delta' &&
+            typeof event.delta === 'string'
+          ) {
+            accumulatedContent += event.delta;
+            const data = JSON.stringify({
+              type: 'text',
+              content: event.delta,
+            });
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            continue;
+          }
+
+          if (
+            event.type === 'response.output_item.added' &&
+            event.item?.type === 'function_call'
+          ) {
+            pendingToolCall = {
+              toolCallId: event.item.callId || event.item.id || '',
+              toolName: event.item.name || '',
+              arguments: event.item.arguments || '',
+            };
+            continue;
+          }
+
+          if (
+            event.type === 'response.function_call_arguments.delta' &&
+            pendingToolCall
+          ) {
+            pendingToolCall.arguments += event.delta;
+            continue;
+          }
+
+          if (
+            event.type === 'response.function_call_arguments.done' &&
+            pendingToolCall
+          ) {
+            pendingToolCall.toolName = event.name || pendingToolCall.toolName;
+            pendingToolCall.arguments =
+              event.arguments || pendingToolCall.arguments;
+            emitToolCall();
+            continue;
+          }
+
+          if (
+            event.type === 'response.output_item.done' &&
+            event.item?.type === 'function_call'
+          ) {
+            pendingToolCall = {
+              toolCallId: event.item.callId || event.item.id || '',
+              toolName: event.item.name || '',
+              arguments: event.item.arguments || '',
+            };
+            emitToolCall();
+            continue;
+          }
+
+          if (event.type === 'response.completed') {
+            const flowchartCall = (event.response.output as any[])?.find(
+              (item: any) =>
+                item?.type === 'function_call' &&
+                item?.name === 'generate_flowchart'
+            );
+
+            if (flowchartCall) {
+              pendingToolCall = {
+                toolCallId: flowchartCall.callId || flowchartCall.id || '',
+                toolName: flowchartCall.name,
+                arguments: flowchartCall.arguments || '',
+              };
+              emitToolCall();
+            }
+
+            emitFinish(hasFlowchartToolCall);
+          }
+        }
+
+        if (!toolCallSent) {
+          emitToolCall();
+        }
+
+        if (!hasFlowchartToolCall) {
+          emitFinish(false);
+        }
+
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      } catch (error: any) {
+        console.error('FlowChart API Error:', error);
+
+        const errorData = JSON.stringify({
+          type: 'error',
+          error:
+            error.message || 'An error occurred while processing your request.',
+        });
+        controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  });
 }
 
 export async function POST(req: Request) {
@@ -335,9 +695,6 @@ export async function POST(req: Request) {
 
     requestedMode = getRequestedMode(aiContext);
 
-    // 5. 调用 OpenRouter API
-    const openai = createOpenAIClient();
-
     if (requestedMode === IMAGE_MODE) {
       const imageCount = countImagesInLatestUserMessage(messages);
 
@@ -361,214 +718,58 @@ export async function POST(req: Request) {
           );
         }
 
-        const recordImageUsage = async (
-          success: boolean,
-          errorMessage?: string
-        ) => {
-          // 图片模式的计费应该在前端渲染成功后进行，保持与文本模式一致
-          // 这里只记录错误情况，成功计费在前端处理
-          if (!success && userId) {
-            try {
-              await recordAIUsage(userId, 'flowchart_generation', {
-                tokensUsed: 0,
-                model: model,
-                success: false,
-                errorMessage,
-                metadata: {
-                  messageCount: messages.length,
-                  mode: 'image_to_flowchart',
-                  imageMode: true,
-                },
-              });
-              console.log(
-                '❌ Image to flowchart error recorded for user:',
-                userId
-              );
-            } catch (recordError) {
-              console.error(
-                'Failed to record image flowchart error:',
-                recordError
-              );
-            }
-          }
-        };
-
-        const completion = await openai.chat.completions.create({
-          model: model,
-          messages: [
-            {
-              role: 'system' as const,
-              content: IMAGE_TO_FLOWCHART_PROMPT,
-            },
-            ...messages,
-          ],
+        const agentClient = createOpenRouterAgentClient();
+        const completion = agentClient.callModel({
+          model,
+          instructions: generateImageModeInstructions(
+            snapshotSummary,
+            aiContext?.lastMermaid?.code || undefined
+          ),
+          input: buildImageModeInput(messages, aiContext),
+          tools: [flowchartTool],
+          toolChoice: 'auto',
           temperature: 0.3,
-          stream: false,
+          parallelToolCalls: false,
+          maxOutputTokens: 4096,
+          stopWhen: hasToolCall('generate_flowchart'),
         });
 
-        const rawContent = completion.choices[0]?.message?.content;
-
-        let responseText = '';
-        if (Array.isArray(rawContent)) {
-          responseText = rawContent
-            .map((item) => (item?.type === 'text' ? item.text : ''))
-            .join('')
-            .trim();
-        } else if (typeof rawContent === 'string') {
-          responseText = rawContent.trim();
-        }
-
-        if (!responseText) {
-          await recordImageUsage(false, 'Model returned empty response');
-          return new Response(
-            JSON.stringify({ error: 'Model returned empty response' }),
-            {
-              status: 500,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          );
-        }
-
-        const normalizedJson = extractJsonFromContent(responseText);
-
-        if (!normalizedJson) {
-          await recordImageUsage(false, 'Model returned empty response');
-          return new Response(
-            JSON.stringify({ error: 'Model returned empty response' }),
-            {
-              status: 500,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          );
-        }
-
-        let parsedResult: {
-          mermaid?: string;
-          title?: string;
-          notes?: string;
-        };
-
-        try {
-          parsedResult = JSON.parse(normalizedJson);
-        } catch (error) {
-          console.error('Failed to parse image flowchart JSON:', responseText);
-          await recordImageUsage(false, 'Failed to parse AI response as JSON');
-          return new Response(
-            JSON.stringify({
-              error: 'Failed to parse AI response as JSON',
-            }),
-            {
-              status: 500,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          );
-        }
-
-        if (!parsedResult?.mermaid) {
-          await recordImageUsage(false, 'AI response missing mermaid code');
-          return new Response(
-            JSON.stringify({
-              error: 'AI response missing mermaid code',
-            }),
-            {
-              status: 500,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          );
-        }
-
-        const description = parsedResult.title
-          ? `Generated from image: ${parsedResult.title}`
-          : 'Generated flowchart from image';
-
-        const mermaidCode = normalizeMermaidCode(parsedResult.mermaid);
-
-        const encoder = new TextEncoder();
-        const summaryContent = parsedResult.notes
-          ? parsedResult.notes
-          : 'Generated flowchart from the uploaded image.';
-
-        const stream = new ReadableStream({
-          start(controller) {
-            const textPayload = JSON.stringify({
-              type: 'text',
-              content: summaryContent,
-            });
-            controller.enqueue(encoder.encode(`data: ${textPayload}\n\n`));
-
-            const toolPayload = JSON.stringify({
-              type: 'tool-call',
-              toolCallId: `image-flowchart-${Date.now()}`,
-              toolName: 'generate_flowchart',
-              args: {
-                mermaid_code: mermaidCode,
-                mode: 'replace',
-                description,
-              },
-            });
-            controller.enqueue(encoder.encode(`data: ${toolPayload}\n\n`));
-
-            const finishPayload = JSON.stringify({
-              type: 'finish',
-              content: summaryContent,
-              toolCallsCompleted: true,
-            });
-            controller.enqueue(encoder.encode(`data: ${finishPayload}\n\n`));
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            controller.close();
-          },
-        });
-
-        // 图片模式成功，计费将在前端渲染成功后进行
-        // await recordImageUsage(true); // 不在这里计费，保持与文本模式一致
-
-        return new Response(stream, {
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          },
-        });
+        console.log('✅ OpenRouter Agent SDK image call prepared');
+        return createFlowchartAgentStreamResponse(completion);
       }
     }
 
-    const systemMessage = {
-      role: 'system' as const,
-      content: generateSystemPrompt(
-        snapshotSummary,
-        aiContext?.lastMermaid?.code || undefined
-      ),
-    };
+    const instructions = `${generateSystemPrompt(
+      snapshotSummary,
+      aiContext?.lastMermaid?.code || undefined
+    )}
 
-    const contextMessages: Array<{
-      role: 'system' | 'assistant';
-      content: string;
-    }> = [];
-
-    if (aiContext?.requestedMode) {
-      contextMessages.push({
-        role: 'system',
-        content: `Requested mode from UI: ${aiContext.requestedMode}`,
-      });
-    }
-
-    const fullMessages = [systemMessage, ...contextMessages, ...messages];
+STREAMING REQUIREMENT:
+- Before calling generate_flowchart, first write a visible assistant message to the user.
+- The visible message must be streamed as normal assistant text and must not be empty.
+- Only after that visible text has been emitted should you call generate_flowchart.
+- A good concise default is: "I am mapping your flowchart now."`;
+    const input = buildTextModeInput(messages, aiContext);
     const model = getFlowchartModelForMode(requestedMode);
 
     console.log(
-      `🚀 Starting AI conversation with ${fullMessages.length} messages (User)`
+      `🚀 Starting AI conversation with ${messages.length} messages (User)`
     );
 
-    const completion = await openai.chat.completions.create({
+    const agentClient = createOpenRouterAgentClient();
+    const completion = agentClient.callModel({
       model: model,
-      messages: fullMessages,
+      instructions,
+      input,
       tools: [flowchartTool],
-      tool_choice: 'auto',
+      toolChoice: 'auto',
       temperature: 0.7,
-      stream: true,
+      parallelToolCalls: false,
+      maxOutputTokens: 4096,
+      stopWhen: hasToolCall('generate_flowchart'),
     });
 
-    console.log('✅ OpenRouter API call successful, starting stream');
+    console.log('✅ OpenRouter Agent SDK call prepared, starting stream');
 
     // 6. 记录AI使用情况 - 移除这里的计费，改为在流程图成功生成后计费
     // if (isGuestUser) {
@@ -585,131 +786,7 @@ export async function POST(req: Request) {
     //   });
     // }
 
-    // 7. 创建流式响应
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          const toolCalls: any[] = [];
-          let accumulatedContent = '';
-
-          for await (const chunk of completion) {
-            const delta = chunk.choices[0]?.delta;
-
-            if (delta?.content) {
-              accumulatedContent += delta.content;
-              const data = JSON.stringify({
-                type: 'text',
-                content: delta.content,
-              });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-            }
-
-            if (delta?.tool_calls) {
-              for (const toolCall of delta.tool_calls) {
-                if (!toolCalls[toolCall.index]) {
-                  toolCalls[toolCall.index] = {
-                    id: toolCall.id,
-                    type: toolCall.type,
-                    function: { name: '', arguments: '' },
-                  };
-                }
-
-                if (toolCall.function?.name) {
-                  toolCalls[toolCall.index].function.name =
-                    toolCall.function.name;
-                }
-
-                if (toolCall.function?.arguments) {
-                  toolCalls[toolCall.index].function.arguments +=
-                    toolCall.function.arguments;
-                }
-              }
-            }
-
-            if (chunk.choices[0]?.finish_reason === 'tool_calls') {
-              // 处理工具调用
-              for (const toolCall of toolCalls) {
-                if (toolCall.function.name === 'generate_flowchart') {
-                  try {
-                    const args = JSON.parse(toolCall.function.arguments);
-                    const data = JSON.stringify({
-                      type: 'tool-call',
-                      toolCallId: toolCall.id,
-                      toolName: 'generate_flowchart',
-                      args: args,
-                    });
-                    controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-                  } catch (error) {
-                    console.error('Error parsing flowchart args:', error);
-                  }
-                } else if (toolCall.function.name === 'get_canvas_state') {
-                  const data = JSON.stringify({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id,
-                    toolName: 'get_canvas_state',
-                    args: {},
-                  });
-                  controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-                }
-              }
-
-              // 发送完成信号
-              const finishData = JSON.stringify({
-                type: 'finish',
-                content: accumulatedContent,
-                toolCallsCompleted: true,
-              });
-              controller.enqueue(encoder.encode(`data: ${finishData}\n\n`));
-            } else if (chunk.choices[0]?.finish_reason === 'stop') {
-              // 普通对话完成
-              const finishData = JSON.stringify({
-                type: 'finish',
-                content: accumulatedContent || 'Conversation completed.',
-              });
-              controller.enqueue(encoder.encode(`data: ${finishData}\n\n`));
-            }
-          }
-
-          // 发送结束信号
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-        } catch (error: any) {
-          console.error('FlowChart API Error:', error);
-
-          // Record failed usage
-          // 移除这里的计费，改为在流程图成功生成后计费
-          // if (isGuestUser) {
-          //   await recordGuestAIUsage(req, 'flowchart_generation', false);
-          // } else if (userId) {
-          //   await recordAIUsage(userId, 'flowchart_generation', {
-          //     tokensUsed: 0,
-          //     model: model,
-          //     success: false,
-          //     errorMessage: error.message,
-          //     metadata: { messageCount: messages.length, mode: requestedMode },
-          //   });
-          // }
-
-          const errorData = JSON.stringify({
-            type: 'error',
-            error:
-              error.message ||
-              'An error occurred while processing your request.',
-          });
-          controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
-        } finally {
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-      },
-    });
+    return createFlowchartAgentStreamResponse(completion);
   } catch (error: any) {
     console.error('FlowChart API Error:', error);
 
