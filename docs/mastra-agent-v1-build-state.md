@@ -102,7 +102,7 @@
 | T3 | Document/Patch/renderer/legacy/persistence | T1 | Main implementation owner | COMPLETED |
 | T4 | 加载、状态、性能与部署清理 | T2, T3 | Main implementation owner | COMPLETED |
 | T5 | GEB、测试、类型、构建、scoped Biome | T2, T3, T4 | Main implementation owner | COMPLETED |
-| T6 | 独立 Evaluator、Chrome QA、Vercel Preview | T5 | Evaluator / Main integration | IN_PROGRESS — Preview READY；认证真路径由 Main 接管 |
+| T6 | 独立 Evaluator、Chrome QA、Vercel Preview | T5 | Evaluator / Main integration | COMPLETED |
 
 ## Evidence Log
 
@@ -123,9 +123,10 @@
 - Deployment cleanup: removed OpenNext/Workers config, scripts and dependencies plus the legacy OpenRouter Agent/AI provider packages; retained Vercel `maxDuration: 60`, AWS SDK R2 storage and all CDN/R2 scripts.
 - Performance implementation: edit data fetch starts in the small route chunk while the editor chunk downloads; the second full-screen wait/remount was removed; assistant/export/image/Mermaid paths are lazy and Mermaid conversion idle-preloads; local Patch does not zoom.
 - Build warnings are limited to missing local `BETTER_AUTH_SECRET` and OAuth credentials; they are environment warnings, not compile failures.
-- Chrome QA: local production canvas shell, Excalidraw drawing, Undo control and unauthenticated sign-in guard passed. The authenticated Agent/save/reload path remains unavailable without an authenticated localhost session.
+- Chrome QA: authenticated Preview path passed with the dedicated test account. The seeded revision-1 graph loaded immediately; one Agent request changed only node B from `Ready` to `Approved`; node/edge placement and the user-owned `USER NOTE — KEEP` elements remained unchanged; one Undo restored `Ready`, one Redo restored `Approved`, Save reported `Saved!`, and reload restored revision 2. PNG export produced a valid 25,294-byte file.
 - Vercel Preview: direct remote builds stalled during Next.js optimization and were cancelled without touching Production. The bounded fallback `vercel build --target preview` completed locally and `vercel deploy --prebuilt` produced READY deployment `dpl_EESikksc24vBSnYE9Ln6wf2yikq1` at `https://flowchartai-q6wq538tc-tanchaowens-projects.vercel.app`.
 - Preview smoke: authenticated `vercel curl` followed `/en/canvas` to a `200` canvas response. `POST /api/ai/chat/flowchart` with a valid empty message array returned the expected `401 Authentication required`, proving the deployed Mastra route loads and rejects guests before any model invocation.
+- Preview data verification: an exact-ID read of only the test account's new flowchart confirmed revision 2, source Mermaid containing `B{Approved}`, the two original edges, and unchanged user-owned element IDs/coordinates/sizes (`160,210,240,70` and `185,232,190,25`). The test account has exactly one successful `flowchart_generation` usage row and one login session.
 - Independent evaluator: `/root/v1_mastra_local_edit_spec/v1_evaluator` initially returned FAIL; every P1 received a reproducing RED test and repair. The final follow-up result is PASS with zero P0/P1 and no newly identified P2.
 
 ## Production Data Guardrail
@@ -134,4 +135,4 @@ Preview may use production-compatible environment configuration, but verificatio
 
 ## Resume Point
 
-Current stage: `VERIFIED`. Resume at T6 with the Main integration owner: run the authenticated Preview Agent -> canvas commit -> save -> reload -> next local Patch Chrome path, then complete UI review and final release. Preview deployment, unauthenticated Chrome path and independent evaluator are complete. No production data mutation, migration or delete is authorized.
+Current stage: `VERIFIED`. Implementation, independent evaluation, authenticated Chrome QA and Vercel Preview verification are complete. The dedicated test account and its owned Preview data remain for founder testing. No migration, delete, Production deployment or existing-user data write was performed.
