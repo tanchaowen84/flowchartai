@@ -1,6 +1,4 @@
-import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import type { BinaryFiles } from '@excalidraw/excalidraw/types';
-import { parseMermaidToExcalidraw } from '@excalidraw/mermaid-to-excalidraw';
 
 // ExcalidrawElement type - using any since it's not easily accessible from exports
 export type ExcalidrawElement = any;
@@ -79,6 +77,13 @@ const DEFAULT_CONFIG: MermaidConfig = {
   maxTextSize: 50000,
 };
 
+export async function preloadMermaidConverter(): Promise<void> {
+  await Promise.all([
+    import('@excalidraw/excalidraw'),
+    import('@excalidraw/mermaid-to-excalidraw'),
+  ]);
+}
+
 /**
  * Converts Mermaid diagram syntax to Excalidraw elements
  *
@@ -106,6 +111,14 @@ export async function convertMermaidToExcalidraw(
 
     // Merge with default configuration
     const mergedConfig = { ...DEFAULT_CONFIG, ...config };
+
+    // Keep Mermaid parsing out of the initial canvas/chat bundle. It is only
+    // needed after the agent has returned a complete render command.
+    const [{ convertToExcalidrawElements }, { parseMermaidToExcalidraw }] =
+      await Promise.all([
+        import('@excalidraw/excalidraw'),
+        import('@excalidraw/mermaid-to-excalidraw'),
+      ]);
 
     // Step 1: Parse Mermaid to skeleton elements
     const { elements: skeletonElements, files } =

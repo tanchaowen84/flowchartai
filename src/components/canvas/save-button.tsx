@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useFlowchartSave } from '@/hooks/use-flowchart-save';
+import type { FlowchartAiMetadata } from '@/lib/diagram/contracts';
 import { cn } from '@/lib/utils';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { AlertCircle, Check, Loader2, Save } from 'lucide-react';
@@ -12,6 +13,7 @@ interface SaveButtonProps {
   excalidrawAPI: ExcalidrawImperativeAPI | null;
   flowchartId?: string;
   flowchartTitle?: string;
+  flowchartAiMetadata: FlowchartAiMetadata;
   onFlowchartIdChange?: (newId: string) => void;
   // 新增：用于合并按钮的样式控制
   isMerged?: boolean;
@@ -21,6 +23,7 @@ export function SaveButton({
   excalidrawAPI,
   flowchartId,
   flowchartTitle,
+  flowchartAiMetadata,
   onFlowchartIdChange,
   isMerged = false, // 默认不是合并模式
 }: SaveButtonProps) {
@@ -28,7 +31,8 @@ export function SaveButton({
   const { saveFlowchart, saving, lastSaved } = useFlowchartSave(
     excalidrawAPI,
     flowchartId,
-    flowchartTitle
+    flowchartTitle,
+    flowchartAiMetadata
   );
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>(
     'idle'

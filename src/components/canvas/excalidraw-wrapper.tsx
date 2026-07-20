@@ -1,34 +1,31 @@
 'use client';
 
-import {
-  Excalidraw,
-  MainMenu,
-  exportToBlob,
-  exportToClipboard,
-  exportToSvg,
-} from '@excalidraw/excalidraw';
+import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { websiteConfig } from '@/config/website';
 import { useCurrentUser } from '@/hooks/use-current-user';
-import { useFlowchart } from '@/hooks/use-flowchart';
+import type { FlowchartData } from '@/hooks/use-flowchart';
 import { useLocalePathname } from '@/i18n/navigation';
 import {
   type AiAssistantMode,
   DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
-import { cn } from '@/lib/utils';
+import type { FlowchartAiMetadata } from '@/lib/diagram/contracts';
+import {
+  deriveFlowchartAiMetadataFromElements,
+  emptyFlowchartAiMetadata,
+  parseFlowchartAiMetadata,
+} from '@/lib/diagram/metadata';
 import type {
   ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
 } from '@excalidraw/excalidraw/types';
 import {
   AlertCircle,
-  Check,
   Copy,
   Download,
   Edit,
@@ -36,18 +33,19 @@ import {
   FileText,
   Loader2Icon,
   User,
-  XIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import AiChatSidebar from './ai-chat-sidebar';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ResizableDivider from './resizable-divider';
 import { SaveButton } from './save-button';
 
 interface ExcalidrawWrapperProps {
   className?: string;
   flowchartId?: string;
+  initialFlowchart?: FlowchartData | null;
+  isFlowchartLoading?: boolean;
+  flowchartLoadError?: string | null;
 }
 
 // Helper function to parse flowchart data for Excalidraw initialData
@@ -89,9 +87,26 @@ const defaultInitialData: ExcalidrawInitialDataState = {
   },
 };
 
+const AiChatSidebar = dynamic(() => import('./ai-chat-sidebar'), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed right-0 top-0 z-40 flex h-full w-[400px] items-center justify-center bg-white text-sm text-gray-500 shadow-lg">
+      <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+      Loading assistant…
+    </div>
+  ),
+});
+
+const CanvasExportModal = dynamic(() => import('./canvas-export-modal'), {
+  ssr: false,
+});
+
 const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   className,
   flowchartId,
+  initialFlowchart = null,
+  isFlowchartLoading = false,
+  flowchartLoadError = null,
 }) => {
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
@@ -113,43 +128,24 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const [initialMode, setInitialMode] = useState<AiAssistantMode>(
     DEFAULT_AI_ASSISTANT_MODE
   );
+  const [flowchartAiMetadata, setFlowchartAiMetadata] =
+    useState<FlowchartAiMetadata>(() => emptyFlowchartAiMetadata());
+  const [isSavedSceneLoaded, setIsSavedSceneLoaded] = useState(
+    () => !flowchartId || Boolean(initialFlowchart?.content)
+  );
+  const loadedFlowchartContentRef = useRef<string | null>(
+    initialFlowchart?.content || null
+  );
 
   const router = useRouter();
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
-  const { flowchart, loading, error } = useFlowchart(currentFlowchartId);
+  const flowchart = initialFlowchart;
+  const loading = isFlowchartLoading;
+  const error = flowchartLoadError;
 
   // Export modal state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState('png');
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportStatus, setExportStatus] = useState<
-    'idle' | 'success' | 'error'
-  >('idle');
-  const [exportError, setExportError] = useState<string>('');
-
-  // Export formats configuration (without icons)
-  const exportFormats = [
-    {
-      id: 'png',
-      title: 'PNG Image',
-      description: 'Perfect for web sharing, documents, and presentations',
-      extension: 'png',
-    },
-    {
-      id: 'svg',
-      title: 'SVG Vector',
-      description:
-        'Scalable format, ideal for editing and high-quality exports',
-      extension: 'svg',
-    },
-    {
-      id: 'json',
-      title: 'Excalidraw File',
-      description: 'Native format for editing in Excalidraw later',
-      extension: 'excalidraw',
-    },
-  ];
 
   // Compute initial data based on flowchart content
   const initialData = useMemo((): ExcalidrawInitialDataState => {
@@ -158,6 +154,56 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     }
     return defaultInitialData;
   }, [flowchart?.content]);
+
+  useEffect(() => {
+    performance.mark('flowchartai:shellVisible');
+  }, []);
+
+  useEffect(() => {
+    setFlowchartAiMetadata(
+      flowchart?.content
+        ? parseFlowchartAiMetadata(flowchart.content)
+        : emptyFlowchartAiMetadata()
+    );
+  }, [flowchart?.content]);
+
+  useEffect(() => {
+    if (
+      !excalidrawAPI ||
+      !flowchart?.content ||
+      loadedFlowchartContentRef.current === flowchart.content
+    ) {
+      return;
+    }
+
+    const parsed = parseFlowchartData(flowchart.content);
+    if (parsed.files) {
+      excalidrawAPI.addFiles(Object.values(parsed.files));
+    }
+    excalidrawAPI.updateScene({
+      elements: parsed.elements || [],
+      appState: parsed.appState as any,
+    });
+    loadedFlowchartContentRef.current = flowchart.content;
+    setIsSavedSceneLoaded(true);
+    performance.mark('flowchartai:savedSceneVisible');
+  }, [excalidrawAPI, flowchart]);
+
+  useEffect(() => {
+    if (isAPIReady && flowchart?.content) {
+      performance.mark('flowchartai:savedSceneVisible');
+    }
+  }, [flowchart?.content, isAPIReady]);
+
+  const isCanvasReady =
+    isAPIReady && (!currentFlowchartId || isSavedSceneLoaded);
+
+  const handleSceneChange = useCallback((elements: readonly any[]) => {
+    setFlowchartAiMetadata((current) => {
+      const next = deriveFlowchartAiMetadataFromElements(elements, current);
+      return JSON.stringify(next) === JSON.stringify(current) ? current : next;
+    });
+  }, []);
 
   const handleGoHome = () => {
     router.push('/');
@@ -248,6 +294,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         return;
       }
 
+      const { exportToBlob } = await import('@excalidraw/excalidraw');
       const blob = await exportToBlob({
         elements,
         appState: {
@@ -288,6 +335,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         return;
       }
 
+      const { exportToSvg } = await import('@excalidraw/excalidraw');
       const svg = await exportToSvg({
         elements,
         appState: {
@@ -338,6 +386,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         elements,
         appState: cleanAppState,
         files,
+        flowchartAi: flowchartAiMetadata,
       };
 
       const jsonData = JSON.stringify(exportData, null, 2);
@@ -369,6 +418,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         return;
       }
 
+      const { exportToClipboard } = await import('@excalidraw/excalidraw');
       await exportToClipboard({
         elements,
         appState: {
@@ -387,106 +437,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       alert(
         `Failed to copy ${format.toUpperCase()} to clipboard. Please try again.`
       );
-    }
-  };
-
-  // Export modal function
-  const handleExportWithModal = async (format: string) => {
-    if (!excalidrawAPI) return;
-
-    setIsExporting(true);
-    setExportStatus('idle');
-    setExportError('');
-
-    try {
-      const elements = excalidrawAPI.getSceneElements();
-      const appState = excalidrawAPI.getAppState();
-      const files = excalidrawAPI.getFiles();
-
-      if (!elements || elements.length === 0) {
-        throw new Error(
-          'Canvas is empty. Please draw something before exporting.'
-        );
-      }
-
-      let blob: Blob;
-      let filename: string;
-
-      switch (format) {
-        case 'png':
-          blob = await exportToBlob({
-            elements,
-            appState: {
-              ...appState,
-              exportBackground: true,
-              exportWithDarkMode: false,
-            },
-            files,
-            mimeType: 'image/png',
-            quality: 0.92,
-            exportPadding: 20,
-          });
-          filename = `${currentTitle || 'flowchart'}.png`;
-          break;
-
-        case 'svg': {
-          const svg = await exportToSvg({
-            elements,
-            appState: {
-              ...appState,
-              exportBackground: true,
-              exportWithDarkMode: false,
-            },
-            files,
-            exportPadding: 20,
-          });
-          const svgData = new XMLSerializer().serializeToString(svg);
-          blob = new Blob([svgData], { type: 'image/svg+xml' });
-          filename = `${currentTitle || 'flowchart'}.svg`;
-          break;
-        }
-
-        case 'json': {
-          const { collaborators, ...cleanAppState } = appState;
-          const exportData = {
-            type: 'excalidraw',
-            version: 2,
-            source: 'https://excalidraw.com',
-            elements,
-            appState: cleanAppState,
-            files,
-          };
-          const jsonData = JSON.stringify(exportData, null, 2);
-          blob = new Blob([jsonData], { type: 'application/json' });
-          filename = `${currentTitle || 'flowchart'}.excalidraw`;
-          break;
-        }
-
-        default:
-          throw new Error('Unsupported format');
-      }
-
-      // Download file
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      setExportStatus('success');
-      setTimeout(() => {
-        setIsExportModalOpen(false);
-        setExportStatus('idle');
-      }, 1500);
-    } catch (error) {
-      console.error('Export error:', error);
-      setExportStatus('error');
-      setExportError(error instanceof Error ? error.message : 'Export failed');
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -551,36 +501,6 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       console.log('✅ Flowchart data loaded:', flowchart.title);
     }
   }, [flowchart]);
-
-  // Show loading state when fetching flowchart data or when data is not ready
-  if (currentFlowchartId && (loading || !flowchart)) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2Icon className="animate-spin h-12 w-12 text-primary" />
-          <p className="text-lg text-gray-600">Loading flowchart...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state if flowchart failed to load
-  if (currentFlowchartId && error) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 max-w-md text-center">
-          <div className="text-red-500 text-6xl">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Failed to Load Flowchart
-          </h2>
-          <p className="text-gray-600">{error}</p>
-          <Button onClick={() => router.push('/dashboard')} variant="outline">
-            Back to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`h-screen w-screen flex ${className || ''}`}>
@@ -651,6 +571,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
                 excalidrawAPI={excalidrawAPI}
                 flowchartId={currentFlowchartId}
                 flowchartTitle={currentTitle}
+                flowchartAiMetadata={flowchartAiMetadata}
                 onFlowchartIdChange={handleFlowchartIdChange}
                 isMerged={true}
               />
@@ -683,10 +604,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         </div>
 
         <Excalidraw
-          key={flowchart ? flowchart.id : 'new'}
+          onChange={handleSceneChange}
           excalidrawAPI={(api) => {
             setExcalidrawAPI(api);
             setIsAPIReady(true);
+            performance.mark('flowchartai:excalidrawApiReady');
             console.log('✅ ExcalidrawAPI initialized and ready');
           }}
           initialData={initialData}
@@ -760,6 +682,35 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
             )}
           </MainMenu>
         </Excalidraw>
+
+        {currentFlowchartId && !isSavedSceneLoaded && !error && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm text-gray-600 shadow-sm">
+              <Loader2Icon className="h-5 w-5 animate-spin text-primary" />
+              <span>
+                {loading ? 'Loading saved flowchart…' : 'Preparing canvas…'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {currentFlowchartId && error && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/95">
+            <div className="flex max-w-md flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-10 w-10 text-red-500" />
+              <h2 className="text-xl font-semibold text-gray-800">
+                Failed to load flowchart
+              </h2>
+              <p className="text-sm text-gray-600">{error}</p>
+              <Button
+                onClick={() => router.push('/dashboard')}
+                variant="outline"
+              >
+                Back to Dashboard
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Resizable Divider - only show when sidebar is open */}
@@ -780,144 +731,39 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       )}
 
       {/* Export Modal */}
-      <AnimatePresence>
-        {isExportModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={() => setIsExportModalOpen(false)}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="relative mx-4 w-full max-w-md bg-white rounded-xl border-2 border-white shadow-xl md:mx-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <motion.button
-                className="absolute -top-16 right-0 rounded-full bg-neutral-900/50 p-2 text-xl text-white ring-1 backdrop-blur-md hover:bg-neutral-900/70 transition-colors"
-                onClick={() => setIsExportModalOpen(false)}
-              >
-                <XIcon className="size-5" />
-              </motion.button>
-
-              {/* Export options content */}
-              <div className="p-5">
-                <div className="pb-3">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Export Flowchart
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Choose your preferred export format
-                  </p>
-                </div>
-
-                {/* Export status */}
-                {exportStatus === 'success' && (
-                  <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded-md">
-                    <div className="flex items-center gap-2 text-green-800">
-                      <Check className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        Export successful!
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {exportStatus === 'error' && (
-                  <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
-                    <div className="flex items-center gap-2 text-red-800">
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm font-medium">{exportError}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid gap-2 pb-4">
-                  {exportFormats.map((format) => (
-                    <Card
-                      key={format.id}
-                      className={cn(
-                        'cursor-pointer transition-all duration-200 hover:shadow-sm',
-                        selectedFormat === format.id
-                          ? 'border-blue-500 bg-blue-50 shadow-sm'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      )}
-                      onClick={() => setSelectedFormat(format.id)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">
-                              {format.title}
-                            </h3>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {format.description}
-                            </p>
-                          </div>
-                          {selectedFormat === format.id && (
-                            <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
-                              <Check className="w-2.5 h-2.5 text-white" />
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsExportModalOpen(false)}
-                    disabled={isExporting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => handleExportWithModal(selectedFormat)}
-                    disabled={isExporting}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isExporting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                        Exporting...
-                      </>
-                    ) : (
-                      `Export ${exportFormats.find((f) => f.id === selectedFormat)?.title}`
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isExportModalOpen && excalidrawAPI && (
+        <CanvasExportModal
+          excalidrawAPI={excalidrawAPI}
+          flowchartAiMetadata={flowchartAiMetadata}
+          onClose={() => setIsExportModalOpen(false)}
+          title={currentTitle}
+        />
+      )}
 
       {/* AI Chat Sidebar */}
-      <AiChatSidebar
-        isOpen={isSidebarOpen}
-        onToggle={toggleSidebar}
-        excalidrawAPI={excalidrawAPI}
-        isAPIReady={isAPIReady}
-        width={sidebarWidth}
-        autoInput={autoInput}
-        shouldAutoGenerate={shouldAutoGenerate}
-        initialMode={initialMode}
-        initialImage={autoImagePayload}
-        onAutoGenerateComplete={() => {
-          setAutoInput('');
-          setAutoImagePayload(null);
-          setShouldAutoGenerate(false);
-          localStorage.removeItem('flowchart_auto_mode');
-          localStorage.removeItem('flowchart_auto_image');
-        }}
-      />
+      {isCanvasReady && (
+        <AiChatSidebar
+          isOpen={isSidebarOpen}
+          onToggle={toggleSidebar}
+          excalidrawAPI={excalidrawAPI}
+          isAPIReady={isCanvasReady}
+          width={sidebarWidth}
+          autoInput={autoInput}
+          shouldAutoGenerate={shouldAutoGenerate}
+          initialMode={initialMode}
+          initialImage={autoImagePayload}
+          flowchartAiMetadata={flowchartAiMetadata}
+          onFlowchartAiMetadataChange={setFlowchartAiMetadata}
+          onReady={() => performance.mark('flowchartai:chatReady')}
+          onAutoGenerateComplete={() => {
+            setAutoInput('');
+            setAutoImagePayload(null);
+            setShouldAutoGenerate(false);
+            localStorage.removeItem('flowchart_auto_mode');
+            localStorage.removeItem('flowchart_auto_image');
+          }}
+        />
+      )}
     </div>
   );
 };

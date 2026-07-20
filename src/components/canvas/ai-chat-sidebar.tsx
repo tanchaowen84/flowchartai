@@ -30,18 +30,20 @@ import {
   DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
+import { prepareCanvasCommand } from '@/lib/diagram/canvas-command-executor';
 import {
-  createImageThumbnail,
-  encodeImageToBase64,
-  formatFileSize,
-  isValidImageFile,
-} from '@/lib/image-utils';
+  type CanvasCommand,
+  type FlowchartAiMetadata,
+  canvasCommandSchema,
+} from '@/lib/diagram/contracts';
+import { deriveFlowchartAiMetadataFromElements } from '@/lib/diagram/metadata';
+import { resolveDiagramTarget } from '@/lib/diagram/target-resolver';
+import { createSseEventDecoder } from '@/lib/mastra/sse-client';
+import { createCanvasUsageGate } from '@/lib/mastra/usage-gate';
 import {
-  convertMermaidToExcalidraw,
-  countAiGeneratedElements,
   extractExistingMermaidCode,
   hasExistingAiFlowchart,
-  removeAiGeneratedElements,
+  preloadMermaidConverter,
 } from '@/lib/mermaid-converter';
 import { CaptureUpdateAction } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
@@ -99,6 +101,9 @@ interface AiChatSidebarProps {
     thumbnail?: string;
     filename?: string;
   } | null;
+  flowchartAiMetadata: FlowchartAiMetadata;
+  onFlowchartAiMetadataChange: (metadata: FlowchartAiMetadata) => void;
+  onReady?: () => void;
 }
 
 function getUserFacingErrorMessage(
@@ -118,9 +123,16 @@ function getUserFacingErrorMessage(
 }
 
 const ASSISTANT_THINKING_STATUS = 'Thinking...';
-const FLOWCHART_GENERATION_STATUS = 'Generating flowchart...';
+const FLOWCHART_EDITING_STATUS = 'Editing...';
+const FLOWCHART_RENDERING_STATUS = 'Rendering...';
 
-type AssistantResponsePhase = 'idle' | 'thinking' | 'generating_flowchart';
+type AssistantResponsePhase = 'idle' | 'thinking' | 'editing' | 'rendering';
+
+function markFlowchartPerformance(name: string): void {
+  if (typeof performance !== 'undefined') {
+    performance.mark(`flowchartai:${name}`);
+  }
+}
 
 function waitForNextPaint(): Promise<void> {
   if (typeof requestAnimationFrame !== 'function') {
@@ -146,6 +158,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   onAutoGenerateComplete,
   initialMode,
   initialImage,
+  flowchartAiMetadata,
+  onFlowchartAiMetadataChange,
+  onReady,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -170,6 +185,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
+  const hasReportedReadyRef = useRef(false);
 
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
@@ -182,6 +198,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   } = useGuestAIUsage();
 
   const activeSendStatus = sendStatus;
+
+  useEffect(() => {
+    if (!hasReportedReadyRef.current) {
+      hasReportedReadyRef.current = true;
+      onReady?.();
+    }
+  }, [onReady]);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -235,6 +258,23 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       canvasContextRef.current.homepageImage = undefined;
     }
   }, [initialImage]);
+
+  useEffect(() => {
+    if (!isAPIReady) return;
+    const idleWindow = window as typeof window & {
+      requestIdleCallback?: (callback: () => void) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const preload = () => {
+      void preloadMermaidConverter().catch(() => undefined);
+    };
+    if (idleWindow.requestIdleCallback) {
+      const idleId = idleWindow.requestIdleCallback(preload);
+      return () => idleWindow.cancelIdleCallback?.(idleId);
+    }
+    const timeoutId = window.setTimeout(preload, 1500);
+    return () => window.clearTimeout(timeoutId);
+  }, [isAPIReady]);
 
   // Auto-adjust textarea height when input changes
   useEffect(() => {
@@ -526,29 +566,21 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const handleImageSelect = async (files: FileList | null) => {
     if (!files) return;
 
-    const validFiles: File[] = [];
-    const previewUrls: string[] = [];
+    const { isValidImageFile } = await import('@/lib/image-utils');
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
-      if (!isValidImageFile(file)) {
-        toast({
-          title: 'Invalid file',
-          description: `${file.name} is not a valid image file or is too large (max 5MB)`,
-          variant: 'destructive',
-        });
-        continue;
-      }
-
-      validFiles.push(file);
-      previewUrls.push(URL.createObjectURL(file));
+    const file = files[0];
+    if (!file || !isValidImageFile(file)) {
+      toast({
+        title: 'Invalid file',
+        description: `${file?.name || 'This file'} is not a valid image file or is too large (max 5MB)`,
+        variant: 'destructive',
+      });
+      return;
     }
 
-    if (validFiles.length > 0) {
-      setSelectedImages((prev) => [...prev, ...validFiles]);
-      setImagePreviewUrls((prev) => [...prev, ...previewUrls]);
-    }
+    imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setSelectedImages([file]);
+    setImagePreviewUrls([URL.createObjectURL(file)]);
   };
 
   // Remove selected image
@@ -575,6 +607,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     position: { x: number; y: number };
     size: { width: number; height: number };
     aiGenerated?: boolean;
+    diagramId?: string;
+    semanticId?: string;
+    entityType?: string;
   }
 
   interface CanvasEdgeSnapshot {
@@ -584,6 +619,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     toElement?: string | null;
     label?: string;
     aiGenerated?: boolean;
+    diagramId?: string;
+    semanticId?: string;
+    entityType?: string;
   }
 
   const getCanvasState = () => {
@@ -604,6 +642,18 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           position: { x: element.x, y: element.y },
           size: { width: element.width ?? 0, height: element.height ?? 0 },
           aiGenerated: Boolean(element.customData?.aiGenerated),
+          diagramId:
+            typeof element.customData?.diagramId === 'string'
+              ? element.customData.diagramId
+              : undefined,
+          semanticId:
+            typeof element.customData?.semanticId === 'string'
+              ? element.customData.semanticId
+              : undefined,
+          entityType:
+            typeof element.customData?.entityType === 'string'
+              ? element.customData.entityType
+              : undefined,
         };
 
         if (element.type === 'arrow') {
@@ -620,6 +670,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 : undefined,
             label: 'text' in element ? (element as any).text : undefined,
             aiGenerated: Boolean(element.customData?.aiGenerated),
+            diagramId: baseNode.diagramId,
+            semanticId: baseNode.semanticId,
+            entityType: baseNode.entityType,
           });
         } else {
           nodes.push({
@@ -681,156 +734,107 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     };
   }>({});
 
-  const finishActiveResponse = () => {
-    setIsLoading(false);
-    setSendStatus(null);
-    setAssistantResponsePhase('idle');
-    setIsStreamingResponse(false);
-    streamingMessageIdRef.current = null;
-  };
-
-  const addFlowchartToCanvas = async (
-    mermaidCode: string,
-    mode: 'replace' | 'extend' = 'replace'
-  ) => {
+  const applyCanvasCommand = async (command: CanvasCommand) => {
     if (!excalidrawAPI) {
-      console.error('❌ ExcalidrawAPI not available');
-      toast({
-        title: 'Canvas not ready',
-        description:
-          'Please wait for the canvas to load before generating flowcharts.',
-        variant: 'destructive',
-      });
-      return;
+      throw new Error('Canvas is not ready');
     }
 
-    console.log('✅ Adding flowchart to canvas with mode:', mode);
+    const usageGate = createCanvasUsageGate(async (metadata) => {
+      try {
+        const response = await fetch('/api/ai/usage/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'flowchart_generation',
+            success: true,
+            metadata,
+          }),
+        });
+        if (!response.ok) {
+          console.error('Failed to record AI usage:', response.status);
+        }
+      } catch (error) {
+        console.error('Failed to record AI usage:', error);
+      }
+    });
 
     try {
-      // Convert Mermaid to Excalidraw elements
-      const result = await convertMermaidToExcalidraw(mermaidCode);
-
-      if (!result.success) {
-        const conversionError = new Error(
-          result.error || 'Failed to convert flowchart'
-        );
-        (conversionError as any).details = result.details;
-        (conversionError as any).mermaid = mermaidCode;
-        throw conversionError;
+      if (abortControllerRef.current?.signal.aborted) {
+        throw new DOMException('Request aborted', 'AbortError');
       }
 
-      if (!result.elements) {
-        throw new Error('No elements generated from flowchart');
-      }
-
-      // Get current elements
+      setAssistantResponsePhase('rendering');
+      markFlowchartPerformance('renderStarted');
+      await waitForNextPaint();
       const currentElements = [...excalidrawAPI.getSceneElements()];
-      const aiElementsCount = countAiGeneratedElements(currentElements);
+      const currentMetadata = deriveFlowchartAiMetadataFromElements(
+        currentElements,
+        flowchartAiMetadata
+      );
+      const currentTargetResolution = resolveDiagramTarget({
+        elements: currentElements,
+        selectedElementIds: excalidrawAPI.getAppState().selectedElementIds,
+        metadata: currentMetadata,
+      });
+      const prepared = await prepareCanvasCommand({
+        command,
+        currentElements,
+        metadata: currentMetadata,
+        targetResolution: currentTargetResolution,
+      });
 
-      // 覆盖式落地：移除旧的 AI 元素，再添加最新生成的元素
-      const elementsWithoutAi = removeAiGeneratedElements(currentElements);
-      const newElements = [...elementsWithoutAi, ...result.elements];
+      if (abortControllerRef.current?.signal.aborted) {
+        throw new DOMException('Request aborted', 'AbortError');
+      }
 
-      // Update the scene with new elements (capture for undo/redo)
+      if (Object.keys(prepared.files).length > 0) {
+        excalidrawAPI.addFiles(Object.values(prepared.files) as any);
+      }
       excalidrawAPI.updateScene({
-        elements: newElements,
+        elements: prepared.nextElements as any,
         captureUpdate: CaptureUpdateAction.IMMEDIATELY,
       });
+      onFlowchartAiMetadataChange(prepared.nextMetadata);
+      markFlowchartPerformance('canvasCommitted');
 
-      // Zoom to fit the new flowchart elements
-      excalidrawAPI.scrollToContent(result.elements, {
-        fitToContent: true,
-        animate: true,
-      });
-
-      // Show appropriate toast message based on mode and context
-      const toastTitle =
-        aiElementsCount > 0 ? 'Flowchart updated!' : 'Flowchart added!';
-      const toastDescription =
-        aiElementsCount > 0
-          ? 'Previous AI flowchart replaced with updated version.'
-          : 'Your AI-generated flowchart has been added to the canvas.';
+      if (prepared.operation !== 'patch' && prepared.focusElements.length > 0) {
+        excalidrawAPI.scrollToContent(prepared.focusElements as any, {
+          fitToContent: true,
+          animate: true,
+        });
+      }
 
       canvasContextRef.current.lastMermaid = {
-        code: mermaidCode,
+        code: prepared.sourceMermaid,
         generatedAt: Date.now(),
       };
 
-      finishActiveResponse();
-
-      // ✅ 只有流程图成功渲染后才计费
-      void (async () => {
-        try {
-          const recordResponse = await fetch('/api/ai/usage/record', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              type: 'flowchart_generation',
-              success: true,
-              metadata: {
-                mode: mode,
-                mermaidLength: mermaidCode.length,
-                elementCount: result.elements?.length || 0,
-                // 添加图片模式标识，这样计费记录能区分来源
-                isImageMode: aiMode === 'image_to_flowchart',
-                sourceMode: aiMode,
-              },
-            }),
-          });
-
-          if (!recordResponse.ok) {
-            console.error(
-              'Failed to record AI usage:',
-              recordResponse.status,
-              recordResponse.statusText
-            );
-          }
-        } catch (recordError) {
-          console.error('Failed to record AI usage:', recordError);
-        }
-      })();
+      void usageGate.commit({
+        operation: prepared.operation,
+        diagramId: prepared.diagramId,
+        sourceMode: aiMode,
+        isImageMode: aiMode === 'image_to_flowchart',
+        mermaidLength: prepared.sourceMermaid.length,
+        elementCount: prepared.focusElements.length,
+      });
 
       toast({
-        title: toastTitle,
-        description: toastDescription,
+        title:
+          prepared.operation === 'create'
+            ? 'Flowchart added!'
+            : 'Flowchart updated!',
+        description:
+          prepared.operation === 'patch'
+            ? 'The selected part was updated; other canvas content was preserved.'
+            : 'The target diagram was rendered on the canvas.',
       });
     } catch (error) {
-      console.error('Error adding flowchart to canvas:', error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred.';
-      const errorDetails =
-        error instanceof Error && (error as any).details
-          ? (error as any).details
-          : null;
-      const mermaidSnippet =
-        error instanceof Error && (error as any).mermaid
-          ? (error as any).mermaid
-          : undefined;
-
-      const combinedDescription = errorDetails
-        ? `${errorMessage}${errorDetails.startsWith('(') ? ' ' : ': '}${errorDetails}`
-        : errorMessage;
-
-      toast({
-        title: 'Failed to add flowchart',
-        description: combinedDescription,
-        variant: 'destructive',
-      });
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `flowchart-error-${Date.now()}`,
-          role: 'assistant',
-          content:
-            'The flowchart could not be rendered. Please try again or ask me to simplify the diagram.',
-          timestamp: new Date(),
-        },
-      ]);
+      if (error instanceof Error && error.name === 'AbortError') {
+        usageGate.abort();
+      } else {
+        usageGate.fail();
+      }
+      throw error;
     }
   };
 
@@ -982,6 +986,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     try {
       if (selectedImages.length > 0) {
         setSendStatus('Preparing your image...');
+        const { createImageThumbnail, encodeImageToBase64 } = await import(
+          '@/lib/image-utils'
+        );
         // Convert images to base64 and create message content array
         const imageData = await Promise.all(
           selectedImages.map(async (file) => {
@@ -1188,13 +1195,49 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
-  // 处理AI对话的核心函数，支持工具调用的递归处理
+  // Process one agent stream. Canvas mutations are committed only after a
+  // validated complete tool result and the terminal finish event arrive.
   const processAIConversation = async (conversationMessages: any[]) => {
     const canvasSnapshot = getCanvasState();
-    const inferredMode = canvasSnapshot?.hasAiFlowchart ? 'extend' : 'replace';
+    const sceneElements = excalidrawAPI
+      ? [...excalidrawAPI.getSceneElements()]
+      : [];
+    const selectedElementIds = excalidrawAPI
+      ? excalidrawAPI.getAppState().selectedElementIds
+      : {};
+    const targetResolution = resolveDiagramTarget({
+      elements: sceneElements,
+      selectedElementIds,
+      metadata: deriveFlowchartAiMetadataFromElements(
+        sceneElements,
+        flowchartAiMetadata
+      ),
+    });
+    if (targetResolution.status === 'ambiguous') {
+      const ambiguousTargetError = new Error(
+        'Diagram target is ambiguous; select one diagram first'
+      );
+      (
+        ambiguousTargetError as Error & { userFacingMessage?: string }
+      ).userFacingMessage =
+        'Select one AI diagram before asking the assistant to edit it.';
+      throw ambiguousTargetError;
+    }
+    const currentMetadata = deriveFlowchartAiMetadataFromElements(
+      sceneElements,
+      flowchartAiMetadata
+    );
+    if (
+      JSON.stringify(currentMetadata) !== JSON.stringify(flowchartAiMetadata)
+    ) {
+      onFlowchartAiMetadataChange(currentMetadata);
+    }
+    const inferredMode =
+      targetResolution.status === 'resolved' ? 'extend' : 'replace';
 
     setSendStatus(null);
     setAssistantResponsePhase('thinking');
+    markFlowchartPerformance('agentRequestStarted');
 
     const response = await fetch('/api/ai/chat/flowchart', {
       method: 'POST',
@@ -1208,6 +1251,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           lastMermaid: canvasContextRef.current.lastMermaid,
           requestedMode: inferredMode,
           mode: aiMode,
+          selectedDiagramId:
+            targetResolution.status === 'resolved'
+              ? targetResolution.diagramId
+              : undefined,
+          targetResolution,
+          flowchartAi: currentMetadata,
         },
       }),
       signal: abortControllerRef.current?.signal,
@@ -1265,16 +1314,19 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       throw new Error('No response body');
     }
 
-    const textDecoder = new TextDecoder();
+    const sseDecoder = createSseEventDecoder();
     const streamingMessageId = `assistant_${Date.now()}_${Math.random()
       .toString(36)
       .slice(2)}`;
     let messageCreated = false;
     let accumulatedContent = '';
-    let isFlowchartGenerated = false;
-    let mermaidCode = '';
-    let flowchartMode: 'replace' | 'extend' = 'replace';
-    const pendingToolCalls: any[] = [];
+    let pendingCommand: CanvasCommand | null = null;
+    let streamFinished = false;
+    let finishToolCallsCompleted = false;
+    let streamAborted = false;
+    let streamError: Error | null = null;
+    let receivedDone = false;
+    let receivedFirstEvent = false;
 
     const ensureStreamingMessage = () => {
       if (messageCreated) return;
@@ -1314,99 +1366,73 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       setStreamingContent(nextContent);
     };
 
-    while (true) {
+    const handleEvent = (event: unknown): void => {
+      if (event === '[DONE]') {
+        receivedDone = true;
+        return;
+      }
+      if (!event || typeof event !== 'object') return;
+      if (!receivedFirstEvent) {
+        receivedFirstEvent = true;
+        markFlowchartPerformance('firstAgentEvent');
+      }
+
+      const data = event as Record<string, any>;
+      if (data.type === 'text') {
+        setAssistantResponsePhase('idle');
+        setSendStatus(null);
+        appendStreamingContent(data.content ?? '');
+        return;
+      }
+      if (data.type === 'tool-call') {
+        const parsed = canvasCommandSchema.safeParse(data.args);
+        if (data.toolName !== 'generate_flowchart' || !parsed.success) {
+          streamError = new Error('Agent returned an invalid canvas command');
+          return;
+        }
+        if (pendingCommand) {
+          streamError = new Error('Agent returned multiple canvas commands');
+          return;
+        }
+        pendingCommand = parsed.data;
+        setAssistantResponsePhase('editing');
+        setSendStatus(null);
+        markFlowchartPerformance('canvasToolReceived');
+        return;
+      }
+      if (data.type === 'finish') {
+        streamFinished = true;
+        finishToolCallsCompleted = Boolean(data.toolCallsCompleted);
+        return;
+      }
+      if (data.type === 'aborted') {
+        streamAborted = true;
+        return;
+      }
+      if (data.type === 'error') {
+        streamError = new Error(data.error || 'Agent stream failed');
+      }
+    };
+
+    while (!receivedDone) {
       const { done, value } = await reader.read();
       if (done) break;
-
-      const chunk = textDecoder.decode(value);
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-
-        try {
-          const data = JSON.parse(line.slice(6));
-
-          if (data.type === 'text' || data.type === 'content') {
-            setAssistantResponsePhase('idle');
-            setSendStatus(null);
-            appendStreamingContent(data.content ?? '');
-          } else if (data.type === 'tool-call') {
-            if (data.toolName === 'generate_flowchart') {
-              mermaidCode = data.args.mermaid_code;
-              flowchartMode = data.args.mode || 'replace';
-              isFlowchartGenerated = true;
-
-              setAssistantResponsePhase('generating_flowchart');
-              setSendStatus(null);
-              await waitForNextPaint();
-            } else if (data.toolName === 'get_canvas_state') {
-              setAssistantResponsePhase('thinking');
-              setSendStatus(null);
-              pendingToolCalls.push({
-                toolCallId: data.toolCallId,
-                toolName: data.toolName,
-                args: data.args,
-              });
-            }
-          } else if (data.type === 'tool-result') {
-            console.log('Tool result:', data.result);
-          } else if (data.type === 'finish') {
-            if (
-              !data.toolCallsCompleted &&
-              !accumulatedContent.trim() &&
-              data.content
-            ) {
-              setStreamingContent(data.content);
-            }
-          } else if (data.type === 'done' || data === '[DONE]') {
-            break;
-          }
-        } catch (error) {
-          console.warn('Failed to parse SSE data:', line);
-        }
-      }
+      for (const event of sseDecoder.push(value)) handleEvent(event);
     }
+    for (const event of sseDecoder.finish()) handleEvent(event);
 
-    if (pendingToolCalls.length > 0) {
-      if (messageCreated && !accumulatedContent.trim()) {
-        setMessages((prev) =>
-          prev.filter((message) => message.id !== streamingMessageId)
-        );
-      } else if (messageCreated) {
-        updateStreamingMessage((msg) => ({
-          ...msg,
-          content: accumulatedContent,
-          timestamp: new Date(),
-        }));
-      }
-      streamingMessageIdRef.current = null;
-
-      const updatedMessages = [
-        ...conversationMessages,
-        {
-          role: 'assistant',
-          content: accumulatedContent,
-          tool_calls: pendingToolCalls.map((tc) => ({
-            id: tc.toolCallId,
-            type: 'function',
-            function: {
-              name: tc.toolName,
-              arguments: JSON.stringify(tc.args),
-            },
-          })),
-        },
-      ];
-
-      return await processAIConversation(updatedMessages);
-    }
+    const completedCommand = pendingCommand as CanvasCommand | null;
+    const mermaidCode =
+      completedCommand?.kind === 'render-mermaid'
+        ? completedCommand.mermaidCode
+        : undefined;
 
     if (messageCreated) {
       updateStreamingMessage((msg) => ({
         ...msg,
         content: accumulatedContent,
-        isFlowchart: isFlowchartGenerated,
-        mermaidCode: isFlowchartGenerated ? mermaidCode : undefined,
+        isFlowchart: Boolean(completedCommand),
+        mermaidCode,
         timestamp: new Date(),
       }));
     } else if (accumulatedContent.trim().length > 0) {
@@ -1418,28 +1444,33 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           content: accumulatedContent,
           role: 'assistant',
           timestamp: new Date(),
-          isFlowchart: isFlowchartGenerated,
-          mermaidCode: isFlowchartGenerated ? mermaidCode : undefined,
+          isFlowchart: Boolean(completedCommand),
+          mermaidCode,
         },
       ]);
     }
 
-    if (!accumulatedContent.trim() && !isFlowchartGenerated && messageCreated) {
+    if (!accumulatedContent.trim() && !completedCommand && messageCreated) {
       setMessages((prev) =>
         prev.filter((message) => message.id !== streamingMessageId)
       );
     }
 
-    if (isFlowchartGenerated && mermaidCode) {
-      setAssistantResponsePhase('generating_flowchart');
-      setSendStatus(null);
-      await waitForNextPaint();
-      console.log('🎨 Attempting to add flowchart to canvas:', {
-        mermaidCode: mermaidCode.substring(0, 100) + '...',
-        flowchartMode,
-        excalidrawAPIReady: !!excalidrawAPI,
-      });
-      await addFlowchartToCanvas(mermaidCode, flowchartMode);
+    if (streamAborted || abortControllerRef.current?.signal.aborted) {
+      throw new DOMException('Request aborted', 'AbortError');
+    }
+    if (streamError) throw streamError;
+    if (!streamFinished) {
+      throw new Error('Agent stream ended before completion');
+    }
+    if (completedCommand && !finishToolCallsCompleted) {
+      throw new Error('Canvas command was not completed by the agent');
+    }
+    if (!completedCommand && finishToolCallsCompleted) {
+      throw new Error('Agent completed a tool without a canvas command');
+    }
+    if (completedCommand) {
+      await applyCanvasCommand(completedCommand);
     }
   };
 
@@ -1639,14 +1670,19 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 )}
 
               {isStreamingResponse &&
-                assistantResponsePhase === 'generating_flowchart' && (
+                (assistantResponsePhase === 'editing' ||
+                  assistantResponsePhase === 'rendering') && (
                   <div className="max-w-full">
                     <div
                       className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-sm text-blue-700"
                       aria-live="polite"
                     >
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>{FLOWCHART_GENERATION_STATUS}</span>
+                      <span>
+                        {assistantResponsePhase === 'editing'
+                          ? FLOWCHART_EDITING_STATUS
+                          : FLOWCHART_RENDERING_STATUS}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -1689,7 +1725,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            multiple
             onChange={(e) => handleImageSelect(e.target.files)}
             className="hidden"
           />

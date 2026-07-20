@@ -1,5 +1,6 @@
 'use client';
 
+import { useFlowchart } from '@/hooks/use-flowchart';
 import dynamic from 'next/dynamic';
 
 const ExcalidrawWrapper = dynamic(
@@ -22,5 +23,16 @@ interface EditFlowchartClientProps {
 }
 
 export function EditFlowchartClient({ flowchartId }: EditFlowchartClientProps) {
-  return <ExcalidrawWrapper flowchartId={flowchartId} />;
+  // This small route chunk starts data loading while the much larger editor
+  // chunk downloads, avoiding a chunk-then-fetch waterfall.
+  const { flowchart, loading, error } = useFlowchart(flowchartId);
+
+  return (
+    <ExcalidrawWrapper
+      flowchartId={flowchartId}
+      initialFlowchart={flowchart}
+      isFlowchartLoading={loading}
+      flowchartLoadError={error}
+    />
+  );
 }

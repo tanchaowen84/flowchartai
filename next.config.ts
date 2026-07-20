@@ -8,14 +8,16 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const nextConfig: NextConfig = {
   devIndicators: false,
 
+  // Mastra is a Node-only Agent runtime. Keep it out of the webpack server
+  // bundle so Vercel can trace the package directly instead of minifying it.
+  serverExternalPackages: ['@mastra/core'],
+
   // Remove all console.* calls in production only
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 
   images: {
-    // Cloudflare Workers requires unoptimized images
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -102,14 +104,3 @@ const withNextIntl = createNextIntlPlugin();
  * https://www.content-collections.dev/docs/quickstart/next
  */
 export default withContentCollections(withNextIntl(nextConfig));
-
-// Add OpenNext Cloudflare development support
-if (process.env.NODE_ENV === 'development') {
-  import('@opennextjs/cloudflare')
-    .then(({ initOpenNextCloudflareForDev }) => {
-      initOpenNextCloudflareForDev();
-    })
-    .catch(() => {
-      // Silently fail if package is not available
-    });
-}

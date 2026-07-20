@@ -29,7 +29,6 @@ const FILE_PATTERNS = [
 const EXCLUDE_PATTERNS = [
   'node_modules/**',
   '.next/**',
-  '.open-next/**',
   'scripts/**',
 ];
 

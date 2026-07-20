@@ -2,10 +2,15 @@
   "name": "mksaas-template",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
   "scripts": {
     "dev": "concurrently \"content-collections watch\" \"next dev\"",
     "build": "content-collections build && next build",
     "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "lint": "biome check --write .",
     "lint:fix": "biome check --fix --unsafe .",
     "format": "biome format --write .",
@@ -16,11 +21,7 @@
     "list-contacts": "tsx scripts/list-contacts.ts",
     "docs": "content-collections build",
     "email": "email dev --dir src/mail/templates --port 3333",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "indexnow:submit": "tsx scripts/submit-indexnow.ts",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "test-cdn": "node scripts/test-cdn.js",
     "migrate-assets": "node scripts/migrate-assets.js",
     "update-asset-paths": "node scripts/update-asset-paths.js",
@@ -31,7 +32,6 @@
     "test-blog-cdn": "node scripts/test-blog-cdn-images.js"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.1.13",
     "@aws-sdk/client-s3": "^3.758.0",
     "@aws-sdk/s3-request-presigner": "^3.758.0",
     "@better-fetch/fetch": "^1.1.18",
@@ -46,11 +46,9 @@
     "@excalidraw/mermaid-to-excalidraw": "^1.1.2",
     "@fumadocs/content-collections": "^1.1.8",
     "@hookform/resolvers": "^4.1.0",
+    "@mastra/core": "1.51.0",
     "@next/third-parties": "^15.3.0",
-    "@opennextjs/cloudflare": "^1.4.0",
     "@openpanel/nextjs": "^1.0.7",
-    "@openrouter/agent": "0.5.0",
-    "vanilla-cookieconsent": "^3.1.0",
     "@orama/orama": "^3.1.4",
     "@orama/tokenizers": "^3.1.4",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -91,7 +89,7 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "@widgetbot/react-embed": "^1.9.0",
-    "ai": "^4.1.45",
+    "ai": "^7.0.31",
     "better-auth": "^1.1.19",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
@@ -147,9 +145,9 @@
     "unist-util-visit": "^5.0.0",
     "use-intl": "^3.26.5",
     "use-media": "^1.5.0",
+    "vanilla-cookieconsent": "^3.1.0",
     "vaul": "^1.1.2",
-    "wrangler": "^4.24.1",
-    "zod": "^3.24.2",
+    "zod": "^3.25.76",
     "zod-v4": "npm:zod@^4.0.0",
     "zustand": "^5.0.3"
   },
@@ -159,7 +157,7 @@
     "@tailwindcss/postcss": "^4.0.14",
     "@types/lodash": "^4.17.18",
     "@types/mdx": "^2.0.13",
-    "@types/node": "^20",
+    "@types/node": "^22.20.1",
     "@types/pg": "^8.11.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -170,6 +168,7 @@
     "react-email": "3.0.7",
     "tailwindcss": "^4.0.14",
     "tsx": "^4.19.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "3.2.4"
   }
 }

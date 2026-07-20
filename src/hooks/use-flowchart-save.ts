@@ -1,3 +1,4 @@
+import type { FlowchartAiMetadata } from '@/lib/diagram/contracts';
 import { generateThumbnail } from '@/lib/excalidraw-thumbnail';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { useCallback, useRef, useState } from 'react';
@@ -17,7 +18,8 @@ interface UseFlowchartSaveResult {
 export const useFlowchartSave = (
   excalidrawAPI: ExcalidrawImperativeAPI | null,
   flowchartId?: string,
-  defaultTitle?: string
+  defaultTitle?: string,
+  flowchartAiMetadata?: FlowchartAiMetadata
 ): UseFlowchartSaveResult => {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -55,6 +57,7 @@ export const useFlowchartSave = (
           elements,
           appState,
           files,
+          flowchartAi: flowchartAiMetadata,
         });
 
         // Generate thumbnail if there are elements to draw
@@ -140,7 +143,7 @@ export const useFlowchartSave = (
         setSaving(false);
       }
     },
-    [excalidrawAPI, flowchartId, defaultTitle]
+    [excalidrawAPI, flowchartId, defaultTitle, flowchartAiMetadata]
   );
 
   // Debounced auto-save function

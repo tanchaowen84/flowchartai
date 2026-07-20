@@ -1,12 +1,12 @@
 # Repository Guidelines
 
-FlowchartAI runs on Next.js 15 with TypeScript and Cloudflare Workers. Follow these conventions when contributing.
+FlowchartAI runs on Next.js 15 with TypeScript and deploys to Vercel. Follow these conventions when contributing.
 
 ## Project Structure & Module Organization
 - Core routes, layouts, and server actions are in `src/app`; shared UI lives in `src/components`, with feature logic grouped under `src/actions`, `src/hooks`, `src/lib`, and `src/utils`.
 - Database schemas and queries live in `src/db` beside `drizzle.config.ts`; email templates are under `src/mail`.
 - Editorial content sits in `content/` and `docs/`; static files belong in `public/` or `src/assets`.
-- Automation scripts live in `scripts/`, and platform config stays in root files like `open-next.config.ts`, `wrangler.jsonc`, and `vercel.json`.
+- Automation scripts live in `scripts/`, and Vercel platform config stays in `vercel.json`.
 
 ## Build, Test, and Development Commands
 - `pnpm dev`: Run Next.js locally and watch MDX collections.
@@ -14,7 +14,7 @@ FlowchartAI runs on Next.js 15 with TypeScript and Cloudflare Workers. Follow th
 - `pnpm start`: Serve the compiled build for staging checks.
 - `pnpm lint` / `pnpm format`: Run Biome checks and fix formatting.
 - `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:push`: Manage Drizzle migrations using the database URL in `.env.local`.
-- `pnpm preview` / `pnpm deploy`: Use OpenNext for Cloudflare previews and deploys.
+- `pnpm build` / `pnpm start`: Build and run the same Next.js application deployed to Vercel.
 
 ## Coding Style & Naming Conventions
 - TypeScript everywhere; add explicit return types on exported helpers.
@@ -33,5 +33,5 @@ FlowchartAI runs on Next.js 15 with TypeScript and Cloudflare Workers. Follow th
 - PRs need a concise summary, test evidence, and deployment considerations; include before/after imagery for UI changes.
 
 ## Environment & Deployment Tips
-- Store secrets in `.env.local`; sync production keys to Cloudflare with `wrangler secret put` and refresh bindings via `pnpm cf-typegen`.
-- Run `pnpm preview` before `pnpm deploy` to emulate the Worker bundle and verify asset routing.
+- Store local secrets in `.env.local` and production secrets in Vercel project settings.
+- Cloudflare remains responsible for DNS plus R2/CDN assets; application deployments run on Vercel.

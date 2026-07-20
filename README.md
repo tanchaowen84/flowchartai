@@ -51,12 +51,12 @@ FlowChart AI is built with modern, production-ready technologies:
 - **Frontend**: Next.js 15, React 19, TypeScript 5
 - **Styling**: Tailwind CSS 4, Radix UI components
 - **Canvas**: Excalidraw integration with Mermaid support
-- **AI**: OpenRouter API (supports multiple AI models)
+- **AI**: Mastra `FlowchartAgent` through the OpenRouter Gateway
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: Better Auth (Google, GitHub OAuth)
 - **Payments**: Creem integration for subscriptions
 - **Storage**: Cloudflare R2 / AWS S3 compatible
-- **Deployment**: Vercel, Cloudflare Workers, or self-hosted
+- **Deployment**: Vercel (Cloudflare remains DNS plus R2/CDN)
 
 ## 🎯 Use Cases
 
@@ -75,7 +75,7 @@ FlowChart AI is perfect for:
 
 Before you begin, ensure you have:
 
-- **Node.js 18+** and **pnpm** installed
+- **Node.js 22.13+** and **pnpm** installed
 - **PostgreSQL database** (local or cloud)
 - **OpenRouter API key** for AI functionality
 - **Google/GitHub OAuth apps** for authentication

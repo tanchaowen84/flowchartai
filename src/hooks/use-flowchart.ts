@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-interface FlowchartData {
+export interface FlowchartData {
   id: string;
   title: string;
   content: string;
