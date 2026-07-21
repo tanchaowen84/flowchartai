@@ -4,15 +4,26 @@ import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { CheckoutButton } from '@/components/pricing/create-checkout-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { getPricePlans } from '@/config/price-config';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { usePayment } from '@/hooks/use-payment';
 import { useLocalePathname } from '@/i18n/navigation';
 import { formatPrice } from '@/lib/formatter';
-import { PaymentTypes } from '@/payment/types';
+import {
+  PaymentTypes,
+  type PlanInterval,
+  PlanIntervals,
+  type PricePlan,
+} from '@/payment/types';
 import { Check } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 interface LimitContext {
   type: 'daily' | 'monthly';
@@ -26,211 +37,238 @@ interface PricingModalProps {
   limitContext?: LimitContext;
 }
 
+interface PlanPriceDisplay {
+  main: string;
+  period: string;
+  billingNote?: string;
+}
+
+export function getPlanPriceDisplay(
+  plan: PricePlan,
+  interval: PlanInterval
+): PlanPriceDisplay | null {
+  const price = plan.prices.find(
+    (candidate) =>
+      !candidate.disabled &&
+      candidate.type === PaymentTypes.SUBSCRIPTION &&
+      candidate.interval === interval
+  );
+
+  if (!price) return null;
+
+  if (interval === PlanIntervals.YEAR) {
+    return {
+      main: formatPrice(Math.round(price.amount / 12), price.currency),
+      period: '/month',
+      billingNote: `${formatPrice(price.amount, price.currency)} billed yearly`,
+    };
+  }
+
+  return {
+    main: formatPrice(price.amount, price.currency),
+    period: '/month',
+  };
+}
+
+function formatResetTime(resetTime: Date): string {
+  const diff = resetTime.getTime() - Date.now();
+
+  if (diff <= 0) return 'soon';
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export function PricingModal({
   isOpen,
   onClose,
   limitContext,
 }: PricingModalProps) {
-  const [isYearly, setIsYearly] = useState(false);
-  const [currentPlanIndex, setCurrentPlanIndex] = useState(1); // Start with Pro plan
+  const [interval, setInterval] = useState<PlanInterval>(PlanIntervals.MONTH);
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
+  const { currentPlan, isLoading: isPaymentLoading } = usePayment();
 
-  const pricePlans = getPricePlans();
-  const plans = Object.values(pricePlans);
-
-  // Get the current plan data
-  const currentPlan = plans[currentPlanIndex];
-
-  // Get price for current plan
-  const getPrice = (plan: any) => {
-    if (plan.isFree) return null;
-    return plan.prices.find(
-      (price: any) =>
-        price.type === PaymentTypes.SUBSCRIPTION &&
-        price.interval === (isYearly ? 'year' : 'month')
-    );
-  };
-
-  const price = getPrice(currentPlan);
-
-  // Format price display
-  const formatPriceDisplay = () => {
-    if (currentPlan.isFree) {
-      return { main: '$0', period: 'forever' };
-    }
-    if (price) {
-      return {
-        main: formatPrice(price.amount, price.currency),
-        period: isYearly ? 'year' : 'month',
-      };
-    }
-    return { main: 'Contact Us', period: '' };
-  };
-
-  const { main: priceMain, period: pricePeriod } = formatPriceDisplay();
-
-  // Format reset time for limit context
-  const formatResetTime = (resetTime: Date) => {
-    const now = new Date();
-    const diff = resetTime.getTime() - now.getTime();
-
-    if (diff <= 0) return 'soon';
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
+  const plans = Object.values(getPricePlans()).filter(
+    (plan) =>
+      !plan.isFree &&
+      !plan.isLifetime &&
+      !plan.disabled &&
+      (plan.id === 'hobby' || plan.id === 'professional')
+  );
+  const isCurrentPlanPending = Boolean(
+    currentUser && (isPaymentLoading || !currentPlan)
+  );
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md p-0 border-0">
-        <div className="p-6 space-y-6">
-          {/* Limit Context - Simple Reset Time */}
-          {limitContext?.nextResetTime && (
-            <div className="text-center text-sm text-gray-600 -mt-2 mb-2">
-              Your free request resets in{' '}
-              {formatResetTime(limitContext.nextResetTime)}
-            </div>
-          )}
-          {/* Billing Toggle */}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto border p-0 sm:max-w-3xl">
+        <div className="space-y-6 p-5 sm:p-6">
+          <DialogHeader className="pr-8">
+            <DialogTitle>Choose your plan</DialogTitle>
+            <DialogDescription>
+              {limitContext?.message ??
+                'Upgrade for more AI requests and faster support.'}
+              {limitContext?.nextResetTime && (
+                <span className="mt-1 block">
+                  Your current limit resets in{' '}
+                  {formatResetTime(limitContext.nextResetTime)}.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
           <div className="flex justify-center">
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <div className="inline-flex items-center rounded-lg bg-muted p-1">
               <button
                 type="button"
-                onClick={() => setIsYearly(false)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  !isYearly
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                aria-pressed={interval === PlanIntervals.MONTH}
+                onClick={() => setInterval(PlanIntervals.MONTH)}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  interval === PlanIntervals.MONTH
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Monthly
               </button>
               <button
                 type="button"
-                onClick={() => setIsYearly(true)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                  isYearly
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                aria-pressed={interval === PlanIntervals.YEAR}
+                onClick={() => setInterval(PlanIntervals.YEAR)}
+                className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  interval === PlanIntervals.YEAR
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Yearly
-                <Badge
-                  variant="secondary"
-                  className="bg-green-100 text-green-800 text-xs"
-                >
-                  Save 20%
+                <Badge variant="secondary" className="rounded-full text-xs">
+                  Save up to 40%
                 </Badge>
               </button>
             </div>
           </div>
 
-          {/* Plan Selector */}
-          <div className="flex justify-center">
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
-              {plans.map((plan, index) => (
-                <button
-                  type="button"
+          <div className="grid gap-4 md:grid-cols-2">
+            {plans.map((plan) => {
+              const price = plan.prices.find(
+                (candidate) =>
+                  !candidate.disabled &&
+                  candidate.type === PaymentTypes.SUBSCRIPTION &&
+                  candidate.interval === interval
+              );
+              const priceDisplay = getPlanPriceDisplay(plan, interval);
+              const isCurrentPlan = currentPlan?.id === plan.id;
+              const isProfessional = plan.id === 'professional';
+
+              return (
+                <section
                   key={plan.id}
-                  onClick={() => setCurrentPlanIndex(index)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    index === currentPlanIndex
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                  data-plan-id={plan.id}
+                  data-current-plan={isCurrentPlan || undefined}
+                  className={`flex flex-col rounded-xl border p-5 ${
+                    isProfessional
+                      ? 'border-primary/50 bg-primary/[0.03]'
+                      : 'border-border'
                   }`}
                 >
-                  {plan.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Pricing Card */}
-          <Card
-            className={`relative ${currentPlan.recommended ? 'ring-2 ring-blue-500' : ''}`}
-          >
-            {/* Badge */}
-            {currentPlan.recommended && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-blue-600 text-white">Most Popular</Badge>
-              </div>
-            )}
-
-            <CardHeader className="text-center pb-4">
-              <CardTitle className="text-2xl font-bold">
-                {currentPlan.name}
-              </CardTitle>
-              <div className="flex items-baseline justify-center gap-2">
-                <span className="text-4xl font-bold">{priceMain}</span>
-                {pricePeriod && (
-                  <span className="text-gray-600">/{pricePeriod}</span>
-                )}
-              </div>
-              <p className="text-gray-600 text-sm">{currentPlan.description}</p>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              {/* Features */}
-              <div className="space-y-3">
-                {currentPlan.features?.map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">{feature}</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-semibold">{plan.name}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {plan.description}
+                      </p>
+                    </div>
+                    {isProfessional && (
+                      <Badge variant="outline" className="shrink-0">
+                        Best value
+                      </Badge>
+                    )}
                   </div>
-                ))}
-              </div>
 
-              {/* CTA Button */}
-              <div className="pt-4">
-                {currentPlan.isFree ? (
-                  currentUser ? (
-                    <Button variant="outline" className="w-full" disabled>
-                      Current Plan
-                    </Button>
-                  ) : (
-                    <LoginWrapper
-                      mode="modal"
-                      asChild
-                      callbackUrl={currentPath}
-                    >
-                      <Button variant="outline" className="w-full">
-                        Get Started Free
+                  <div className="mt-5 min-h-16">
+                    {priceDisplay ? (
+                      <>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-3xl font-semibold">
+                            {priceDisplay.main}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {priceDisplay.period}
+                          </span>
+                        </div>
+                        {priceDisplay.billingNote && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {priceDisplay.billingNote}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        Not available
+                      </span>
+                    )}
+                  </div>
+
+                  <ul className="mt-4 flex-1 space-y-2.5">
+                    {plan.features?.map((feature) => (
+                      <li
+                        key={feature}
+                        className="flex items-start gap-2 text-sm"
+                      >
+                        <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-6">
+                    {isCurrentPlan ? (
+                      <Button variant="outline" className="w-full" disabled>
+                        Current plan
                       </Button>
-                    </LoginWrapper>
-                  )
-                ) : price ? (
-                  currentUser ? (
-                    <CheckoutButton
-                      userId={currentUser.id}
-                      planId={currentPlan.id}
-                      priceId={price.priceId}
-                      className="w-full"
-                    >
-                      Get Started
-                    </CheckoutButton>
-                  ) : (
-                    <LoginWrapper
-                      mode="modal"
-                      asChild
-                      callbackUrl={currentPath}
-                    >
-                      <Button className="w-full">Get Started</Button>
-                    </LoginWrapper>
-                  )
-                ) : (
-                  <Button variant="outline" className="w-full">
-                    Contact Sales
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                    ) : isCurrentPlanPending ? (
+                      <Button variant="outline" className="w-full" disabled>
+                        Checking current plan…
+                      </Button>
+                    ) : price ? (
+                      currentUser ? (
+                        <CheckoutButton
+                          userId={currentUser.id}
+                          planId={plan.id}
+                          priceId={price.priceId}
+                          className="w-full"
+                        >
+                          Choose {plan.name}
+                        </CheckoutButton>
+                      ) : (
+                        <LoginWrapper
+                          mode="modal"
+                          asChild
+                          callbackUrl={currentPath}
+                        >
+                          <Button className="w-full">Choose {plan.name}</Button>
+                        </LoginWrapper>
+                      )
+                    ) : (
+                      <Button variant="outline" className="w-full" disabled>
+                        Not available
+                      </Button>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
