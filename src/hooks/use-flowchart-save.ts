@@ -1,165 +1,154 @@
 import type { FlowchartAiMetadata } from '@/lib/diagram/contracts';
 import { generateThumbnail } from '@/lib/excalidraw-thumbnail';
+import {
+  type FlowchartAutosaveState,
+  type FlowchartAutosaveStatus,
+  createFlowchartAutosaveCoordinator,
+} from '@/lib/flowchart-autosave';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
-import { useCallback, useRef, useState } from 'react';
-
-interface SaveResult {
-  success: boolean;
-  error?: string;
-  flowchartId?: string;
-}
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseFlowchartSaveResult {
-  saveFlowchart: (title?: string) => Promise<SaveResult>;
+  saveNow: () => void;
+  markChanged: () => void;
+  retry: () => void;
+  status: FlowchartAutosaveStatus;
   saving: boolean;
   lastSaved: Date | null;
+  error: string | null;
 }
 
 export const useFlowchartSave = (
   excalidrawAPI: ExcalidrawImperativeAPI | null,
   flowchartId?: string,
   defaultTitle?: string,
-  flowchartAiMetadata?: FlowchartAiMetadata
+  flowchartAiMetadata?: FlowchartAiMetadata,
+  onFlowchartIdChange?: (newId: string) => void
 ): UseFlowchartSaveResult => {
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<FlowchartAutosaveState>({
+    status: 'idle',
+  });
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const apiRef = useRef(excalidrawAPI);
+  const activeFlowchartIdRef = useRef(flowchartId);
+  const titleRef = useRef(defaultTitle);
+  const metadataRef = useRef(flowchartAiMetadata);
+  const onFlowchartIdChangeRef = useRef(onFlowchartIdChange);
+  const coordinatorRef = useRef<ReturnType<
+    typeof createFlowchartAutosaveCoordinator
+  > | null>(null);
 
-  const saveFlowchart = useCallback(
-    async (title?: string): Promise<SaveResult> => {
-      if (!excalidrawAPI) {
-        return { success: false, error: 'Excalidraw not ready' };
-      }
+  apiRef.current = excalidrawAPI;
+  if (flowchartId) activeFlowchartIdRef.current = flowchartId;
+  titleRef.current = defaultTitle;
+  metadataRef.current = flowchartAiMetadata;
+  onFlowchartIdChangeRef.current = onFlowchartIdChange;
 
-      setSaving(true);
+  const performSave = useCallback(async (): Promise<void> => {
+    const api = apiRef.current;
+    if (!api) throw new Error('Canvas is not ready');
 
+    const elements = api.getSceneElements();
+    const rawAppState = api.getAppState();
+    const files = api.getFiles();
+    const { collaborators: _collaborators, ...appState } = rawAppState;
+    const content = JSON.stringify({
+      type: 'excalidraw',
+      version: 2,
+      source: 'https://excalidraw.com',
+      elements,
+      appState,
+      files,
+      flowchartAi: metadataRef.current,
+    });
+
+    let thumbnail: string | null = null;
+    if (elements.length > 0) {
       try {
-        // Get current canvas data
-        const elements = excalidrawAPI.getSceneElements();
-        const rawAppState = excalidrawAPI.getAppState();
-        const files = excalidrawAPI.getFiles();
-
-        console.log('🔄 Saving flowchart...', {
-          elementsCount: elements.length,
-          flowchartId,
-          title,
-        });
-
-        // Filter out runtime properties that shouldn't be saved
-        // Keep a clean copy of appState without runtime-only properties
-        const { collaborators, ...appState } = rawAppState;
-
-        // Create the content object
-        const content = JSON.stringify({
-          type: 'excalidraw',
-          version: 2,
-          source: 'https://excalidraw.com',
-          elements,
-          appState,
-          files,
-          flowchartAi: flowchartAiMetadata,
-        });
-
-        // Generate thumbnail if there are elements to draw
-        let thumbnail: string | null = null;
-        if (elements.length > 0) {
-          try {
-            console.log('📸 Generating thumbnail...');
-            thumbnail = await generateThumbnail(
-              { elements, appState },
-              300, // maxWidth
-              200, // maxHeight
-              0.9 // quality (90% for smaller file size)
-            );
-          } catch (error) {
-            console.warn('⚠️ Failed to generate thumbnail:', error);
-            // Continue without thumbnail if generation fails
-          }
-        }
-
-        const requestBody: any = { content };
-        // Use provided title, defaultTitle, or fallback to 'Untitled'
-        const finalTitle = title || defaultTitle || 'Untitled';
-        requestBody.title = finalTitle;
-        if (thumbnail) {
-          requestBody.thumbnail = thumbnail;
-        }
-
-        let response: Response;
-
-        console.log('📤 Sending request...', {
-          url: flowchartId
-            ? `/api/flowcharts/${flowchartId}`
-            : '/api/flowcharts',
-          method: flowchartId ? 'PUT' : 'POST',
-          contentLength: content.length,
-        });
-
-        if (flowchartId) {
-          // Update existing flowchart
-          response = await fetch(`/api/flowcharts/${flowchartId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-          });
-        } else {
-          // Create new flowchart
-          response = await fetch('/api/flowcharts', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-          });
-        }
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('❌ Save failed:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData,
-          });
-          throw new Error(errorData.error || 'Failed to save flowchart');
-        }
-
-        const result = await response.json();
-        console.log('✅ Save successful:', result);
-        setLastSaved(new Date());
-
-        // Return the flowchart ID for potential URL update
-        return {
-          success: true,
-          flowchartId: result.id || flowchartId,
-        };
+        thumbnail = await generateThumbnail(
+          { elements, appState },
+          300,
+          200,
+          0.9
+        );
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error occurred';
-        console.error('Error saving flowchart:', error);
-        return { success: false, error: errorMessage };
-      } finally {
-        setSaving(false);
+        console.warn('Failed to generate flowchart thumbnail:', error);
       }
-    },
-    [excalidrawAPI, flowchartId, defaultTitle, flowchartAiMetadata]
-  );
-
-  // Debounced auto-save function
-  const debouncedSave = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
     }
 
-    debounceRef.current = setTimeout(() => {
-      saveFlowchart();
-    }, 3000); // Auto-save after 3 seconds of inactivity
-  }, [saveFlowchart]);
+    const requestBody: {
+      content: string;
+      title: string;
+      thumbnail?: string;
+    } = {
+      content,
+      title: titleRef.current || 'Untitled',
+    };
+    if (thumbnail) requestBody.thumbnail = thumbnail;
+
+    const activeId = activeFlowchartIdRef.current;
+    const response = await fetch(
+      activeId ? `/api/flowcharts/${activeId}` : '/api/flowcharts',
+      {
+        method: activeId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        typeof errorData.error === 'string'
+          ? errorData.error
+          : 'Failed to save flowchart'
+      );
+    }
+
+    const result = (await response.json()) as { id?: string };
+    if (!activeId) {
+      if (!result.id) throw new Error('Saved flowchart did not return an ID');
+      activeFlowchartIdRef.current = result.id;
+      window.history.replaceState(null, '', `/canvas/${result.id}`);
+      onFlowchartIdChangeRef.current?.(result.id);
+    }
+
+    setLastSaved(new Date());
+  }, []);
+
+  useEffect(() => {
+    const coordinator = createFlowchartAutosaveCoordinator({
+      delayMs: 3000,
+      save: performSave,
+      onStateChange: setSaveState,
+    });
+    coordinatorRef.current = coordinator;
+
+    return () => {
+      coordinator.dispose();
+      coordinatorRef.current = null;
+    };
+  }, [performSave]);
+
+  const saveNow = useCallback((): void => {
+    coordinatorRef.current?.saveNow();
+  }, []);
+
+  const markChanged = useCallback((): void => {
+    coordinatorRef.current?.markChanged();
+  }, []);
+
+  const retry = useCallback((): void => {
+    coordinatorRef.current?.retry();
+  }, []);
 
   return {
-    saveFlowchart,
-    saving,
+    saveNow,
+    markChanged,
+    retry,
+    status: saveState.status,
+    saving: saveState.status === 'saving',
     lastSaved,
+    error: saveState.error?.message ?? null,
   };
 };

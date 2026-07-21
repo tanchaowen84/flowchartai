@@ -1,124 +1,69 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useFlowchartSave } from '@/hooks/use-flowchart-save';
-import type { FlowchartAiMetadata } from '@/lib/diagram/contracts';
+import type { FlowchartAutosaveStatus } from '@/lib/flowchart-autosave';
 import { cn } from '@/lib/utils';
-import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { AlertCircle, Check, Loader2, Save } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 
 interface SaveButtonProps {
-  excalidrawAPI: ExcalidrawImperativeAPI | null;
-  flowchartId?: string;
-  flowchartTitle?: string;
-  flowchartAiMetadata: FlowchartAiMetadata;
-  onFlowchartIdChange?: (newId: string) => void;
-  // 新增：用于合并按钮的样式控制
+  status: FlowchartAutosaveStatus;
+  onSave: () => void;
+  onRetry: () => void;
+  disabled?: boolean;
+  error?: string | null;
   isMerged?: boolean;
 }
 
 export function SaveButton({
-  excalidrawAPI,
-  flowchartId,
-  flowchartTitle,
-  flowchartAiMetadata,
-  onFlowchartIdChange,
-  isMerged = false, // 默认不是合并模式
+  status,
+  onSave,
+  onRetry,
+  disabled = false,
+  error,
+  isMerged = false,
 }: SaveButtonProps) {
-  const router = useRouter();
-  const { saveFlowchart, saving, lastSaved } = useFlowchartSave(
-    excalidrawAPI,
-    flowchartId,
-    flowchartTitle,
-    flowchartAiMetadata
+  const isSaving = status === 'saving';
+  const hasError = status === 'error';
+
+  const icon = hasError ? (
+    <AlertCircle className="h-4 w-4" />
+  ) : isSaving ? (
+    <Loader2 className="h-4 w-4 animate-spin" />
+  ) : status === 'saved' ? (
+    <Check className="h-4 w-4" />
+  ) : (
+    <Save className="h-4 w-4" />
   );
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>(
-    'idle'
-  );
-  const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const handleSave = async () => {
-    const result = await saveFlowchart();
-
-    if (result.success) {
-      setSaveStatus('success');
-      setErrorMessage('');
-
-      // If this was a new flowchart (no existing flowchartId) and we got a new ID,
-      // update the URL without reloading the page
-      if (!flowchartId && result.flowchartId) {
-        setTimeout(() => {
-          // Update URL without page reload using History API
-          const newUrl = `/canvas/${result.flowchartId}`;
-          window.history.replaceState(null, '', newUrl);
-          // Notify parent component about the flowchart ID change
-          if (onFlowchartIdChange && result.flowchartId) {
-            onFlowchartIdChange(result.flowchartId);
-          }
-          setSaveStatus('idle');
-        }, 1000); // Wait 1 second to show the success state
-      } else {
-        // Reset status after 2 seconds for existing flowcharts
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      }
-    } else {
-      setSaveStatus('error');
-      setErrorMessage(result.error || 'Save failed');
-      // Reset status after 3 seconds
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    }
-  };
-
-  // Get button icon based on status
-  const getIcon = () => {
-    if (saving) return <Loader2 className="h-4 w-4 animate-spin" />;
-    if (saveStatus === 'success') return <Check className="h-4 w-4" />;
-    if (saveStatus === 'error') return <AlertCircle className="h-4 w-4" />;
-    return <Save className="h-4 w-4" />;
-  };
-
-  // Get button variant based on status
-  const getVariant = () => {
-    if (saveStatus === 'success') return 'default' as const;
-    if (saveStatus === 'error') return 'destructive' as const;
-    return 'outline' as const;
-  };
-
-  // Get button text based on status
-  const getText = () => {
-    if (saving) return 'Saving...';
-    if (saveStatus === 'success') return 'Saved!';
-    if (saveStatus === 'error') return 'Error';
-    return 'Save';
-  };
+  const label = hasError
+    ? 'Save failed · Retry'
+    : isSaving
+      ? 'Saving…'
+      : status === 'saved'
+        ? 'Saved'
+        : 'Save';
 
   return (
     <div className={isMerged ? 'contents' : 'flex flex-col items-end'}>
       <Button
-        onClick={handleSave}
-        disabled={saving || !excalidrawAPI}
-        variant={getVariant()}
+        type="button"
+        onClick={hasError ? onRetry : onSave}
+        disabled={disabled || isSaving}
+        variant={hasError ? 'destructive' : 'outline'}
         size="sm"
         className={cn(
-          'gap-2 transition-all duration-200',
-          isMerged && 'h-9 px-4 rounded-r-lg rounded-l-none border-0'
+          'gap-2',
+          isMerged && 'h-9 rounded-l-none rounded-r-lg border-0 px-4'
         )}
+        title={hasError && error ? error : undefined}
       >
-        {getIcon()}
-        <span className={isMerged ? 'text-sm font-medium' : ''}>
-          {getText()}
-        </span>
+        {icon}
+        <span className={isMerged ? 'text-sm font-medium' : ''}>{label}</span>
       </Button>
 
-      {/* Show error message */}
-      {saveStatus === 'error' && errorMessage && !isMerged && (
-        <span
-          className="text-xs text-destructive mt-1 max-w-32 truncate"
-          title={errorMessage}
-        >
-          {errorMessage}
+      {hasError && error && !isMerged && (
+        <span className="mt-1 max-w-48 text-xs text-destructive" title={error}>
+          {error}
         </span>
       )}
     </div>

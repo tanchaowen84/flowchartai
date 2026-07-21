@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { websiteConfig } from '@/config/website';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import type { FlowchartData } from '@/hooks/use-flowchart';
+import { useFlowchartSave } from '@/hooks/use-flowchart-save';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useLocalePathname } from '@/i18n/navigation';
 import {
   type AiAssistantMode,
@@ -20,6 +22,7 @@ import {
   emptyFlowchartAiMetadata,
   parseFlowchartAiMetadata,
 } from '@/lib/diagram/metadata';
+import { getFlowchartContentFingerprint } from '@/lib/flowchart-autosave';
 import type {
   ExcalidrawImperativeAPI,
   ExcalidrawInitialDataState,
@@ -90,7 +93,7 @@ const defaultInitialData: ExcalidrawInitialDataState = {
 const AiChatSidebar = dynamic(() => import('./ai-chat-sidebar'), {
   ssr: false,
   loading: () => (
-    <div className="fixed right-0 top-0 z-40 flex h-full w-[400px] items-center justify-center bg-white text-sm text-gray-500 shadow-lg">
+    <div className="fixed right-0 top-0 z-40 flex h-full w-screen max-w-[400px] items-center justify-center bg-white text-sm text-gray-500 shadow-lg">
       <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
       Loading assistant…
     </div>
@@ -136,13 +139,34 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const loadedFlowchartContentRef = useRef<string | null>(
     initialFlowchart?.content || null
   );
+  const lastContentFingerprintRef = useRef<string | null>(null);
+  const suppressNextSceneAutosaveRef = useRef(false);
 
   const router = useRouter();
+  const isMobile = useIsMobile();
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
   const flowchart = initialFlowchart;
   const loading = isFlowchartLoading;
   const error = flowchartLoadError;
+
+  const handleFlowchartIdChange = useCallback((newId: string): void => {
+    setCurrentFlowchartId(newId);
+  }, []);
+
+  const {
+    saveNow,
+    markChanged,
+    retry: retrySave,
+    status: saveStatus,
+    error: saveError,
+  } = useFlowchartSave(
+    excalidrawAPI,
+    currentFlowchartId,
+    currentTitle,
+    flowchartAiMetadata,
+    handleFlowchartIdChange
+  );
 
   // Export modal state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -177,12 +201,16 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     }
 
     const parsed = parseFlowchartData(flowchart.content);
+    suppressNextSceneAutosaveRef.current = true;
     if (parsed.files) {
       excalidrawAPI.addFiles(Object.values(parsed.files));
     }
     excalidrawAPI.updateScene({
       elements: parsed.elements || [],
       appState: parsed.appState as any,
+    });
+    window.requestAnimationFrame(() => {
+      suppressNextSceneAutosaveRef.current = false;
     });
     loadedFlowchartContentRef.current = flowchart.content;
     setIsSavedSceneLoaded(true);
@@ -198,12 +226,40 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
   const isCanvasReady =
     isAPIReady && (!currentFlowchartId || isSavedSceneLoaded);
 
-  const handleSceneChange = useCallback((elements: readonly any[]) => {
-    setFlowchartAiMetadata((current) => {
-      const next = deriveFlowchartAiMetadataFromElements(elements, current);
-      return JSON.stringify(next) === JSON.stringify(current) ? current : next;
-    });
-  }, []);
+  const handleSceneChange = useCallback(
+    (elements: readonly any[], _appState: any, files: any) => {
+      const contentFingerprint = getFlowchartContentFingerprint(
+        elements,
+        files ?? {}
+      );
+      const hasBaseline = lastContentFingerprintRef.current !== null;
+      const contentChanged =
+        hasBaseline && contentFingerprint !== lastContentFingerprintRef.current;
+
+      lastContentFingerprintRef.current = contentFingerprint;
+
+      setFlowchartAiMetadata((current) => {
+        const next = deriveFlowchartAiMetadataFromElements(elements, current);
+        return JSON.stringify(next) === JSON.stringify(current)
+          ? current
+          : next;
+      });
+
+      if (suppressNextSceneAutosaveRef.current) {
+        return;
+      }
+      if (contentChanged && currentUser) markChanged();
+    },
+    [currentUser, markChanged]
+  );
+
+  const handleFlowchartAiMetadataChange = useCallback(
+    (metadata: FlowchartAiMetadata): void => {
+      setFlowchartAiMetadata(metadata);
+      if (currentUser) markChanged();
+    },
+    [currentUser, markChanged]
+  );
 
   const handleGoHome = () => {
     router.push('/');
@@ -225,33 +281,9 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     setIsResizing(false);
   };
 
-  const handleFlowchartIdChange = (newId: string) => {
-    setCurrentFlowchartId(newId);
-  };
-
-  const handleTitleChange = async (newTitle: string) => {
+  const handleTitleChange = (newTitle: string): void => {
     setCurrentTitle(newTitle);
-
-    // Auto-save when title changes for existing flowcharts
-    if (currentFlowchartId && excalidrawAPI) {
-      try {
-        const response = await fetch(`/api/flowcharts/${currentFlowchartId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: newTitle,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error('Failed to update title');
-        }
-      } catch (error) {
-        console.error('Error updating title:', error);
-      }
-    }
+    if (currentUser) markChanged();
   };
 
   const handleTitleEditStart = () => {
@@ -261,7 +293,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
   const handleTitleEditSave = async () => {
     if (tempTitle.trim()) {
-      await handleTitleChange(tempTitle.trim());
+      handleTitleChange(tempTitle.trim());
       setCurrentTitle(tempTitle.trim());
     }
     setIsEditingTitle(false);
@@ -510,7 +542,10 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           isResizing ? '' : 'transition-all duration-300 ease-in-out'
         }`}
         style={{
-          width: isSidebarOpen ? `calc(100% - ${sidebarWidth}px)` : '100%',
+          width:
+            isSidebarOpen && !isMobile
+              ? `calc(100% - ${sidebarWidth}px)`
+              : '100%',
         }}
       >
         {/* Title Bar - only show for logged in users */}
@@ -568,12 +603,12 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
 
               {/* Save Button - use existing SaveButton logic */}
               <SaveButton
-                excalidrawAPI={excalidrawAPI}
-                flowchartId={currentFlowchartId}
-                flowchartTitle={currentTitle}
-                flowchartAiMetadata={flowchartAiMetadata}
-                onFlowchartIdChange={handleFlowchartIdChange}
-                isMerged={true}
+                status={saveStatus}
+                onSave={saveNow}
+                onRetry={retrySave}
+                disabled={!excalidrawAPI}
+                error={saveError}
+                isMerged
               />
             </div>
           )}
@@ -714,7 +749,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       </div>
 
       {/* Resizable Divider - only show when sidebar is open */}
-      {isSidebarOpen && (
+      {isSidebarOpen && !isMobile && (
         <div
           className="fixed top-0 h-full z-50"
           style={{ right: `${sidebarWidth - 1}px` }}
@@ -748,12 +783,13 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
           excalidrawAPI={excalidrawAPI}
           isAPIReady={isCanvasReady}
           width={sidebarWidth}
+          flowchartId={currentFlowchartId}
           autoInput={autoInput}
           shouldAutoGenerate={shouldAutoGenerate}
           initialMode={initialMode}
           initialImage={autoImagePayload}
           flowchartAiMetadata={flowchartAiMetadata}
-          onFlowchartAiMetadataChange={setFlowchartAiMetadata}
+          onFlowchartAiMetadataChange={handleFlowchartAiMetadataChange}
           onReady={() => performance.mark('flowchartai:chatReady')}
           onAutoGenerateComplete={() => {
             setAutoInput('');
