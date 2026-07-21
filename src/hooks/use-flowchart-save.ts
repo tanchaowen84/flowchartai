@@ -4,6 +4,7 @@ import {
   type FlowchartAutosaveState,
   type FlowchartAutosaveStatus,
   createFlowchartAutosaveCoordinator,
+  serializeFlowchartSaveContent,
 } from '@/lib/flowchart-autosave';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -52,12 +53,8 @@ export const useFlowchartSave = (
     const rawAppState = api.getAppState();
     const files = api.getFiles();
     const { collaborators: _collaborators, ...appState } = rawAppState;
-    const content = JSON.stringify({
-      type: 'excalidraw',
-      version: 2,
-      source: 'https://excalidraw.com',
+    const content = serializeFlowchartSaveContent({
       elements,
-      appState,
       files,
       flowchartAi: metadataRef.current,
     });

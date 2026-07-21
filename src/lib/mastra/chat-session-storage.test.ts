@@ -3,6 +3,7 @@ import {
   buildRetryConversation,
   getCanvasChatStorageKey,
   parseCanvasChatSession,
+  sanitizeCanvasChatMessagesForStorage,
   serializeCanvasChatSession,
 } from './chat-session-storage';
 
@@ -65,6 +66,36 @@ describe('canvas chat session storage', () => {
         })
       )
     ).toBeNull();
+  });
+
+  it('removes large in-memory image payloads before local storage', () => {
+    const messages = sanitizeCanvasChatMessagesForStorage([
+      {
+        id: 'user-image',
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Turn this into a flowchart' },
+          {
+            type: 'image_url',
+            image_url: { url: `data:image/png;base64,${'a'.repeat(10_000)}` },
+          },
+        ],
+        timestamp: new Date('2026-07-21T06:10:00.000Z'),
+      },
+    ]);
+    const serialized = serializeCanvasChatSession({
+      version: 1,
+      draft: '',
+      mode: 'image_to_flowchart',
+      messages,
+    });
+
+    expect(serialized).not.toContain('base64');
+    expect(serialized).not.toContain('a'.repeat(100));
+    expect(messages[0]?.content).toEqual([
+      { type: 'text', text: 'Turn this into a flowchart' },
+      { type: 'text', text: '[Image attachment]' },
+    ]);
   });
 
   it('builds retry context through the preceding user request without duplicating it', () => {

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createFlowchartAutosaveCoordinator,
   getFlowchartContentFingerprint,
+  serializeFlowchartSaveContent,
 } from './flowchart-autosave';
 
 function deferred<T>() {
@@ -185,5 +186,25 @@ describe('getFlowchartContentFingerprint', () => {
     expect(getFlowchartContentFingerprint([first], {})).not.toBe(
       getFlowchartContentFingerprint([{ id: 'replacement', version: 1 }], {})
     );
+  });
+});
+
+describe('serializeFlowchartSaveContent', () => {
+  it('persists canvas content without viewport, selection, or other app state', () => {
+    const serialized = serializeFlowchartSaveContent({
+      elements: [{ id: 'one', version: 1 }],
+      files: { image: { id: 'image' } },
+      flowchartAi: { source: 'assistant' },
+    });
+    const parsed = JSON.parse(serialized);
+
+    expect(parsed).toMatchObject({
+      elements: [{ id: 'one', version: 1 }],
+      files: { image: { id: 'image' } },
+      flowchartAi: { source: 'assistant' },
+    });
+    expect(parsed).not.toHaveProperty('appState');
+    expect(serialized).not.toContain('scrollX');
+    expect(serialized).not.toContain('selectedElementIds');
   });
 });

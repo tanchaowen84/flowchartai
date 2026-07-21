@@ -27,6 +27,7 @@ export interface CanvasChatSession {
 
 const STORAGE_PREFIX = 'flowchartai:canvas-chat';
 const UNSAVED_FLOWCHART_KEY = 'unsaved';
+const IMAGE_ATTACHMENT_PLACEHOLDER = '[Image attachment]';
 
 export function getCanvasChatStorageKey(flowchartId?: string): string {
   return `${STORAGE_PREFIX}:${flowchartId || UNSAVED_FLOWCHART_KEY}`;
@@ -34,6 +35,33 @@ export function getCanvasChatStorageKey(flowchartId?: string): string {
 
 export function serializeCanvasChatSession(session: CanvasChatSession): string {
   return JSON.stringify(session);
+}
+
+export function sanitizeCanvasChatMessagesForStorage(
+  messages: readonly CanvasChatMessage[]
+): CanvasChatMessage[] {
+  return messages.map((message) => {
+    if (typeof message.content === 'string') return { ...message };
+
+    const content = message.content.map((part) => {
+      const url = part.image_url?.url;
+      if (
+        part.type === 'image_url' &&
+        url &&
+        (url.startsWith('data:') ||
+          url.startsWith('blob:') ||
+          url.length > 4096)
+      ) {
+        return {
+          type: 'text' as const,
+          text: IMAGE_ATTACHMENT_PLACEHOLDER,
+        };
+      }
+      return { ...part };
+    });
+
+    return { ...message, content };
+  });
 }
 
 function isCanvasChatMessage(value: unknown): value is CanvasChatMessage {

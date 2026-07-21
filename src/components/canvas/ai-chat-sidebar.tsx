@@ -45,6 +45,7 @@ import {
   buildRetryConversation,
   getCanvasChatStorageKey,
   parseCanvasChatSession,
+  sanitizeCanvasChatMessagesForStorage,
   serializeCanvasChatSession,
 } from '@/lib/mastra/chat-session-storage';
 import { createSseEventDecoder } from '@/lib/mastra/sse-client';
@@ -64,7 +65,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 
 interface MessageContent {
   type: 'text' | 'image_url';
@@ -274,8 +275,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           version: 1,
           draft: latest.input,
           mode: latest.aiMode,
-          messages: latest.messages.map(
-            ({ images: _images, ...message }) => message
+          messages: sanitizeCanvasChatMessagesForStorage(
+            latest.messages.map(({ images: _images, ...message }) => message)
           ),
         });
       }
@@ -313,7 +314,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           version: 1,
           draft: input,
           mode: aiMode,
-          messages: messages.map(({ images: _images, ...message }) => message),
+          messages: sanitizeCanvasChatMessagesForStorage(
+            messages.map(({ images: _images, ...message }) => message)
+          ),
         })
       );
     } catch {
@@ -1613,10 +1616,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out z-40 ${
+      className={`fixed top-0 right-0 z-40 h-full w-screen max-w-full bg-white shadow-lg transition-transform duration-300 ease-in-out md:w-[var(--sidebar-width)] ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
-      style={{ width: `min(${width}px, 100vw)`, maxWidth: '100vw' }}
+      style={{ '--sidebar-width': `${width}px` } as CSSProperties}
     >
       <div className="flex h-full flex-col">
         {/* Header */}

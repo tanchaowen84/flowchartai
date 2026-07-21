@@ -26,6 +26,27 @@ export interface FlowchartAutosaveCoordinator {
   getState: () => FlowchartAutosaveState;
 }
 
+interface FlowchartSaveContent {
+  elements: readonly unknown[];
+  files: Record<string, unknown>;
+  flowchartAi?: unknown;
+}
+
+export function serializeFlowchartSaveContent({
+  elements,
+  files,
+  flowchartAi,
+}: FlowchartSaveContent): string {
+  return JSON.stringify({
+    type: 'excalidraw',
+    version: 2,
+    source: 'https://excalidraw.com',
+    elements,
+    files,
+    flowchartAi,
+  });
+}
+
 export function getFlowchartContentFingerprint(
   elements: readonly { id?: string; version: number }[],
   files: Record<string, unknown>

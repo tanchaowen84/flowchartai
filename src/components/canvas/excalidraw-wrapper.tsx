@@ -93,7 +93,7 @@ const defaultInitialData: ExcalidrawInitialDataState = {
 const AiChatSidebar = dynamic(() => import('./ai-chat-sidebar'), {
   ssr: false,
   loading: () => (
-    <div className="fixed right-0 top-0 z-40 flex h-full w-screen max-w-[400px] items-center justify-center bg-white text-sm text-gray-500 shadow-lg">
+    <div className="fixed right-0 top-0 z-40 flex h-full w-screen items-center justify-center bg-white text-sm text-gray-500 shadow-lg md:w-[400px]">
       <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
       Loading assistant…
     </div>
