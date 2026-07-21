@@ -4,6 +4,7 @@ import {
   getCanvasChatStorageKey,
   parseCanvasChatSession,
   sanitizeCanvasChatMessagesForStorage,
+  sanitizeSerializedCanvasChatSessionForStorage,
   serializeCanvasChatSession,
 } from './chat-session-storage';
 
@@ -94,6 +95,36 @@ describe('canvas chat session storage', () => {
     expect(serialized).not.toContain('a'.repeat(100));
     expect(messages[0]?.content).toEqual([
       { type: 'text', text: 'Turn this into a flowchart' },
+      { type: 'text', text: '[Image attachment]' },
+    ]);
+  });
+
+  it('sanitizes legacy unsaved image sessions before key migration', () => {
+    const legacy = serializeCanvasChatSession({
+      version: 1,
+      draft: 'Keep this draft',
+      mode: 'image_to_flowchart',
+      messages: [
+        {
+          id: 'legacy-image',
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: 'data:image/png;base64,legacy-payload' },
+            },
+          ],
+          timestamp: new Date('2026-07-21T06:10:00.000Z'),
+        },
+      ],
+    });
+
+    const migrated = sanitizeSerializedCanvasChatSessionForStorage(legacy);
+    const parsed = parseCanvasChatSession(migrated);
+
+    expect(migrated).not.toContain('legacy-payload');
+    expect(parsed?.draft).toBe('Keep this draft');
+    expect(parsed?.messages[0]?.content).toEqual([
       { type: 'text', text: '[Image attachment]' },
     ]);
   });

@@ -46,6 +46,7 @@ import {
   getCanvasChatStorageKey,
   parseCanvasChatSession,
   sanitizeCanvasChatMessagesForStorage,
+  sanitizeSerializedCanvasChatSessionForStorage,
   serializeCanvasChatSession,
 } from '@/lib/mastra/chat-session-storage';
 import { createSseEventDecoder } from '@/lib/mastra/sse-client';
@@ -268,7 +269,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     let serialized = localStorage.getItem(chatStorageKey);
 
     if (!serialized && flowchartId && previousKey === unsavedKey) {
-      serialized = localStorage.getItem(unsavedKey);
+      serialized = sanitizeSerializedCanvasChatSessionForStorage(
+        localStorage.getItem(unsavedKey)
+      );
       if (!serialized) {
         const latest = latestChatStateRef.current;
         serialized = serializeCanvasChatSession({

@@ -64,6 +64,18 @@ export function sanitizeCanvasChatMessagesForStorage(
   });
 }
 
+export function sanitizeSerializedCanvasChatSessionForStorage(
+  serialized: string | null
+): string | null {
+  const session = parseCanvasChatSession(serialized);
+  if (!session) return null;
+
+  return serializeCanvasChatSession({
+    ...session,
+    messages: sanitizeCanvasChatMessagesForStorage(session.messages),
+  });
+}
+
 function isCanvasChatMessage(value: unknown): value is CanvasChatMessage {
   if (!value || typeof value !== 'object') return false;
   const message = value as Record<string, unknown>;
