@@ -128,6 +128,7 @@
 - Preview smoke: authenticated `vercel curl` followed `/en/canvas` to a `200` canvas response. `POST /api/ai/chat/flowchart` with a valid empty message array returned the expected `401 Authentication required`, proving the deployed Mastra route loads and rejects guests before any model invocation.
 - Preview data verification: an exact-ID read of only the test account's new flowchart confirmed revision 2, source Mermaid containing `B{Approved}`, the two original edges, and unchanged user-owned element IDs/coordinates/sizes (`160,210,240,70` and `185,232,190,25`). The test account has exactly one successful `flowchart_generation` usage row and one login session.
 - Independent evaluator: `/root/v1_mastra_local_edit_spec/v1_evaluator` initially returned FAIL; every P1 received a reproducing RED test and repair. The final follow-up result is PASS with zero P0/P1 and no newly identified P2.
+- Producer final gate refresh: `pnpm test` passed 16 files / 76 tests, `pnpm typecheck` exited 0, `pnpm build` generated all 41 pages and exited 0, and read-only scoped Biome checked 46 changed TypeScript files with no diagnostics. Full-repository Biome was not run.
 
 ## Production Data Guardrail
 
@@ -135,4 +136,4 @@ Preview may use production-compatible environment configuration, but verificatio
 
 ## Resume Point
 
-Current stage: `VERIFIED`. Implementation, independent evaluation, authenticated Chrome QA and Vercel Preview verification are complete. The dedicated test account and its owned Preview data remain for founder testing. No migration, delete, Production deployment or existing-user data write was performed.
+Current stage: `DONE`. The locked SPEC, implementation, independent evaluation, authenticated Chrome QA, Vercel Preview verification and final Producer gates are complete. The dedicated test account and its owned Preview data remain for founder testing. No migration, delete, Production deployment, push or existing-user data write was performed.
