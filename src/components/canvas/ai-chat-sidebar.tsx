@@ -1,12 +1,10 @@
 'use client';
 
 import { LoginForm } from '@/components/auth/login-form';
-import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
 import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
 import MarkdownRenderer from '@/components/shared/markdown-renderer';
 import { PricingModal } from '@/components/shared/pricing-modal';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -15,9 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAIUsageLimit } from '@/hooks/use-ai-usage-limit';
 import { useCurrentUser } from '@/hooks/use-current-user';
@@ -38,6 +41,12 @@ import {
 } from '@/lib/diagram/contracts';
 import { deriveFlowchartAiMetadataFromElements } from '@/lib/diagram/metadata';
 import { resolveDiagramTarget } from '@/lib/diagram/target-resolver';
+import {
+  buildRetryConversation,
+  getCanvasChatStorageKey,
+  parseCanvasChatSession,
+  serializeCanvasChatSession,
+} from '@/lib/mastra/chat-session-storage';
 import { createSseEventDecoder } from '@/lib/mastra/sse-client';
 import { createCanvasUsageGate } from '@/lib/mastra/usage-gate';
 import {
@@ -50,14 +59,9 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import {
   AlertCircle,
   ArrowUp,
-  Camera,
-  Edit,
   Loader2,
-  MessageCircle,
-  Pencil,
+  Paperclip,
   Plus,
-  Sparkles,
-  User,
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -92,6 +96,7 @@ interface AiChatSidebarProps {
   excalidrawAPI?: ExcalidrawImperativeAPI | null;
   isAPIReady?: boolean;
   width?: number;
+  flowchartId?: string;
   autoInput?: string;
   shouldAutoGenerate?: boolean;
   onAutoGenerateComplete?: () => void;
@@ -153,6 +158,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   excalidrawAPI,
   isAPIReady = false,
   width = 400,
+  flowchartId,
   autoInput,
   shouldAutoGenerate,
   onAutoGenerateComplete,
@@ -179,6 +185,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [aiMode, setAiMode] = useState<AiAssistantMode>(
     initialMode ?? DEFAULT_AI_ASSISTANT_MODE
   );
+  const [isChatHydrated, setIsChatHydrated] = useState(false);
   const hasAutoSentRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -186,16 +193,15 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
   const hasReportedReadyRef = useRef(false);
+  const chatStorageKeyRef = useRef<string | null>(null);
+  const latestChatStateRef = useRef({ messages, input, aiMode });
+
+  latestChatStateRef.current = { messages, input, aiMode };
 
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
   const { usageData, checkUsageLimit, refreshUsageData } = useAIUsageLimit();
-  const {
-    canUseAI: canGuestUseAI,
-    hasUsedFreeRequest,
-    markAsUsed: markGuestAsUsed,
-    handleLimitReached: handleGuestLimitReached,
-  } = useGuestAIUsage();
+  const { handleLimitReached: handleGuestLimitReached } = useGuestAIUsage();
 
   const activeSendStatus = sendStatus;
 
@@ -250,6 +256,70 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       setAiMode(initialMode);
     }
   }, [initialMode]);
+
+  const chatStorageKey = getCanvasChatStorageKey(flowchartId);
+
+  useEffect(() => {
+    setIsChatHydrated(false);
+
+    const previousKey = chatStorageKeyRef.current;
+    const unsavedKey = getCanvasChatStorageKey();
+    let serialized = localStorage.getItem(chatStorageKey);
+
+    if (!serialized && flowchartId && previousKey === unsavedKey) {
+      serialized = localStorage.getItem(unsavedKey);
+      if (!serialized) {
+        const latest = latestChatStateRef.current;
+        serialized = serializeCanvasChatSession({
+          version: 1,
+          draft: latest.input,
+          mode: latest.aiMode,
+          messages: latest.messages.map(
+            ({ images: _images, ...message }) => message
+          ),
+        });
+      }
+
+      try {
+        localStorage.setItem(chatStorageKey, serialized);
+        localStorage.removeItem(unsavedKey);
+      } catch {
+        // Keep the active in-memory session when storage is unavailable.
+      }
+    }
+
+    const storedSession = parseCanvasChatSession(serialized);
+    if (storedSession) {
+      setMessages(storedSession.messages);
+      setInput(storedSession.draft);
+      setAiMode(storedSession.mode);
+    } else if (previousKey && previousKey !== chatStorageKey) {
+      setMessages([]);
+      setInput('');
+      setAiMode(initialMode ?? DEFAULT_AI_ASSISTANT_MODE);
+    }
+
+    chatStorageKeyRef.current = chatStorageKey;
+    setIsChatHydrated(true);
+  }, [chatStorageKey, flowchartId, initialMode]);
+
+  useEffect(() => {
+    if (!isChatHydrated) return;
+
+    try {
+      localStorage.setItem(
+        chatStorageKey,
+        serializeCanvasChatSession({
+          version: 1,
+          draft: input,
+          mode: aiMode,
+          messages: messages.map(({ images: _images, ...message }) => message),
+        })
+      );
+    } catch {
+      // Chat remains available for the current session if storage is full.
+    }
+  }, [aiMode, chatStorageKey, input, isChatHydrated, messages]);
 
   useEffect(() => {
     if (initialImage) {
@@ -838,17 +908,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
-  const handleRegenerate = async () => {
-    if (messages.length === 0 || isLoading) return;
+  const handleRetry = async (failedAssistantId: string) => {
+    if (isLoading) return;
 
-    // Get the last user message
-    const lastUserMessage = messages.filter((msg) => msg.role === 'user').pop();
+    const retryMessages = buildRetryConversation(messages, failedAssistantId);
+    if (!retryMessages) return;
 
-    if (!lastUserMessage) return;
-
-    // Check if user is guest and show login modal instead of processing request
     if (!currentUser) {
-      // Generate callback URL to preserve current state
       const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       setLoginCallbackUrl(callbackUrl);
       setShowLoginModal(true);
@@ -865,10 +931,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       const canUseAI = await checkUsageLimit();
       if (!canUseAI) {
-        setIsLoading(false);
-        setSendStatus(null);
-        setIsStreamingResponse(false);
-        setAssistantResponsePhase('idle');
         if (usageData?.timeFrame === 'daily') {
           setDailyLimitUsageInfo({
             timeFrame: 'daily',
@@ -881,67 +943,40 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return;
       }
 
-      // Create new abort controller for this request
+      setMessages(retryMessages);
       abortControllerRef.current = new AbortController();
-
-      // Use the last user message content for regeneration
-      const conversationPayload: any[] = [
-        ...messages.slice(0, -1).map((msg) => ({
-          role: msg.role,
-          content: typeof msg.content === 'string' ? msg.content : msg.content,
-        })),
-        {
-          role: 'user',
-          content: lastUserMessage.content,
-        },
-      ];
-
-      await processAIConversation(conversationPayload);
-
-      // 移除即时计费逻辑，改为在流程图成功生成后计费
-      // if (!currentUser) {
-      //   markGuestAsUsed();
-      // }
+      await processAIConversation(
+        retryMessages.map((message) => ({
+          role: message.role,
+          content: message.content,
+        }))
+      );
     } catch (error) {
-      console.error('Error regenerating message:', error);
-
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
-
-      if (error instanceof Error && (error as any).isGuestLimit) {
-        if (!currentUser) {
-          handleGuestLimitReached();
-          setShowLoginModal(true);
-          return;
-        }
-      }
+      if (error instanceof Error && error.name === 'AbortError') return;
 
       if (error instanceof Error && (error as any).isDailyLimit) {
-        if (currentUser) {
-          setDailyLimitUsageInfo((error as any).usageInfo);
-          setShowPricingModal(true);
-          return;
-        }
+        setDailyLimitUsageInfo((error as any).usageInfo);
+        setShowPricingModal(true);
+        return;
       }
 
       const userFacingMessage = getUserFacingErrorMessage(
         error,
-        'Sorry, I encountered an error while regenerating your request. Please try again.'
+        'The request failed. Please try it again.'
       );
-
-      const errorMessage: Message = {
-        id: (Date.now() + 2).toString(),
-        content: userFacingMessage,
-        role: 'assistant',
-        timestamp: new Date(),
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((current) => [
+        ...current,
+        {
+          id: `assistant_error_${Date.now()}`,
+          content: userFacingMessage,
+          role: 'assistant',
+          timestamp: new Date(),
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      ]);
 
       toast({
-        title: 'Error',
+        title: 'Request failed',
         description: userFacingMessage,
         variant: 'destructive',
       });
@@ -1505,6 +1540,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setAssistantResponsePhase('idle');
     setIsStreamingResponse(false);
     streamingMessageIdRef.current = null;
+    localStorage.removeItem(chatStorageKey);
 
     // 显示提示信息
     toast({
@@ -1521,11 +1557,27 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const renderMessageContent = (message: Message) => {
     if (message.error) {
       return (
-        <div className="flex items-start gap-2 text-red-600">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium">Error occurred</p>
-            <p className="text-xs opacity-75">{message.error}</p>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Request failed</p>
+              <p className="mt-1 text-sm">
+                {typeof message.content === 'string'
+                  ? message.content
+                  : 'The request could not be completed.'}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3 h-8 border-red-200 bg-white text-red-700 hover:bg-red-100"
+                onClick={() => handleRetry(message.id)}
+                disabled={isLoading}
+              >
+                Retry
+              </Button>
+            </div>
           </div>
         </div>
       );
@@ -1564,33 +1616,39 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       className={`fixed top-0 right-0 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out z-40 ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
-      style={{ width: `${width}px` }}
+      style={{ width: `min(${width}px, 100vw)`, maxWidth: '100vw' }}
     >
       <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <h2 className="text-base font-medium text-gray-900">
-              FlowChart AI
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-medium text-gray-900">
+              AI Assistant
             </h2>
+          </div>
+          <div className="flex items-center gap-1">
             <Button
               onClick={handleNewConversation}
-              variant="outline"
-              size="sm"
-              className="h-8 px-3 text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50 rounded-lg text-xs font-medium transition-colors"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
               disabled={isLoading}
+              aria-label="New conversation"
+              title="New conversation"
             >
-              New Conversation
+              <Plus className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={onToggle}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Close AI assistant"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
             </Button>
           </div>
-          <Button
-            onClick={onToggle}
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-          >
-            X
-          </Button>
         </div>
 
         {/* Guest Usage Indicator */}
@@ -1729,104 +1787,103 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             className="hidden"
           />
 
-          {/* Mode Switch */}
-          <div className="px-4 pb-3 pt-4">
-            <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-2 border border-gray-200">
-              <span className="text-xs text-gray-600 mr-2">Mode:</span>
-              {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
-                (mode) => {
-                  const isActive = aiMode === mode;
-                  const { label } = AI_ASSISTANT_MODES[mode];
-                  return (
-                    <Button
-                      key={mode}
-                      type="button"
-                      size="sm"
-                      variant={isActive ? 'default' : 'ghost'}
-                      className={
-                        isActive
-                          ? 'h-8 px-4'
-                          : 'h-8 px-4 text-gray-600 hover:text-gray-900'
-                      }
-                      onClick={() => setAiMode(mode)}
-                    >
-                      <span className="text-xs font-medium">{label}</span>
-                    </Button>
-                  );
-                }
-              )}
-            </div>
-          </div>
+          <div className="p-3">
+            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+              <Textarea
+                ref={textareaRef}
+                placeholder="Describe what to create or change..."
+                value={input}
+                onChange={(event) => {
+                  setInput(event.target.value);
+                  setTimeout(() => adjustTextareaHeight(), 0);
+                }}
+                onKeyDown={handleKeyPress}
+                disabled={isLoading}
+                className="min-h-[80px] max-h-[200px] resize-none overflow-y-auto rounded-2xl border-0 bg-transparent px-3 py-3 text-sm leading-6 text-gray-900 shadow-none placeholder:text-gray-400 focus-visible:ring-0"
+                style={{
+                  height: '80px',
+                  wordWrap: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                }}
+              />
 
-          <div className="px-4 pb-4">
-            <Textarea
-              ref={textareaRef}
-              placeholder="Describe your flowchart..."
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                // Adjust height after state update
-                setTimeout(() => adjustTextareaHeight(), 0);
-              }}
-              onKeyDown={handleKeyPress}
-              disabled={isLoading}
-              className="min-h-[80px] max-h-[200px] resize-none border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-white placeholder:text-gray-500 text-gray-900 text-base px-4 py-3 leading-6 overflow-y-auto transition-all duration-200"
-              style={{
-                height: '80px',
-                wordWrap: 'break-word',
-                whiteSpace: 'pre-wrap',
-              }}
-            />
+              <div className="flex min-w-0 items-center gap-1.5 border-t border-gray-100 p-2">
+                <Select
+                  value={aiMode}
+                  onValueChange={(value) => setAiMode(value as AiAssistantMode)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="min-w-0 max-w-[150px] border-0 bg-gray-50 px-2 shadow-none"
+                    aria-label="Assistant mode"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
+                      (mode) => (
+                        <SelectItem key={mode} value={mode}>
+                          {AI_ASSISTANT_MODES[mode].label}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                  onClick={handleCameraClick}
+                  disabled={isLoading}
+                  aria-label="Attach image"
+                  title="Attach image"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+
+                <div className="min-w-0 flex-1" />
+
+                {isLoading ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 shrink-0 px-2 text-gray-600 hover:bg-gray-100"
+                    onClick={handleStopGeneration}
+                  >
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 rounded-full bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={handleSendMessage}
+                    disabled={!input.trim() && selectedImages.length === 0}
+                    aria-label="Send message"
+                    title="Send"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <p
-              className="mt-2 ml-1 flex items-center gap-1.5 text-xs text-gray-400"
+              className="mt-2 flex min-h-4 items-center gap-1.5 px-1 text-xs text-gray-400"
               aria-live="polite"
             >
               {activeSendStatus && (
                 <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
               )}
-              <span>{activeSendStatus ?? 'Press Enter to send'}</span>
+              <span>
+                {activeSendStatus ??
+                  'Enter to send · Shift+Enter for a new line'}
+              </span>
             </p>
-          </div>
-
-          <div className="px-4 pb-6">
-            <div className="flex gap-3">
-              <Button
-                onClick={() => {
-                  handleCameraClick();
-                }}
-                variant="outline"
-                size="default"
-                className="flex-1 h-11 text-sm font-medium border-gray-200 hover:border-gray-300 transition-colors"
-                disabled={isLoading}
-              >
-                Upload Image
-              </Button>
-              <Button
-                onClick={handleSendMessage}
-                size="default"
-                className="flex-1 h-11 text-sm font-medium bg-blue-600 hover:bg-blue-700 transition-colors"
-                disabled={
-                  (!input.trim() && selectedImages.length === 0) || isLoading
-                }
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sending
-                  </>
-                ) : (
-                  'Send'
-                )}
-              </Button>
-              <Button
-                onClick={handleRegenerate}
-                size="default"
-                className="flex-1 h-11 text-sm font-medium bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600 transition-colors"
-                disabled={messages.length === 0 || isLoading}
-              >
-                Regenerate
-              </Button>
-            </div>
           </div>
         </div>
       </div>
