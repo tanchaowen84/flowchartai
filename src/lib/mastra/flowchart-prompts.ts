@@ -1,3 +1,4 @@
+import { PATCHABLE_FLOWCHART_PROMPT_RULES } from '../diagram/flowchart-capabilities';
 import { IMAGE_TO_FLOWCHART_PROMPT } from '../prompts/image-flowchart';
 
 interface FlowchartPromptContext {
@@ -37,19 +38,22 @@ COMMUNICATION AND PARITY RULES:
 
 CANVAS COMMAND POLICY:
 1. If no target is resolved, call generate_flowchart with action create and complete Mermaid in mermaidCode.
-2. For an incremental edit to one resolved, patchable flowchart/graph target, use action patch. Copy diagramId and baseRevision exactly from DiagramDocument. Use its stable semanticId values; labels can change but semanticId cannot.
-3. For an explicit rebuild, a diagram-type change, a non-flowchart Mermaid target, or an unsupported subgraph/group target, use action replace with exact targetDiagramId and complete Mermaid.
+2. For an incremental edit to one resolved, patchable flowchart/graph target, use action patch. Copy diagramId and baseRevision exactly from DiagramDocument. Use its stable semanticId values. Nodes may change label, supported shape, or the full allowed style object. Edges may change only label or lineStyle; changing endpoints requires explicit removeEdge plus addEdge with the canonical source__target semanticId.
+3. For an explicit rebuild, a diagram-type change, a non-flowchart Mermaid target, or a target whose patchable field is false, use action replace with exact targetDiagramId and complete Mermaid. Respect patchBlockReason and briefly explain the unsupported or scene-alignment reason; never silently degrade the source.
 4. If multiple diagrams are possible and no selection resolves one target, ask the user to select one and do not call the tool.
 5. Deleting a node never implies reconnection. Include explicit removeEdge and addEdge operations.
 6. Call generate_flowchart no more than once per response. It executes on the server only to validate and return one complete CanvasCommand; never expose partial tool arguments.
 
 MERMAID QUALITY AND SYNTAX:
 - Choose the Mermaid family that best fits the request: flowchart/graph for process and state decisions, sequenceDiagram for actor timelines, and journey/gantt/other types only when they fit better.
-- For flowchart/graph begin with flowchart LR, graph LR, or the user-requested direction. IDs must be stable alphanumeric/underscore identifiers. Connect every meaningful node.
+- For an ordinary flowchart/graph create, stay inside the shared editable capability profile below so the next natural-language edit can use patch. Connect every meaningful node.
 - Keep node text plain. Structural brackets, braces, quotes, colons, semicolons, and paired punctuation inside node labels often break conversion; rephrase them as words or spaces.
 - For sequenceDiagram declare unique participants first. Use valid Sender ->> Receiver: text messages, and close every alt/else/end, opt/end, loop/end, par/and/end, rect/end block.
 - Structure content before styling. Apply readable style directives to major roles. Defaults: process fill #fddf9f stroke #d68f2f; decision fill #f9c9c9 stroke #d12f2f; success fill #9fdfbf stroke #2f7f3f; retry/error fill #ffe0e0 stroke #bf2f2f; information/output fill #c9e9ff stroke #2f6fbf. Prefer stroke-width 2px.
-- Do not use classDef when editing a patchable V1 flowchart; use explicit style directives. Do not silently discard subgraph structure.
+
+SHARED EDITABLE FLOWCHART CAPABILITY PROFILE:
+${PATCHABLE_FLOWCHART_PROMPT_RULES}
+
 - Refuse or caution on sensitive, illegal, or policy-violating requests according to the existing product policy.
 
 CURRENT CANVAS CONTEXT:

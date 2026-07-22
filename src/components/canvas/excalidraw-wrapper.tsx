@@ -22,6 +22,7 @@ import {
   emptyFlowchartAiMetadata,
   parseFlowchartAiMetadata,
 } from '@/lib/diagram/metadata';
+import { createSavedSceneHydrationUpdate } from '@/lib/diagram/saved-scene-hydration';
 import { getFlowchartContentFingerprint } from '@/lib/flowchart-autosave';
 import type {
   ExcalidrawImperativeAPI,
@@ -205,10 +206,12 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
     if (parsed.files) {
       excalidrawAPI.addFiles(Object.values(parsed.files));
     }
-    excalidrawAPI.updateScene({
-      elements: parsed.elements || [],
-      appState: parsed.appState as any,
-    });
+    excalidrawAPI.updateScene(
+      createSavedSceneHydrationUpdate({
+        elements: parsed.elements || [],
+        appState: parsed.appState as any,
+      })
+    );
     window.requestAnimationFrame(() => {
       suppressNextSceneAutosaveRef.current = false;
     });

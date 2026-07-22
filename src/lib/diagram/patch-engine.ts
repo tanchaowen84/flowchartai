@@ -6,6 +6,10 @@ import {
   diagramDocumentSchema,
   diagramPatchSchema,
 } from './contracts';
+import {
+  isPatchableFlowchart,
+  parseFlowchartMermaid,
+} from './flowchart-parser';
 import { serializeDiagramToMermaid } from './serializer';
 
 function findBySemanticId<T extends { semanticId: string }>(
@@ -116,6 +120,11 @@ export function applyDiagramPatch(
     sourceMermaid: '',
   };
   candidate.sourceMermaid = serializeDiagramToMermaid(candidate);
+  if (!isPatchableFlowchart(candidate.sourceMermaid)) {
+    throw new Error(
+      'Patch validation failed: the resulting Mermaid is outside the shared patchable flowchart capability profile'
+    );
+  }
 
   const result = diagramDocumentSchema.safeParse(candidate);
   if (!result.success) {
@@ -123,5 +132,8 @@ export function applyDiagramPatch(
     throw new Error(`Patch validation failed: ${issue}`);
   }
 
-  return result.data;
+  return parseFlowchartMermaid(result.data.sourceMermaid, {
+    diagramId: result.data.diagramId,
+    revision: result.data.revision,
+  });
 }

@@ -1,4 +1,10 @@
-import type { DiagramDocument, DiagramEdge, DiagramNode } from './contracts';
+import type {
+  DiagramDocument,
+  DiagramEdge,
+  DiagramNode,
+  DiagramNodeStyle,
+} from './contracts';
+import { orderedPatchableFlowchartNodeStyleEntries } from './flowchart-capabilities';
 
 function sanitizeLabel(label: string): string {
   return label
@@ -22,34 +28,24 @@ function serializeNode(node: DiagramNode): string {
       return `${node.semanticId}([${label}])`;
     case 'circle':
       return `${node.semanticId}((${label}))`;
-    case 'subroutine':
-      return `${node.semanticId}[[${label}]]`;
-    case 'cylinder':
-      return `${node.semanticId}[(${label})]`;
-    case 'hexagon':
-      return `${node.semanticId}{{${label}}}`;
     default:
       return `${node.semanticId}[${label}]`;
   }
 }
 
 function serializeEdge(edge: DiagramEdge): string {
-  const connector =
-    edge.lineStyle === 'dashed'
-      ? '-.->'
-      : edge.lineStyle === 'dotted'
-        ? '-.->'
-        : '-->';
+  const connector = edge.lineStyle === 'dashed' ? '-.->' : '-->';
   const label = edge.label ? `|${sanitizeLabel(edge.label)}|` : '';
   return `${edge.sourceSemanticId} ${connector}${label} ${edge.targetSemanticId}`;
 }
 
 function serializeStyle(
   semanticId: string,
-  style: Record<string, string> | undefined
+  style: DiagramNodeStyle | undefined
 ): string | null {
-  if (!style || Object.keys(style).length === 0) return null;
-  return `style ${semanticId} ${Object.entries(style)
+  const entries = orderedPatchableFlowchartNodeStyleEntries(style);
+  if (entries.length === 0) return null;
+  return `style ${semanticId} ${entries
     .map(([key, value]) => `${key}:${value}`)
     .join(',')}`;
 }
@@ -67,10 +63,5 @@ export function serializeDiagramToMermaid(document: DiagramDocument): string {
     const style = serializeStyle(node.semanticId, node.style);
     if (style) lines.push(`  ${style}`);
   }
-  for (const edge of document.edges) {
-    const style = serializeStyle(edge.semanticId, edge.style);
-    if (style) lines.push(`  ${style}`);
-  }
-
   return lines.join('\n');
 }

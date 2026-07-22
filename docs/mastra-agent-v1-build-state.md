@@ -1,5 +1,114 @@
 # Mastra Agent V1 Build State
 
+## V1.1 Reopen — Styled Flowchart Local Editing
+
+- SPEC ID: `FAI-STYLED-FLOWCHART-PATCH-V1.1`
+- Status: `IMPLEMENTED`
+- Risk: `STANDARD`
+- Current stage: `COMPLETE`
+
+The prior V1 delivery is preserved below as historical evidence. V1.1 reopens the
+build because the Agent prompt emits explicit node `style` statements while the
+patchability gate rejects every styled flowchart, forcing ordinary edits through
+whole-diagram replacement.
+
+V1.1 establishes one shared editable-flowchart capability profile for prompt,
+parser, serializer, contracts, renderer, executor, and tests. The supported
+dialect keeps stable IDs beginning with a letter or underscore and continuing
+with letters, digits, underscores, or hyphens; `flowchart` / `graph` with
+`LR`, `RL`, `TD`, or `BT`; rectangle, rounded, diamond, ellipse/stadium, and
+circle nodes; solid or dashed directed edges; pipe edge labels; and the node
+style keys `fill`, `stroke`, and `stroke-width`. Unsupported Mermaid constructs
+continue to use explicit targeted replacement.
+
+Each patchable edge uses the canonical semantic ID `source__target`; endpoint
+changes use remove plus add, and parallel edges are replace-only. Older V1
+metadata is normalized record by record so incompatible diagrams safely fall
+back to targeted replacement without erasing unrelated valid records.
+
+Safety requirements: successful local edits preserve untouched element IDs,
+positions, sizes, styles, user-owned elements, and one-step Undo/Redo. Legacy
+scenes may upgrade to patching only when their scene semantic IDs align with the
+derived document; otherwise the first edit must safely replace the explicit
+target rather than append duplicate semantic elements. No database, auth,
+quota, Creem, usage, SSE, or deployment contract changes are allowed.
+
+Plan Research: Grok 4.5 returned `REVISE`. The plan now explicitly filters edge
+styles from serialization, preserves hyphenated IDs, validates the create and
+post-patch patchability invariant, and gates legacy upgrades on scene/document
+semantic-ID alignment.
+
+### V1.1 Task Graph
+
+| ID | Task | Owner | State |
+| --- | --- | --- | --- |
+| V11-T1 | Shared capability contract and RED tests | Test Writer / Main | COMPLETED |
+| V11-T2 | Prompt, parser, contracts, serializer, renderer | Main | COMPLETED |
+| V11-T3 | Safe scene alignment and create-to-patch executor path | Main | COMPLETED |
+| V11-T4 | Tests, typecheck, build, scoped Biome | Main | COMPLETED |
+| V11-T5 | Independent evaluator and authenticated Chrome true path | Evaluator / Main | COMPLETED |
+| V11-T6 | Final evidence and completion state | Main | COMPLETED |
+
+### V1.1 Evidence Log
+
+- TDD RED: the first targeted run collected 47 tests; 38 passed and 9 failed on
+  the intended gaps: styled flowcharts were non-patchable, style schemas were
+  open, edge styles leaked into serialization, styled create used the legacy
+  renderer, aligned legacy records could not upgrade, and the prompt omitted
+  the shared dialect.
+- TDD GREEN: the first implementation pass completed the affected diagram and
+  Mastra suites at 16 files / 84 tests.
+- Independent evaluator pass 1 found no P0 and three P1 issues: edge semantic-ID
+  round-trip drift, HTML being misclassified as patchable, and all-or-nothing
+  legacy metadata parsing. It also identified duplicate scene entities and
+  invalid hex lengths as P2 issues. All were reproduced and repaired.
+- Repair regression: 10 targeted files / 73 tests passed, including canonical
+  edge add-update-remove continuity, styled create-label-style Canvas updates,
+  exact scene-entity alignment, legacy V1 per-record fallback, and `full:*`
+  targeted replacement followed by a later local patch.
+- Full regression before Chrome QA: `pnpm test` passed 18 files / 103 tests.
+- Type safety: `pnpm typecheck` exited 0.
+- Production build: `pnpm build` generated 7 collections / 25 documents,
+  compiled successfully, generated 41 static pages, and exited 0. Existing local
+  warnings remain limited to absent `BETTER_AUTH_SECRET` and OAuth credentials.
+- Scoped Biome: checked only 20 changed TypeScript files with no remaining
+  diagnostics; full-repository lint was not run.
+- Independent evaluator pass 2 returned `PASS` with zero P0/P1 after rerunning
+  the prior failure inputs, 10 targeted files / 73 tests, typecheck, and diff
+  checks.
+- Authenticated Chrome E2E used only the dedicated test account and normal product
+  paths. The real model created a styled cyclic LR flowchart, renamed `Done` to
+  `Completed`, changed only its fill to `#4a90d9`, preserved its green stroke and
+  `2px` width, passed one-step Undo/Redo, saved, reloaded, and then renamed `Start`
+  to `Begin` without replacing the diagram.
+- Chrome QA exposed two renderer defects not covered by the earlier fixture: a
+  directed cycle collapsed the Kahn layout into one rank, and arrows used a fixed
+  origin. Both received regression coverage. Cyclic graphs now retain directional
+  ranks, arrow endpoints meet node boundaries, and reciprocal edges use separate
+  routes.
+- The final reload check exposed one history regression: asynchronously hydrated
+  saved scenes used Excalidraw's default eventual capture, so the first new Patch
+  after reload was not undoable. Saved-scene hydration is now explicitly a
+  non-undoable history baseline. Chrome confirmed reload -> Patch enabled Undo,
+  Undo restored `Begin`, Redo restored `Entry`, and a final Undo plus reload kept
+  the persisted revision-3 `Begin` document unchanged.
+- Final saved test artifact: `flowchart_1784619436000_l60on4p`, diagram revision
+  `3`, LR direction, four stable node IDs, four stable canonical edge IDs, blue
+  `Completed`, and amber `Begin`. Save/reload preserved all 14 generated elements.
+- Test-account successful usage moved from `3` to `13`: ten successful canvas
+  commits across the diagnostic reruns, each recorded exactly once; failed or
+  non-committing browser actions created no usage record.
+- Final gate after the Chrome-discovered renderer repairs: `pnpm test` passed 18
+  files / 104 tests, `pnpm typecheck` exited 0, changed-file Biome checked 20
+  TypeScript files with no diagnostics, and `pnpm build` generated all 41 pages
+  and exited 0. The first build attempt overlapped the running Next dev server
+  and invalidated their shared `.next` cache; after stopping dev, Next recreated
+  the cache and the clean production build passed.
+- Final gate after the saved-scene history repair: `pnpm test` passed 19 files /
+  105 tests, `pnpm typecheck` exited 0, scoped Biome checked all 23 changed
+  TypeScript files with no diagnostics, and the clean `pnpm build` generated all
+  41 pages and exited 0 after the dev server was stopped.
+
 ## Locked SPEC
 
 ### Goal
@@ -136,4 +245,7 @@ Preview may use production-compatible environment configuration, but verificatio
 
 ## Resume Point
 
-Current stage: `DONE`. The locked SPEC, implementation, independent evaluation, authenticated Chrome QA, Vercel Preview verification and final Producer gates are complete. The dedicated test account and its owned Preview data remain for founder testing. No migration, delete, Production deployment, push or existing-user data write was performed.
+`FAI-STYLED-FLOWCHART-PATCH-V1.1` is complete. Resume only for a newly approved
+scope such as deployment, additional diagram dialects, or a separate UI change.
+No migration, delete, Production deployment, push, or existing-user data write
+was performed.

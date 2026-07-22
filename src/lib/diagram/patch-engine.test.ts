@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DiagramDocument, DiagramPatch } from './contracts';
+import { isPatchableFlowchart } from './flowchart-parser';
 import { applyDiagramPatch } from './patch-engine';
 
 function makeDocument(): DiagramDocument {
@@ -17,7 +18,7 @@ function makeDocument(): DiagramDocument {
     ],
     edges: [
       {
-        semanticId: 'a_b',
+        semanticId: 'a__b',
         sourceSemanticId: 'a',
         targetSemanticId: 'b',
       },
@@ -50,11 +51,11 @@ describe('applyDiagramPatch', () => {
           node: { semanticId: 'c', label: 'C', shape: 'ellipse' },
         },
         { type: 'updateNode', semanticId: 'a', changes: { label: 'Start' } },
-        { type: 'removeEdge', semanticId: 'a_b' },
+        { type: 'removeEdge', semanticId: 'a__b' },
         {
           type: 'addEdge',
           edge: {
-            semanticId: 'a_c',
+            semanticId: 'a__c',
             sourceSemanticId: 'a',
             targetSemanticId: 'c',
             label: 'next',
@@ -62,7 +63,7 @@ describe('applyDiagramPatch', () => {
         },
         {
           type: 'updateEdge',
-          semanticId: 'a_c',
+          semanticId: 'a__c',
           changes: { label: 'continue' },
         },
       ])
@@ -72,7 +73,7 @@ describe('applyDiagramPatch', () => {
     expect(next.nodes.map((node) => node.semanticId)).toEqual(['a', 'b', 'c']);
     expect(next.nodes[0]?.label).toBe('Start');
     expect(next.edges).toEqual([
-      expect.objectContaining({ semanticId: 'a_c', label: 'continue' }),
+      expect.objectContaining({ semanticId: 'a__c', label: 'continue' }),
     ]);
     expect(next.sourceMermaid).toContain('flowchart LR');
     expect(original).toEqual(makeDocument());
@@ -83,12 +84,63 @@ describe('applyDiagramPatch', () => {
       makeDocument(),
       makePatch([
         { type: 'removeNode', semanticId: 'b' },
-        { type: 'removeEdge', semanticId: 'a_b' },
+        { type: 'removeEdge', semanticId: 'a__b' },
       ])
     );
 
     expect(next.nodes.map((node) => node.semanticId)).toEqual(['a']);
     expect(next.edges).toEqual([]);
+  });
+
+  it('fully replaces node style while preserving explicitly retained keys', () => {
+    const original = makeDocument();
+    original.nodes[0] = {
+      ...original.nodes[0],
+      style: {
+        fill: '#fddf9f',
+        stroke: '#d68f2f',
+        'stroke-width': '2px',
+      },
+    };
+    const next = applyDiagramPatch(
+      original,
+      makePatch([
+        {
+          type: 'updateNode',
+          semanticId: 'a',
+          changes: {
+            style: {
+              fill: '#9fdfbf',
+              stroke: '#d68f2f',
+              'stroke-width': '2px',
+            },
+          },
+        },
+      ])
+    );
+
+    expect(next.revision).toBe(3);
+    expect(next.nodes[0]?.style).toEqual({
+      fill: '#9fdfbf',
+      stroke: '#d68f2f',
+      'stroke-width': '2px',
+    });
+    expect(isPatchableFlowchart(next.sourceMermaid)).toBe(true);
+
+    const replacedAgain = applyDiagramPatch(
+      next,
+      makePatch(
+        [
+          {
+            type: 'updateNode',
+            semanticId: 'a',
+            changes: { style: { fill: '#c9e9ff' } },
+          },
+        ],
+        { baseRevision: next.revision }
+      )
+    );
+    expect(replacedAgain.nodes[0]?.style).toEqual({ fill: '#c9e9ff' });
   });
 
   it('rejects revision conflicts before mutation', () => {

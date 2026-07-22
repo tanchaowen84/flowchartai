@@ -3,9 +3,31 @@ import {
   type DiagramNode,
   diagramDocumentSchema,
 } from './contracts';
+import {
+  PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE,
+  canonicalPatchableFlowchartEdgeSemanticId,
+  parsePatchableFlowchartNodeStyle,
+} from './flowchart-capabilities';
 
-const NODE_DEFINITION_PATTERN =
-  /\b([A-Za-z_][\w-]*)\s*(\[\[[^\]\n]*\]\]|\[\([^\]\n]*\)\]|\(\[[^\]\n]*\]\)|\(\([^\)\n]*\)\)|\{\{[^}\n]*\}\}|\{[^}\n]*\}|\([^\)\n]*\)|\[[^\]\n]*\])/g;
+const NODE_DEFINITION_PATTERN = new RegExp(
+  `\\b(${PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE})\\s*(\\[\\[[^\\]\\n]*\\]\\]|\\[\\([^\\]\\n]*\\)\\]|\\(\\[[^\\]\\n]*\\]\\)|\\(\\([^\\)\\n]*\\)\\)|\\{\\{[^}\\n]*\\}\\}|\\{[^}\\n]*\\}|\\([^\\)\\n]*\\)|\\[[^\\]\\n]*\\])`,
+  'g'
+);
+const FLOWCHART_HEADER_PATTERN = /^(flowchart|graph)\s+(LR|RL|TD|BT)\s*$/i;
+const SUPPORTED_STATEMENT_PATTERN = new RegExp(
+  `^${PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE}(?:\\s*(?:-\\.->|-->)\\s*(?:\\|[^|]*\\|\\s*)?${PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE})*$`
+);
+const SOURCE_SEMANTIC_ID_PATTERN = new RegExp(
+  `(${PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE})\\s*$`
+);
+const TARGET_SEMANTIC_ID_PATTERN = new RegExp(
+  `^\\s*(?:\\|([^|]*)\\|\\s*)?(${PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE})`
+);
+const SUBGRAPH_PATTERN = new RegExp(
+  `^subgraph\\s+(${PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE})(?:\\s*\\[([^\\]]+)\\])?`,
+  'i'
+);
+const HTML_TAG_PATTERN = /<\/?[A-Za-z][^>\n]*>/;
 
 interface ParseFlowchartOptions {
   diagramId: string;
@@ -18,18 +40,10 @@ function cleanLabel(label: string): string {
 
 function parseNodeToken(semanticId: string, token: string): DiagramNode {
   if (token.startsWith('[[')) {
-    return {
-      semanticId,
-      label: cleanLabel(token.slice(2, -2)),
-      shape: 'subroutine',
-    };
+    throw new Error('Subroutine nodes require targeted replacement');
   }
   if (token.startsWith('[(')) {
-    return {
-      semanticId,
-      label: cleanLabel(token.slice(2, -2)),
-      shape: 'cylinder',
-    };
+    throw new Error('Cylinder nodes require targeted replacement');
   }
   if (token.startsWith('([')) {
     return {
@@ -46,11 +60,7 @@ function parseNodeToken(semanticId: string, token: string): DiagramNode {
     };
   }
   if (token.startsWith('{{')) {
-    return {
-      semanticId,
-      label: cleanLabel(token.slice(2, -2)),
-      shape: 'hexagon',
-    };
+    throw new Error('Hexagon nodes require targeted replacement');
   }
   if (token.startsWith('{')) {
     return {
@@ -74,21 +84,6 @@ function parseNodeToken(semanticId: string, token: string): DiagramNode {
   };
 }
 
-function parseStyle(styleText: string): Record<string, string> {
-  return Object.fromEntries(
-    styleText
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean)
-      .map((entry) => {
-        const separator = entry.indexOf(':');
-        return separator === -1
-          ? [entry, '']
-          : [entry.slice(0, separator), entry.slice(separator + 1)];
-      })
-  );
-}
-
 export function getMermaidDiagramType(source: string): string | null {
   const firstLine = source
     .split(/\r?\n/)
@@ -102,6 +97,7 @@ export function isPatchableFlowchart(source: string): boolean {
   if (type !== 'flowchart' && type !== 'graph') return false;
 
   if (
+    HTML_TAG_PATTERN.test(source) ||
     /\b(subgraph|classDef|class|click|linkStyle|accTitle|accDescr)\b|:::|\s&\s|%%\{|@\{|<--|--[ox]|[ox]--|~~~|;|==>|---|--\s+[^|\n]+\s+-->/i.test(
       source
     )
@@ -115,11 +111,37 @@ export function isPatchableFlowchart(source: string): boolean {
     .map((line) => line.replace(/%%.*$/, '').trim())
     .filter(Boolean)
     .slice(1);
+  const header = source
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/%%.*$/, '').trim())
+    .find(Boolean);
+  if (!header || !FLOWCHART_HEADER_PATTERN.test(header)) return false;
+
+  const referencedNodeIds = new Set<string>();
+  const styledNodeIds = new Set<string>();
   for (const line of meaningfulLines) {
+    const styleMatch = line.match(
+      new RegExp(
+        `^style\\s+(${PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE})\\s+(.+)$`,
+        'i'
+      )
+    );
+    if (styleMatch) {
+      if (
+        styledNodeIds.has(styleMatch[1]) ||
+        !parsePatchableFlowchartNodeStyle(styleMatch[2])
+      ) {
+        return false;
+      }
+      styledNodeIds.add(styleMatch[1]);
+      continue;
+    }
     if (/^style\s+/i.test(line)) return false;
+
     NODE_DEFINITION_PATTERN.lastIndex = 0;
     for (const match of line.matchAll(NODE_DEFINITION_PATTERN)) {
-      if (/^(?:\[\[|\[\(|\(\[|\(\(|\{\{)/.test(match[2])) {
+      if (/^(?:\[\[|\[\(|\{\{)/.test(match[2])) {
         return false;
       }
     }
@@ -130,14 +152,24 @@ export function isPatchableFlowchart(source: string): boolean {
       NODE_DEFINITION_PATTERN,
       (_match, semanticId: string) => semanticId
     );
-    const supportedStatement =
-      /^[A-Za-z_][\w-]*(?:\s*(?:-\.->|-->)\s*(?:\|[^|]*\|\s*)?[A-Za-z_][\w-]*)*$/.test(
-        normalized
-      );
+    const supportedStatement = SUPPORTED_STATEMENT_PATTERN.test(normalized);
     if (!supportedStatement) return false;
     if (!hasNodeDefinition && !/(?:-\.->|-->)/.test(normalized)) {
       return false;
     }
+
+    const statementWithoutLabels = normalized.replace(/\|[^|]*\|/g, ' ');
+    const semanticIdPattern = new RegExp(
+      PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE,
+      'g'
+    );
+    for (const match of statementWithoutLabels.matchAll(semanticIdPattern)) {
+      referencedNodeIds.add(match[0]);
+    }
+  }
+
+  for (const semanticId of styledNodeIds) {
+    if (!referencedNodeIds.has(semanticId)) return false;
   }
 
   try {
@@ -154,13 +186,16 @@ export function parseFlowchartMermaid(
   source: string,
   options: ParseFlowchartOptions
 ): DiagramDocument {
+  if (HTML_TAG_PATTERN.test(source)) {
+    throw new Error('HTML labels require targeted replacement');
+  }
   const lines = source.replace(/\r\n?/g, '\n').split('\n');
   const headerIndex = lines.findIndex((line) => {
     const trimmed = line.trim();
     return trimmed && !trimmed.startsWith('%%');
   });
   const header = lines[headerIndex]?.trim() || '';
-  const headerMatch = header.match(/^(flowchart|graph)\s+(LR|RL|TD|BT)\b/i);
+  const headerMatch = header.match(FLOWCHART_HEADER_PATTERN);
   if (!headerMatch) {
     throw new Error('Only Mermaid flowchart or graph diagrams can be patched');
   }
@@ -168,7 +203,7 @@ export function parseFlowchartMermaid(
   const nodeMap = new Map<string, DiagramNode>();
   const edges: DiagramDocument['edges'] = [];
   const groups: DiagramDocument['groups'] = [];
-  const edgeOccurrences = new Map<string, number>();
+  const edgeIds = new Set<string>();
   let currentGroup: DiagramDocument['groups'][number] | null = null;
 
   const ensureNode = (semanticId: string): DiagramNode => {
@@ -193,9 +228,7 @@ export function parseFlowchartMermaid(
     const line = rawLine.replace(/%%.*$/, '').trim();
     if (!line) continue;
 
-    const subgraphMatch = line.match(
-      /^subgraph\s+([A-Za-z_][\w-]*)(?:\s*\[([^\]]+)\])?/i
-    );
+    const subgraphMatch = line.match(SUBGRAPH_PATTERN);
     if (subgraphMatch) {
       currentGroup = {
         semanticId: subgraphMatch[1],
@@ -210,10 +243,21 @@ export function parseFlowchartMermaid(
       continue;
     }
 
-    const styleMatch = line.match(/^style\s+([A-Za-z_][\w-]*)\s+(.+)$/i);
+    const styleMatch = line.match(
+      new RegExp(
+        `^style\\s+(${PATCHABLE_FLOWCHART_SEMANTIC_ID_SOURCE})\\s+(.+)$`,
+        'i'
+      )
+    );
     if (styleMatch) {
       const node = ensureNode(styleMatch[1]);
-      node.style = parseStyle(styleMatch[2]);
+      const style = parsePatchableFlowchartNodeStyle(styleMatch[2]);
+      if (!style) {
+        throw new Error(
+          `Unsupported node style for patchable flowchart node ${styleMatch[1]}`
+        );
+      }
+      node.style = style;
       continue;
     }
 
@@ -238,10 +282,8 @@ export function parseFlowchartMermaid(
       const after = normalizedLine.slice(
         connectorIndex + connectorMatch[0].length
       );
-      const sourceId = before.match(/([A-Za-z_][\w-]*)\s*$/)?.[1];
-      const targetMatch = after.match(
-        /^\s*(?:\|([^|]*)\|\s*)?([A-Za-z_][\w-]*)/
-      );
+      const sourceId = before.match(SOURCE_SEMANTIC_ID_PATTERN)?.[1];
+      const targetMatch = after.match(TARGET_SEMANTIC_ID_PATTERN);
       const targetId = targetMatch?.[2];
       if (!sourceId || !targetId) continue;
 
@@ -250,11 +292,18 @@ export function parseFlowchartMermaid(
       addToCurrentGroup(sourceId);
       addToCurrentGroup(targetId);
 
-      const baseId = `${sourceId}__${targetId}`;
-      const occurrence = (edgeOccurrences.get(baseId) || 0) + 1;
-      edgeOccurrences.set(baseId, occurrence);
+      const edgeId = canonicalPatchableFlowchartEdgeSemanticId(
+        sourceId,
+        targetId
+      );
+      if (edgeIds.has(edgeId)) {
+        throw new Error(
+          `Parallel edge ${edgeId} requires targeted replacement`
+        );
+      }
+      edgeIds.add(edgeId);
       edges.push({
-        semanticId: occurrence === 1 ? baseId : `${baseId}__${occurrence}`,
+        semanticId: edgeId,
         sourceSemanticId: sourceId,
         targetSemanticId: targetId,
         label: targetMatch?.[1]?.trim() || undefined,

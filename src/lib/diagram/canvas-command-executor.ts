@@ -11,6 +11,7 @@ import {
   flowchartAiMetadataSchema,
 } from './contracts';
 import { renderDiagramDocument } from './diagram-renderer';
+import { isDiagramSceneSemanticallyAligned } from './diagram-scene-alignment';
 import {
   isPatchableFlowchart,
   parseFlowchartMermaid,
@@ -245,6 +246,11 @@ export async function prepareCanvasCommand<T extends ReconcilerElement>({
     const target = requireTarget(targetResolution, command.patch.diagramId);
     if (!target.document || !target.patchable) {
       throw new Error('The selected diagram cannot be locally patched in V1');
+    }
+    if (!isDiagramSceneSemanticallyAligned(target.document, currentElements)) {
+      throw new Error(
+        'The selected diagram scene does not match its semantic document; use an explicit targeted replacement before local patching.'
+      );
     }
 
     const nextDocument = applyDiagramPatch(target.document, command.patch);

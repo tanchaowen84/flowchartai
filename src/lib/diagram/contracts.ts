@@ -1,35 +1,79 @@
 import { z } from 'zod';
+import {
+  PATCHABLE_FLOWCHART_DIRECTIONS,
+  PATCHABLE_FLOWCHART_EDGE_STYLES,
+  PATCHABLE_FLOWCHART_KEYWORDS,
+  PATCHABLE_FLOWCHART_NODE_SHAPES,
+  PATCHABLE_FLOWCHART_SEMANTIC_ID_PATTERN,
+  canonicalPatchableFlowchartEdgeSemanticId,
+  isPatchableFlowchartNodeStyleValue,
+} from './flowchart-capabilities';
 
-export const diagramNodeShapeSchema = z.enum([
-  'rectangle',
-  'rounded',
-  'diamond',
-  'ellipse',
-  'stadium',
-  'subroutine',
-  'cylinder',
-  'circle',
-  'hexagon',
-]);
+export const diagramNodeShapeSchema = z.enum(PATCHABLE_FLOWCHART_NODE_SHAPES);
 
-const semanticIdSchema = z.string().trim().min(1);
-const styleSchema = z.record(z.string()).optional();
+const semanticIdSchema = z
+  .string()
+  .trim()
+  .regex(PATCHABLE_FLOWCHART_SEMANTIC_ID_PATTERN);
+const colorStyleValueSchema = z
+  .string()
+  .trim()
+  .refine((value) => isPatchableFlowchartNodeStyleValue('fill', value), {
+    message: 'Node colors must be hexadecimal or named color tokens',
+  });
+const strokeWidthStyleValueSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) => isPatchableFlowchartNodeStyleValue('stroke-width', value),
+    { message: 'Node stroke-width must be a pixel value such as 2px' }
+  );
 
-export const diagramNodeSchema = z.object({
-  semanticId: semanticIdSchema,
-  label: z.string(),
-  shape: diagramNodeShapeSchema.default('rectangle'),
-  style: styleSchema,
-});
+export const diagramNodeStyleSchema = z
+  .object({
+    fill: colorStyleValueSchema.optional(),
+    stroke: colorStyleValueSchema.optional(),
+    'stroke-width': strokeWidthStyleValueSchema.optional(),
+  })
+  .strict();
 
-export const diagramEdgeSchema = z.object({
-  semanticId: semanticIdSchema,
-  sourceSemanticId: semanticIdSchema,
-  targetSemanticId: semanticIdSchema,
-  label: z.string().optional(),
-  lineStyle: z.enum(['solid', 'dashed', 'dotted']).default('solid').optional(),
-  style: styleSchema,
-});
+export const diagramNodeSchema = z
+  .object({
+    semanticId: semanticIdSchema,
+    label: z.string(),
+    shape: diagramNodeShapeSchema.default('rectangle'),
+    style: diagramNodeStyleSchema.optional(),
+  })
+  .strict();
+
+const diagramEdgeObjectSchema = z
+  .object({
+    semanticId: semanticIdSchema,
+    sourceSemanticId: semanticIdSchema,
+    targetSemanticId: semanticIdSchema,
+    label: z.string().optional(),
+    lineStyle: z
+      .enum(PATCHABLE_FLOWCHART_EDGE_STYLES)
+      .default('solid')
+      .optional(),
+  })
+  .strict();
+
+export const diagramEdgeSchema = diagramEdgeObjectSchema.superRefine(
+  (edge, context) => {
+    const canonicalId = canonicalPatchableFlowchartEdgeSemanticId(
+      edge.sourceSemanticId,
+      edge.targetSemanticId
+    );
+    if (edge.semanticId !== canonicalId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Edge semantic id must be ${canonicalId}`,
+        path: ['semanticId'],
+      });
+    }
+  }
+);
 
 export const diagramGroupSchema = z.object({
   semanticId: semanticIdSchema,
@@ -42,8 +86,8 @@ export const diagramDocumentSchema = z
     schemaVersion: z.literal(1),
     diagramId: z.string().trim().min(1),
     diagramType: z.literal('flowchart'),
-    mermaidKeyword: z.enum(['flowchart', 'graph']),
-    direction: z.enum(['LR', 'RL', 'TD', 'BT']),
+    mermaidKeyword: z.enum(PATCHABLE_FLOWCHART_KEYWORDS),
+    direction: z.enum(PATCHABLE_FLOWCHART_DIRECTIONS),
     revision: z.number().int().nonnegative(),
     sourceMermaid: z.string(),
     nodes: z.array(diagramNodeSchema),
@@ -64,6 +108,7 @@ export const diagramDocumentSchema = z
     }
 
     const edgeIds = new Set<string>();
+    const endpointPairs = new Set<string>();
     for (const edge of document.edges) {
       if (edgeIds.has(edge.semanticId)) {
         context.addIssue({
@@ -73,6 +118,19 @@ export const diagramDocumentSchema = z
         });
       }
       edgeIds.add(edge.semanticId);
+
+      const endpointPair = canonicalPatchableFlowchartEdgeSemanticId(
+        edge.sourceSemanticId,
+        edge.targetSemanticId
+      );
+      if (endpointPairs.has(endpointPair)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Parallel edge ${endpointPair} is outside the patchable flowchart profile`,
+          path: ['edges'],
+        });
+      }
+      endpointPairs.add(endpointPair);
 
       if (!nodeIds.has(edge.sourceSemanticId)) {
         context.addIssue({
@@ -120,8 +178,8 @@ const nodeChangesSchema = diagramNodeSchema
     message: 'Node update must include at least one change',
   });
 
-const edgeChangesSchema = diagramEdgeSchema
-  .omit({ semanticId: true })
+const edgeChangesSchema = diagramEdgeObjectSchema
+  .pick({ label: true, lineStyle: true })
   .partial()
   .refine((changes) => Object.keys(changes).length > 0, {
     message: 'Edge update must include at least one change',
@@ -173,6 +231,7 @@ export const canvasCommandSchema = z.discriminatedUnion('kind', [
 ]);
 
 export type DiagramNode = z.infer<typeof diagramNodeSchema>;
+export type DiagramNodeStyle = z.infer<typeof diagramNodeStyleSchema>;
 export type DiagramEdge = z.infer<typeof diagramEdgeSchema>;
 export type DiagramGroup = z.infer<typeof diagramGroupSchema>;
 export type DiagramDocument = z.infer<typeof diagramDocumentSchema>;

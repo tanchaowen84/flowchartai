@@ -3,7 +3,11 @@ import type {
   FlowchartAiMetadata,
   MermaidDiagramRecord,
 } from './contracts';
-import { isPatchableFlowchart } from './flowchart-parser';
+import { isDiagramSceneSemanticallyAligned } from './diagram-scene-alignment';
+import {
+  isPatchableFlowchart,
+  parseFlowchartMermaid,
+} from './flowchart-parser';
 
 interface TargetElement {
   id: string;
@@ -34,6 +38,11 @@ export type DiagramTargetResolution =
       legacy?: boolean;
       sourceMermaid?: string;
       elementIds?: string[];
+      patchBlockReason?:
+        | 'unsupported-flowchart-syntax'
+        | 'scene-semantic-id-mismatch'
+        | 'missing-diagram-document'
+        | 'legacy-scene-requires-targeted-replace';
     };
 
 interface LegacyDiagramGroup {
@@ -55,17 +64,43 @@ function legacyDiagramId(source: string, generationKey?: number): string {
 
 function resolveManaged(
   diagramId: string,
-  metadata: FlowchartAiMetadata
+  metadata: FlowchartAiMetadata,
+  elements: TargetElement[]
 ): DiagramTargetResolution {
-  const document = metadata.diagrams[diagramId];
+  const storedDocument = metadata.diagrams[diagramId];
   const mermaidDiagram = metadata.mermaidDiagrams?.[diagramId];
-  const source = document?.sourceMermaid || mermaidDiagram?.sourceMermaid || '';
+  const source =
+    storedDocument?.sourceMermaid || mermaidDiagram?.sourceMermaid || '';
+  const sourceIsPatchable = isPatchableFlowchart(source);
+  const derivedDocument =
+    !storedDocument && mermaidDiagram && sourceIsPatchable
+      ? parseFlowchartMermaid(source, {
+          diagramId,
+          revision: mermaidDiagram.revision,
+        })
+      : undefined;
+  const candidateDocument = storedDocument || derivedDocument;
+  const sceneIsAligned = Boolean(
+    candidateDocument &&
+      isDiagramSceneSemanticallyAligned(candidateDocument, elements)
+  );
+  const document =
+    storedDocument || (sceneIsAligned ? derivedDocument : undefined);
+  const patchable = Boolean(document && sourceIsPatchable && sceneIsAligned);
+
   return {
     status: 'resolved',
     diagramId,
     document,
     mermaidDiagram,
-    patchable: Boolean(document && isPatchableFlowchart(source)),
+    patchable,
+    patchBlockReason: patchable
+      ? undefined
+      : !sourceIsPatchable
+        ? 'unsupported-flowchart-syntax'
+        : candidateDocument && !sceneIsAligned
+          ? 'scene-semantic-id-mismatch'
+          : 'missing-diagram-document',
   };
 }
 
@@ -142,6 +177,7 @@ function resolveLegacy(group: LegacyDiagramGroup): DiagramTargetResolution {
     legacy: true,
     sourceMermaid: group.source,
     elementIds: group.elements.map((element) => element.id),
+    patchBlockReason: 'legacy-scene-requires-targeted-replace',
   };
 }
 
@@ -159,7 +195,7 @@ export function resolveDiagramTarget({
     ),
   ];
   if (selectedManagedIds.length === 1) {
-    return resolveManaged(selectedManagedIds[0], metadata);
+    return resolveManaged(selectedManagedIds[0], metadata, elements);
   }
   if (selectedManagedIds.length > 1) {
     return { status: 'ambiguous', diagramIds: selectedManagedIds.sort() };
@@ -196,7 +232,7 @@ export function resolveDiagramTarget({
     return { status: 'ambiguous', diagramIds: candidateIds.sort() };
   }
   if (managedIds.length === 1) {
-    return resolveManaged(managedIds[0], metadata);
+    return resolveManaged(managedIds[0], metadata, elements);
   }
 
   return resolveLegacy(legacy[0]);

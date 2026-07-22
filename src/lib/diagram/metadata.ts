@@ -1,6 +1,7 @@
 import {
   type FlowchartAiMetadata,
-  flowchartAiMetadataSchema,
+  diagramDocumentSchema,
+  mermaidDiagramRecordSchema,
 } from './contracts';
 import {
   getMermaidDiagramType,
@@ -27,8 +28,56 @@ export function emptyFlowchartAiMetadata(): FlowchartAiMetadata {
 export function normalizeFlowchartAiMetadata(
   value: unknown
 ): FlowchartAiMetadata {
-  const parsed = flowchartAiMetadataSchema.safeParse(value);
-  return parsed.success ? parsed.data : emptyFlowchartAiMetadata();
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    (value as { schemaVersion?: unknown }).schemaVersion !== 1
+  ) {
+    return emptyFlowchartAiMetadata();
+  }
+
+  const raw = value as {
+    diagrams?: unknown;
+    mermaidDiagrams?: unknown;
+  };
+  const next = emptyFlowchartAiMetadata();
+  const rawMermaidDiagrams =
+    raw.mermaidDiagrams &&
+    typeof raw.mermaidDiagrams === 'object' &&
+    !Array.isArray(raw.mermaidDiagrams)
+      ? (raw.mermaidDiagrams as Record<string, unknown>)
+      : {};
+
+  for (const candidate of Object.values(rawMermaidDiagrams)) {
+    const parsed = mermaidDiagramRecordSchema.safeParse(candidate);
+    if (parsed.success) {
+      next.mermaidDiagrams![parsed.data.diagramId] = parsed.data;
+    }
+  }
+
+  const rawDiagrams =
+    raw.diagrams &&
+    typeof raw.diagrams === 'object' &&
+    !Array.isArray(raw.diagrams)
+      ? (raw.diagrams as Record<string, unknown>)
+      : {};
+
+  for (const candidate of Object.values(rawDiagrams)) {
+    const parsed = diagramDocumentSchema.safeParse(candidate);
+    if (parsed.success) {
+      next.diagrams[parsed.data.diagramId] = parsed.data;
+      delete next.mermaidDiagrams?.[parsed.data.diagramId];
+      continue;
+    }
+
+    const fallback = mermaidDiagramRecordSchema.safeParse(candidate);
+    if (fallback.success && !next.mermaidDiagrams?.[fallback.data.diagramId]) {
+      next.mermaidDiagrams![fallback.data.diagramId] = fallback.data;
+    }
+  }
+
+  return next;
 }
 
 export function parseFlowchartAiMetadata(content: string): FlowchartAiMetadata {

@@ -57,7 +57,7 @@ describe('flowchart Mermaid parser', () => {
         lineStyle: 'dashed',
       }),
     ]);
-    expect(isPatchableFlowchart(source)).toBe(false);
+    expect(isPatchableFlowchart(source)).toBe(true);
     expect(getMermaidDiagramType(source)).toBe('flowchart');
   });
 
@@ -124,16 +124,41 @@ describe('flowchart Mermaid parser', () => {
     expect(isPatchableFlowchart('flowchart LR\n  class A warning')).toBe(false);
   });
 
+  it('keeps supported styled shapes and hyphenated semantic ids patchable', () => {
+    const source = `graph TD
+      start-node[Start] --> middle-node([Waiting])
+      middle-node --> end-node((Done))
+      style start-node fill:#fddf9f,stroke:#d68f2f,stroke-width:2px
+      style end-node fill:#9fdfbf,stroke:#2f7f3f,stroke-width:2px`;
+
+    expect(isPatchableFlowchart(source)).toBe(true);
+    expect(
+      parseFlowchartMermaid(source, { diagramId: 'styled-shapes' }).nodes
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          semanticId: 'middle-node',
+          shape: 'stadium',
+        }),
+        expect.objectContaining({ semanticId: 'end-node', shape: 'circle' }),
+      ])
+    );
+  });
+
   it.each([
     'flowchart LR\n  A --- B',
     'flowchart LR\n  A ==> B',
     'flowchart LR\n  A[[Subroutine]] --> B',
     'flowchart LR\n  A[(Database)] --> B',
     'flowchart LR\n  A{{Hexagon}} --> B',
-    'flowchart LR\n  A([Stadium]) --> B',
-    'flowchart LR\n  A((Circle)) --> B',
     'flowchart LR\n  A[Node]\n  style A color:red',
     'flowchart LR\n  A[Node]\n  style A stroke-dasharray: 5 5',
+    'flowchart LR\n  A[Node] --> B[Done]\n  style A__B fill:red',
+    'flowchart LR\n  A[Node] --> B[Done]\n  linkStyle 0 stroke:red',
+    'flowchart LR\n  A[Node]\n  classDef warning fill:red',
+    'flowchart LR\n  A[First<br/>Second] --> B[Done]',
+    'flowchart LR\n  A[Node]\n  style A fill:#12345',
+    'flowchart LR\n  A[Node]\n  style A stroke:#1234567',
   ])('falls back instead of patching non-faithful syntax: %s', (source) => {
     expect(isPatchableFlowchart(source)).toBe(false);
   });
@@ -144,5 +169,13 @@ describe('flowchart Mermaid parser', () => {
         'flowchart LR\n  A[Start] --> B{Ready}\n  B -.-> C(Done)'
       )
     ).toBe(true);
+  });
+
+  it('routes parallel edges to targeted replacement', () => {
+    expect(
+      isPatchableFlowchart(`flowchart LR
+  A[Start] --> B[Done]
+  A -->|again| B`)
+    ).toBe(false);
   });
 });
