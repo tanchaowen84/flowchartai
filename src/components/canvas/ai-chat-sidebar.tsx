@@ -1,18 +1,13 @@
 'use client';
 
-import { LoginForm } from '@/components/auth/login-form';
+import { LoginDialogContent } from '@/components/auth/login-dialog-content';
 import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
 import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
 import MarkdownRenderer from '@/components/shared/markdown-renderer';
 import { PricingModal } from '@/components/shared/pricing-modal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -49,6 +44,11 @@ import {
   sanitizeSerializedCanvasChatSessionForStorage,
   serializeCanvasChatSession,
 } from '@/lib/mastra/chat-session-storage';
+import {
+  getPendingAuthAttachmentStorageKey,
+  parsePendingAuthAttachment,
+  serializePendingAuthAttachment,
+} from '@/lib/mastra/pending-auth-attachment';
 import { createSseEventDecoder } from '@/lib/mastra/sse-client';
 import { createCanvasUsageGate } from '@/lib/mastra/usage-gate';
 import {
@@ -260,6 +260,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   }, [initialMode]);
 
   const chatStorageKey = getCanvasChatStorageKey(flowchartId);
+  const pendingAuthAttachmentStorageKey =
+    getPendingAuthAttachmentStorageKey(flowchartId);
 
   useEffect(() => {
     setIsChatHydrated(false);
@@ -328,6 +330,76 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   }, [aiMode, chatStorageKey, input, isChatHydrated, messages]);
 
   useEffect(() => {
+    let active = true;
+
+    const restorePendingAttachment = async () => {
+      let stored: string | null = null;
+      try {
+        stored = sessionStorage.getItem(pendingAuthAttachmentStorageKey);
+      } catch {
+        return;
+      }
+
+      const attachment = parsePendingAuthAttachment(stored);
+      if (!attachment) return;
+
+      try {
+        const response = await fetch(attachment.dataUrl);
+        const blob = await response.blob();
+        if (!active) return;
+
+        const file = new File([blob], attachment.name, {
+          type: attachment.type,
+          lastModified: attachment.lastModified,
+        });
+        setSelectedImages((current) => (current.length > 0 ? current : [file]));
+        setImagePreviewUrls((current) =>
+          current.length > 0 ? current : [attachment.dataUrl]
+        );
+      } catch {
+        try {
+          sessionStorage.removeItem(pendingAuthAttachmentStorageKey);
+        } catch {
+          // Keep the rest of the draft available if storage is unavailable.
+        }
+      }
+    };
+
+    void restorePendingAttachment();
+    return () => {
+      active = false;
+    };
+  }, [pendingAuthAttachmentStorageKey]);
+
+  const openLoginModal = () => {
+    try {
+      localStorage.setItem(
+        chatStorageKey,
+        serializeCanvasChatSession({
+          version: 1,
+          draft: input,
+          mode: aiMode,
+          messages: sanitizeCanvasChatMessagesForStorage(
+            messages.map(({ images: _images, ...message }) => message)
+          ),
+        })
+      );
+    } catch {
+      // In-memory state remains available for non-redirect auth methods.
+    }
+
+    const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    setLoginCallbackUrl(callbackUrl);
+    setShowLoginModal(true);
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      setShowLoginModal(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
     if (initialImage) {
       canvasContextRef.current.homepageImage = initialImage;
     } else {
@@ -358,21 +430,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   }, [input]);
 
   // Auto-send function that bypasses input state
-  const handleAutoSendMessage = async (messageText: string) => {
+  const handleAutoSendMessage = async (
+    messageText: string
+  ): Promise<boolean> => {
     const homepageImage = canvasContextRef.current.homepageImage;
     const trimmed = messageText.trim();
 
     if ((!trimmed && !homepageImage) || isLoading) {
-      return;
+      return false;
     }
 
     // Check if user is guest and show login modal instead of processing request
     if (!currentUser) {
-      // Generate callback URL to preserve current state
-      const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      setLoginCallbackUrl(callbackUrl);
-      setShowLoginModal(true);
-      return;
+      openLoginModal();
+      return false;
     }
 
     setIsLoading(true);
@@ -455,7 +526,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         } else {
           setShowUsageLimitCard(true);
         }
-        return;
+        return false;
       }
 
       // Create new abort controller for this request
@@ -473,6 +544,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         },
       ]);
 
+      return true;
+
       // 移除访客使用标记，改为在流程图成功生成后计费
       // if (!currentUser) {
       //   markGuestAsUsed();
@@ -481,14 +554,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       console.error('Error sending auto message:', error);
       // Handle errors similar to handleSendMessage
       if (error instanceof Error && error.name === 'AbortError') {
-        return;
+        return false;
       }
 
       if (error instanceof Error && (error as any).isGuestLimit) {
         if (!currentUser) {
           handleGuestLimitReached();
           setShowLoginModal(true);
-          return;
+          return false;
         }
       }
 
@@ -499,7 +572,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           );
           setDailyLimitUsageInfo((error as any).usageInfo);
           setShowPricingModal(true);
-          return;
+          return false;
         }
       }
 
@@ -523,6 +596,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         description: userFacingMessage,
         variant: 'destructive',
       });
+      return false;
     } finally {
       setIsLoading(false);
       setSendStatus(null);
@@ -564,7 +638,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       // Small delay to ensure component is fully loaded
       setTimeout(async () => {
         try {
-          await handleAutoSendMessage(normalizedAutoInput);
+          const sent = await handleAutoSendMessage(normalizedAutoInput);
+
+          if (!sent) return;
 
           // 🔧 只有在自动发送成功后才清除localStorage
           localStorage.removeItem('flowchart_auto_generate');
@@ -604,7 +680,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             setInput(normalizedAutoInput);
             setTimeout(async () => {
               try {
-                await handleAutoSendMessage(normalizedAutoInput);
+                const sent = await handleAutoSendMessage(normalizedAutoInput);
+                if (!sent) return;
                 localStorage.removeItem('flowchart_auto_generate');
                 localStorage.removeItem('flowchart_auto_input');
                 localStorage.removeItem('flowchart_auto_mode');
@@ -642,7 +719,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const handleImageSelect = async (files: FileList | null) => {
     if (!files) return;
 
-    const { isValidImageFile } = await import('@/lib/image-utils');
+    const { encodeImageToBase64, isValidImageFile } = await import(
+      '@/lib/image-utils'
+    );
 
     const file = files[0];
     if (!file || !isValidImageFile(file)) {
@@ -657,6 +736,22 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     setSelectedImages([file]);
     setImagePreviewUrls([URL.createObjectURL(file)]);
+
+    try {
+      const dataUrl = await encodeImageToBase64(file);
+      sessionStorage.setItem(
+        pendingAuthAttachmentStorageKey,
+        serializePendingAuthAttachment({
+          version: 1,
+          name: file.name,
+          type: file.type,
+          lastModified: file.lastModified,
+          dataUrl,
+        })
+      );
+    } catch (error) {
+      console.warn('Unable to persist the pending auth attachment:', error);
+    }
   };
 
   // Remove selected image
@@ -667,6 +762,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       URL.revokeObjectURL(urlToRevoke);
       return prev.filter((_, i) => i !== index);
     });
+    try {
+      sessionStorage.removeItem(pendingAuthAttachmentStorageKey);
+    } catch {
+      // The in-memory attachment was still removed.
+    }
   };
 
   // Handle camera button click
@@ -921,9 +1021,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (!retryMessages) return;
 
     if (!currentUser) {
-      const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      setLoginCallbackUrl(callbackUrl);
-      setShowLoginModal(true);
+      openLoginModal();
       return;
     }
 
@@ -1008,10 +1106,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     // Check if user is guest and show login modal instead of processing request
     if (!currentUser) {
-      // Generate callback URL to preserve current state
-      const callbackUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      setLoginCallbackUrl(callbackUrl);
-      setShowLoginModal(true);
+      openLoginModal();
       return;
     }
 
@@ -1121,6 +1216,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       prev.forEach((url) => URL.revokeObjectURL(url));
       return [];
     });
+    try {
+      sessionStorage.removeItem(pendingAuthAttachmentStorageKey);
+    } catch {
+      // Sending can continue even if storage cleanup fails.
+    }
     if (homepageImage && aiMode === 'image_to_flowchart') {
       canvasContextRef.current.homepageImage = undefined;
       localStorage.removeItem('flowchart_auto_image');
@@ -1547,6 +1647,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setIsStreamingResponse(false);
     streamingMessageIdRef.current = null;
     localStorage.removeItem(chatStorageKey);
+    try {
+      sessionStorage.removeItem(pendingAuthAttachmentStorageKey);
+    } catch {
+      // The in-memory conversation was still reset.
+    }
 
     // 显示提示信息
     toast({
@@ -1660,7 +1765,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         {/* Guest Usage Indicator */}
         {!currentUser && (
           <div className="px-4 pb-4">
-            <GuestUsageIndicator />
+            <GuestUsageIndicator onContinue={openLoginModal} />
           </div>
         )}
 
@@ -1896,15 +2001,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       {/* Login Modal for Guest Users - Direct login modal */}
       <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
-        <DialogContent className="sm:max-w-[400px] p-0">
-          <DialogHeader className="hidden">
-            <DialogTitle>Sign In</DialogTitle>
-          </DialogHeader>
-          <LoginForm
-            callbackUrl={loginCallbackUrl || currentPath}
-            className="border-none"
-          />
-        </DialogContent>
+        <LoginDialogContent
+          callbackUrl={loginCallbackUrl || currentPath}
+          title="Continue to your flowchart"
+          description="Sign in or create a free account to keep generating flowcharts."
+        />
       </Dialog>
 
       {/* AI Usage Limit Card */}

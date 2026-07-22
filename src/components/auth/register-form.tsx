@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { websiteConfig } from '@/config/website';
+import { withAuthCallbackUrl } from '@/lib/auth-callback-url';
 import { authClient } from '@/lib/auth-client';
 import { getUrlWithLocaleInCallbackUrl } from '@/lib/urls/urls';
 import { DEFAULT_LOGIN_REDIRECT, Routes } from '@/routes';
@@ -119,11 +120,13 @@ export const RegisterForm = ({
     setShowPassword((prev) => !prev);
   };
 
+  const signInHref = withAuthCallbackUrl(Routes.Login, callbackUrl);
+
   return (
     <AuthCard
       headerLabel={t('createAccount')}
       bottomButtonLabel={t('signInHint')}
-      bottomButtonHref={`${Routes.Login}`}
+      bottomButtonHref={signInHref}
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -212,7 +215,7 @@ export const RegisterForm = ({
         </form>
       </Form>
       <div className="mt-4">
-        <SocialLoginButton callbackUrl={callbackUrl} />
+        <SocialLoginButton callbackUrl={callbackUrl} action="continue" />
       </div>
     </AuthCard>
   );

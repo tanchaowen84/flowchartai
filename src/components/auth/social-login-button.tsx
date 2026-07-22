@@ -15,6 +15,8 @@ import { useState } from 'react';
 
 interface SocialLoginButtonProps {
   callbackUrl?: string;
+  showDivider?: boolean;
+  action?: 'sign-in' | 'continue';
 }
 
 /**
@@ -22,6 +24,8 @@ interface SocialLoginButtonProps {
  */
 export const SocialLoginButton = ({
   callbackUrl: propCallbackUrl,
+  showDivider = true,
+  action = 'sign-in',
 }: SocialLoginButtonProps) => {
   if (
     !websiteConfig.auth.enableGoogleLogin &&
@@ -93,7 +97,7 @@ export const SocialLoginButton = ({
 
   return (
     <div className="w-full flex flex-col gap-4">
-      <DividerWithText text={t('or')} />
+      {showDivider && <DividerWithText text={t('or')} />}
       {websiteConfig.auth.enableGoogleLogin && (
         <Button
           size="lg"
@@ -107,7 +111,11 @@ export const SocialLoginButton = ({
           ) : (
             <GoogleIcon className="size-4 mr-2" />
           )}
-          <span>{t('signInWithGoogle')}</span>
+          <span>
+            {action === 'continue'
+              ? t('continueWithGoogle')
+              : t('signInWithGoogle')}
+          </span>
         </Button>
       )}
       {websiteConfig.auth.enableGithubLogin && (
@@ -123,7 +131,11 @@ export const SocialLoginButton = ({
           ) : (
             <GitHubIcon className="size-4 mr-2" />
           )}
-          <span>{t('signInWithGitHub')}</span>
+          <span>
+            {action === 'continue'
+              ? t('continueWithGitHub')
+              : t('signInWithGitHub')}
+          </span>
         </Button>
       )}
     </div>
