@@ -7,7 +7,6 @@ import {
 } from '@/lib/flowchart-callback-handler';
 import type { ClassValue } from 'clsx';
 import { clsx } from 'clsx';
-import { toast } from 'sonner';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -126,6 +125,7 @@ export async function startFlowchartSession({
       console.log('✅ Pending data saved and redirecting to login');
     } catch (error) {
       console.error('Error saving pending data:', error);
+      const { toast } = await import('sonner');
       toast.error('Failed to prepare your request. Please try again.');
       router.push('/canvas'); // fallback
     }

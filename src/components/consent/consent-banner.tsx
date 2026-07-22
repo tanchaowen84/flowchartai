@@ -1,47 +1,7 @@
 'use client';
 
+import { publishConsent } from '@/components/consent/consent-state';
 import { useEffect } from 'react';
-import * as CookieConsent from 'vanilla-cookieconsent';
-import 'vanilla-cookieconsent/dist/cookieconsent.css';
-
-const translations = {
-  en: {
-    consentModal: {
-      title: 'We use cookies',
-      description:
-        'We use cookies to personalize content and analyse our traffic. Choose which categories to allow.',
-      acceptAllBtn: 'Accept all',
-      acceptNecessaryBtn: 'Reject all',
-      showPreferencesBtn: 'Customize',
-    },
-    preferencesModal: {
-      title: 'Cookie preferences',
-      acceptAllBtn: 'Accept all',
-      acceptNecessaryBtn: 'Reject all',
-      savePreferencesBtn: 'Save preferences',
-      closeIconLabel: 'Close modal',
-      sections: [
-        {
-          title: 'About cookies',
-          description:
-            'Cookies help us deliver FlowChart AI. You decide whether analytics and advertising cookies are allowed.',
-        },
-        {
-          title: 'Analytics cookies',
-          description:
-            'Enable anonymized analytics via Google Analytics to help us improve the product.',
-          linkedCategory: 'analytics',
-        },
-        {
-          title: 'Advertising cookies',
-          description:
-            'Allow personalized ads through Google AdSense and related services.',
-          linkedCategory: 'ads',
-        },
-      ],
-    },
-  },
-};
 
 export function ConsentBanner() {
   useEffect(() => {
@@ -56,6 +16,11 @@ export function ConsentBanner() {
         ad_personalization: 'granted',
         ad_user_data: 'granted',
         analytics_storage: 'granted',
+      });
+      publishConsent({
+        analyticsGranted: true,
+        adsGranted: true,
+        ready: true,
       });
       return;
     }
@@ -72,50 +37,38 @@ export function ConsentBanner() {
       analytics_storage: 'denied',
     });
 
-    CookieConsent.run({
-      disablePageInteraction: false,
-      guiOptions: {
-        consentModal: {
-          layout: 'box inline',
-          position: 'bottom right',
-          equalWeightButtons: true,
-        },
-        preferencesModal: {
-          layout: 'bar',
-          position: 'right',
-        },
-      },
-      categories: {
-        necessary: {
-          enabled: true,
-          readOnly: true,
-          autoClear: {
-            cookies: [],
-          },
-        },
-        analytics: {
-          enabled: false,
-        },
-        ads: {
-          enabled: false,
-        },
-      },
-      language: {
-        default: 'en',
-        translations,
-      },
-      onConsent: ({ cookie }) => updateConsent(cookie.categories),
-      onChange: ({ cookie }) => updateConsent(cookie.categories),
-    });
+    let cancelled = false;
+    let started = false;
+
+    const loadConsentManager = () => {
+      if (started || cancelled) return;
+      started = true;
+
+      void import('./cookie-consent-manager').then(({ runCookieConsent }) => {
+        if (cancelled) return;
+
+        runCookieConsent(({ analyticsGranted, adsGranted }) => {
+          updateConsent(analyticsGranted, adsGranted);
+        });
+      });
+    };
+
+    const loadTimer = window.setTimeout(loadConsentManager, 4000);
+    window.addEventListener('pointerdown', loadConsentManager, { once: true });
+    window.addEventListener('keydown', loadConsentManager, { once: true });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(loadTimer);
+      window.removeEventListener('pointerdown', loadConsentManager);
+      window.removeEventListener('keydown', loadConsentManager);
+    };
   }, []);
 
   return null;
 }
 
-function updateConsent(categories: string[] = []) {
-  const analyticsGranted = categories.includes('analytics');
-  const adsGranted = categories.includes('ads');
-
+function updateConsent(analyticsGranted: boolean, adsGranted: boolean) {
   const state = (granted: boolean): 'granted' | 'denied' =>
     granted ? 'granted' : 'denied';
 
@@ -127,6 +80,12 @@ function updateConsent(categories: string[] = []) {
       ad_personalization: state(adsGranted),
     });
   }
+
+  publishConsent({
+    analyticsGranted,
+    adsGranted,
+    ready: true,
+  });
 }
 
 declare global {

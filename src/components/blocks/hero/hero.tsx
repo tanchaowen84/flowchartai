@@ -1,9 +1,7 @@
 'use client';
 
-import { LoginForm } from '@/components/auth/login-form';
 import { Ripple } from '@/components/magicui/ripple';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import {
@@ -26,6 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Camera, Loader2, Send, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -37,7 +36,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { toast } from 'sonner';
+import { getHeroSubmitLabel } from './hero-controls';
+
+const HeroLoginDialog = dynamic(
+  () => import('./hero-login-dialog').then((module) => module.HeroLoginDialog),
+  { ssr: false }
+);
 
 export default function HeroSection() {
   const t = useTranslations('HomePage.hero');
@@ -235,17 +239,17 @@ export default function HeroSection() {
 
       if (selectedMode === 'text_to_flowchart') {
         if (!trimmedInput) {
-          toast.error('Please enter a description for your flowchart');
+          void showErrorToast('Please enter a description for your flowchart');
           return;
         }
 
         if (trimmedInput.length < 5) {
-          toast.error('Please provide a more detailed description');
+          void showErrorToast('Please provide a more detailed description');
           return;
         }
       } else if (selectedMode === 'image_to_flowchart') {
         if (!imageFile) {
-          toast.error('Please upload a flowchart image to continue');
+          void showErrorToast('Please upload a flowchart image to continue');
           return;
         }
       }
@@ -293,7 +297,7 @@ export default function HeroSection() {
               );
             } catch (error) {
               console.error('Failed to encode image:', error);
-              toast.error('Failed to prepare image. Please try again.');
+              void showErrorToast('Failed to prepare image. Please try again.');
               setIsLoading(false);
               setSubmitStatus(null);
               return;
@@ -336,7 +340,7 @@ export default function HeroSection() {
               error instanceof Error
                 ? error.message
                 : 'Failed to prepare your request';
-            toast.error(errorMessage);
+            void showErrorToast(errorMessage);
             setIsLoading(false);
             setSubmitStatus(null);
             setShowLoginModal(false);
@@ -344,7 +348,7 @@ export default function HeroSection() {
         }
       } catch (error) {
         console.error('Error creating flowchart:', error);
-        toast.error('Failed to create new flowchart');
+        void showErrorToast('Failed to create new flowchart');
         setIsLoading(false);
         setSubmitStatus(null);
       } finally {
@@ -384,7 +388,7 @@ export default function HeroSection() {
 
               <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
                 {/* title */}
-                <h1 className="mt-8 text-balance text-5xl font-bricolage-grotesque lg:mt-16 xl:text-[5rem]">
+                <h1 className="mt-8 text-balance text-5xl font-bricolage-grotesque max-sm:font-[Arial,sans-serif] lg:mt-16 xl:text-[5rem]">
                   {heroTitle}
                 </h1>
 
@@ -440,6 +444,11 @@ export default function HeroSection() {
                         <Button
                           type="submit"
                           size="icon"
+                          aria-label={getHeroSubmitLabel(
+                            selectedMode,
+                            isLoading
+                          )}
+                          aria-busy={isLoading}
                           disabled={!isSubmitEnabled}
                           className={buttonClassName}
                         >
@@ -537,6 +546,11 @@ export default function HeroSection() {
                           <Button
                             type="submit"
                             size="icon"
+                            aria-label={getHeroSubmitLabel(
+                              selectedMode,
+                              isLoading
+                            )}
+                            aria-busy={isLoading}
                             disabled={!isSubmitEnabled}
                             className={buttonClassName}
                           >
@@ -574,7 +588,6 @@ export default function HeroSection() {
                     alt="FlowChart AI Demo"
                     width={1400}
                     height={651}
-                    priority
                     quality={80}
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, (max-width: 1440px) 70vw, 1200px"
                   />
@@ -585,21 +598,18 @@ export default function HeroSection() {
         </section>
       </main>
 
-      {/* Login Modal - Simple wrapper for our default LoginForm */}
-      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
-        <DialogContent className="p-0 max-w-md">
-          <div className="p-6 pb-0 text-center">
-            <p className="text-sm text-muted-foreground">
-              Your input will be saved and you won't need to re-enter it after
-              logging in.
-            </p>
-          </div>
-          <LoginForm
-            callbackUrl={loginCallbackUrl || ''}
-            className="border-none shadow-none pt-0"
-          />
-        </DialogContent>
-      </Dialog>
+      {showLoginModal && (
+        <HeroLoginDialog
+          callbackUrl={loginCallbackUrl || ''}
+          open={showLoginModal}
+          onOpenChange={setShowLoginModal}
+        />
+      )}
     </>
   );
+}
+
+async function showErrorToast(message: string): Promise<void> {
+  const { toast } = await import('sonner');
+  toast.error(message);
 }

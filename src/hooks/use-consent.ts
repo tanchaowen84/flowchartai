@@ -1,7 +1,10 @@
 'use client';
 
-import * as CookieConsent from 'vanilla-cookieconsent';
-import 'vanilla-cookieconsent/dist/cookieconsent.css';
+import {
+  CONSENT_UPDATE_EVENT,
+  type ConsentSnapshot,
+  getConsentSnapshot,
+} from '@/components/consent/consent-state';
 import { useEffect, useState } from 'react';
 
 type ConsentState = 'granted' | 'denied';
@@ -11,85 +14,6 @@ interface ConsentStatus {
   ready: boolean;
 }
 
-let initialized = false;
-
-function initConsentBanner(onUpdate: (granted: boolean) => void) {
-  if (initialized) return;
-  initialized = true;
-
-  CookieConsent.run({
-    disablePageInteraction: false,
-    guiOptions: {
-      consentModal: {
-        layout: 'box inline',
-        position: 'bottom right',
-        equalWeightButtons: true,
-      },
-      preferencesModal: {
-        layout: 'bar',
-        position: 'right',
-      },
-    },
-    categories: {
-      analytics: {
-        enabled: false,
-      },
-      ads: {
-        enabled: false,
-      },
-    },
-    language: {
-      default: 'en',
-      translations: {
-        en: {
-          consentModal: {
-            title: 'We respect your privacy',
-            description:
-              'We use cookies to personalize content and analyse our traffic. Choose what you want to share.',
-            acceptAllBtn: 'Accept all',
-            acceptNecessaryBtn: 'Reject all',
-            showPreferencesBtn: 'Customize',
-          },
-          preferencesModal: {
-            title: 'Cookie preferences',
-            acceptAllBtn: 'Accept all',
-            acceptNecessaryBtn: 'Reject all',
-            savePreferencesBtn: 'Save preferences',
-            closeIconLabel: 'Close modal',
-            sections: [
-              {
-                title: 'About cookies',
-                description:
-                  'Cookies help us deliver better experiences. You decide whether analytics/ads cookies are allowed.',
-              },
-              {
-                title: 'Analytics cookies',
-                description:
-                  'Enable anonymized analytics via Google Analytics to help us improve the product.',
-                linkedCategory: 'analytics',
-              },
-              {
-                title: 'Advertising cookies',
-                description:
-                  'Allow personalized ads through Google AdSense and related services.',
-                linkedCategory: 'ads',
-              },
-            ],
-          },
-        },
-      },
-    },
-    onConsent: ({ cookie }) => {
-      const granted = cookie.categories?.includes('analytics') ?? false;
-      onUpdate(granted);
-    },
-    onChange: ({ cookie }) => {
-      const granted = cookie.categories?.includes('analytics') ?? false;
-      onUpdate(granted);
-    },
-  });
-}
-
 export function useConsent(): ConsentStatus {
   const [status, setStatus] = useState<ConsentStatus>({
     consentGranted: false,
@@ -97,19 +21,24 @@ export function useConsent(): ConsentStatus {
   });
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
-      setStatus({ consentGranted: true, ready: true });
-      return;
-    }
+    const update = (snapshot: ConsentSnapshot) => {
+      updateGtagConsent(snapshot.analyticsGranted ? 'granted' : 'denied');
+      setStatus({
+        consentGranted: snapshot.analyticsGranted,
+        ready: snapshot.ready,
+      });
+    };
 
-    initConsentBanner((granted) => {
-      updateGtagConsent(granted ? 'granted' : 'denied');
-      setStatus({ consentGranted: granted, ready: true });
-    });
+    const handleUpdate = (event: Event) => {
+      update((event as CustomEvent<ConsentSnapshot>).detail);
+    };
 
-    // 初始也同步一次默认值（denied）
-    updateGtagConsent('denied');
-    setStatus({ consentGranted: false, ready: true });
+    update(getConsentSnapshot());
+    window.addEventListener(CONSENT_UPDATE_EVENT, handleUpdate);
+
+    return () => {
+      window.removeEventListener(CONSENT_UPDATE_EVENT, handleUpdate);
+    };
   }, []);
 
   return status;

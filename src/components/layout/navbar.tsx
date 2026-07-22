@@ -5,7 +5,6 @@ import Container from '@/components/layout/container';
 import { Logo } from '@/components/layout/logo';
 import { ModeSwitcher } from '@/components/layout/mode-switcher';
 import { NavbarMobile } from '@/components/layout/navbar-mobile';
-import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -26,10 +25,19 @@ import { cn } from '@/lib/utils';
 import { Routes } from '@/routes';
 import { ArrowUpRightIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { useEffect } from 'react';
 import { Skeleton } from '../ui/skeleton';
 import LocaleSwitcher from './locale-switcher';
+
+const UserButton = dynamic(
+  () =>
+    import('@/components/layout/user-button').then(
+      (module) => module.UserButton
+    ),
+  { ssr: false }
+);
 
 interface NavBarProps {
   scroll?: boolean;

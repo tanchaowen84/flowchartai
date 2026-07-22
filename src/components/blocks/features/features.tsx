@@ -1,7 +1,6 @@
 'use client';
 
 import { HeaderSection } from '@/components/layout/header-section';
-import { BorderBeam } from '@/components/magicui/border-beam';
 import {
   Accordion,
   AccordionContent,
@@ -19,7 +18,6 @@ import {
   Repeat,
   Wand2,
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -170,38 +168,26 @@ export default function FeaturesSection() {
               className="bg-background relative w-full rounded-2xl"
               style={{ aspectRatio }}
             >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={`${activeItem}-id`}
-                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative size-full overflow-hidden rounded-2xl border bg-white dark:bg-zinc-900 shadow-md"
-                >
-                  <Image
-                    src={activeMedia.image}
-                    className="object-cotain dark:hidden"
-                    alt={activeMedia.alt}
-                    fill
-                    sizes="(min-width: 1024px) 640px, 100vw"
-                    priority={activeItem === 'item-1'}
-                  />
-                  <Image
-                    src={activeMedia.darkImage}
-                    className="object-contain hidden dark:block"
-                    alt={activeMedia.alt}
-                    fill
-                    sizes="(min-width: 1024px) 640px, 100vw"
-                  />
-                </motion.div>
-              </AnimatePresence>
+              <div
+                key={`${activeItem}-id`}
+                className="relative size-full overflow-hidden rounded-2xl border bg-white shadow-md dark:bg-zinc-900"
+              >
+                <Image
+                  src={activeMedia.image}
+                  className="object-cotain dark:hidden"
+                  alt={activeMedia.alt}
+                  fill
+                  sizes="(min-width: 1024px) 640px, 100vw"
+                />
+                <Image
+                  src={activeMedia.darkImage}
+                  className="hidden object-contain dark:block"
+                  alt={activeMedia.alt}
+                  fill
+                  sizes="(min-width: 1024px) 640px, 100vw"
+                />
+              </div>
             </div>
-            <BorderBeam
-              duration={6}
-              size={200}
-              className="from-transparent via-violet-700 to-transparent dark:via-white/50"
-            />
           </div>
         </div>
       </div>

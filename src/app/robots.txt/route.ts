@@ -1,4 +1,5 @@
 import { getBaseUrl } from '../../lib/urls/urls';
+import { buildRobotsTxt } from './robots';
 
 const marketingAllows = [
   'Allow: /',
@@ -33,28 +34,7 @@ const aiAgents = [
 
 export function GET(): Response {
   const baseUrl = getBaseUrl().replace(/\/$/, '');
-
-  const lines: string[] = ['# Crawl rules'];
-
-  // Default rule for all crawlers
-  lines.push('User-agent: *', ...marketingAllows, ...userAreas, '');
-
-  // AI-focused crawlers: allow marketing/product content, block user-generated areas
-  aiAgents.forEach((agent) => {
-    lines.push(`User-agent: ${agent}`, ...marketingAllows, ...userAreas, '');
-  });
-
-  // Googlebot keeps standard access to public marketing pages
-  lines.push('User-agent: Googlebot', ...marketingAllows, ...userAreas, '');
-
-  // Metadata for AI discovery
-  lines.push(
-    `LLM-Content: ${baseUrl}/llms.txt`,
-    `LLM-Full-Content: ${baseUrl}/llms-full.txt`,
-    `Sitemap: ${baseUrl}/sitemap.xml`
-  );
-
-  const body = lines.join('\n');
+  const body = buildRobotsTxt(baseUrl, marketingAllows, userAreas, aiAgents);
 
   return new Response(body, {
     status: 200,

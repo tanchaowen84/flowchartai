@@ -9,12 +9,13 @@ import AffonsoScript from '@/components/affiliate/affonso';
 import PromotekitScript from '@/components/affiliate/promotekit';
 import { AdSense } from '@/components/analytics/adsense';
 import { TailwindIndicator } from '@/components/layout/tailwind-indicator';
+import { LlmsDiscoveryLinks } from '@/components/seo/llms-discovery-links';
+import { DeferredToaster } from '@/components/ui/deferred-toaster';
 import { routing } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import { type Locale, NextIntlClientProvider, hasLocale } from 'next-intl';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { Toaster } from 'sonner';
 import { Providers } from './providers';
 
 import '@/styles/globals.css';
@@ -45,14 +46,12 @@ export default async function LocaleLayout({
   return (
     <html suppressHydrationWarning lang={locale}>
       <head>
-        <AdSense />
-        <AffonsoScript />
-        <PromotekitScript />
+        <LlmsDiscoveryLinks />
       </head>
       <body
         suppressHydrationWarning
         className={cn(
-          'size-full antialiased',
+          'size-full antialiased max-sm:!font-[Arial,sans-serif]',
           fontNotoSans.className,
           fontNotoSerif.variable,
           fontNotoSansMono.variable,
@@ -63,9 +62,12 @@ export default async function LocaleLayout({
           <Providers>
             {children}
 
-            <Toaster richColors position="top-right" offset={64} />
+            <DeferredToaster richColors position="top-right" offset={64} />
             <TailwindIndicator />
             <Analytics />
+            <AdSense />
+            <AffonsoScript />
+            <PromotekitScript />
           </Providers>
         </NextIntlClientProvider>
       </body>

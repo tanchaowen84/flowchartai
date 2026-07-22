@@ -24,11 +24,17 @@ import {
   XIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { RemoveScroll } from 'react-remove-scroll';
 import { Skeleton } from '../ui/skeleton';
-import { UserButtonMobile } from './user-button-mobile';
+
+const UserButtonMobile = dynamic(
+  () =>
+    import('./user-button-mobile').then((module) => module.UserButtonMobile),
+  { ssr: false }
+);
 
 export function NavbarMobile({
   className,
