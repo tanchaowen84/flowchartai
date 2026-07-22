@@ -110,7 +110,6 @@ vi.mock('@/config/price-config', () => ({
       ],
       isFree: false,
       isLifetime: false,
-      recommended: true,
     },
     professional: {
       id: 'professional',
@@ -135,6 +134,7 @@ vi.mock('@/config/price-config', () => ({
       ],
       isFree: false,
       isLifetime: false,
+      recommended: true,
     },
   }),
 }));
@@ -180,17 +180,30 @@ describe('PricingModal', () => {
     expect(markup).toContain('Hobby');
     expect(markup).toContain('Professional');
     expect(markup).not.toContain('>Free<');
-    expect(markup).toContain('Best value');
+    expect(markup).toContain('Recommended');
+    expect(markup.match(/Recommended/g)).toHaveLength(1);
+    expect(markup).toMatch(
+      /data-plan-id="professional"[^>]*data-recommended="true"/
+    );
+    expect(markup).not.toMatch(
+      /data-plan-id="hobby"[^>]*data-recommended="true"/
+    );
+    expect(markup).not.toContain('Best value');
     expect(markup).not.toContain('Most Popular');
   });
 
-  it('uses the exact annual saving label and configured yearly equivalents', () => {
+  it('defaults to yearly and uses the configured yearly equivalents', () => {
     const markup = renderToStaticMarkup(
       <PricingModal isOpen onClose={() => undefined} />
     );
 
+    expect(markup).toMatch(/aria-pressed="false"[^>]*>Monthly<\/button>/);
+    expect(markup).toMatch(/aria-pressed="true"[^>]*>Yearly/);
     expect(markup).toContain('Save up to 40%');
+    expect(markup).toContain('text-xs font-semibold text-primary');
     expect(markup).not.toContain('Save 20%');
+    expect(markup).toContain('$60 billed yearly');
+    expect(markup).toContain('$96 billed yearly');
     expect(
       getPlanPriceDisplay(
         {

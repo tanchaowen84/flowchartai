@@ -23,7 +23,7 @@ import {
   type PricePlan,
 } from '@/payment/types';
 import { Check } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 interface LimitContext {
   type: 'daily' | 'monthly';
@@ -87,7 +87,9 @@ export function PricingModal({
   onClose,
   limitContext,
 }: PricingModalProps) {
-  const [interval, setInterval] = useState<PlanInterval>(PlanIntervals.MONTH);
+  const [interval, setInterval] = useState<PlanInterval>(PlanIntervals.YEAR);
+  const monthlyButtonRef = useRef<HTMLButtonElement>(null);
+  const yearlyButtonRef = useRef<HTMLButtonElement>(null);
   const currentUser = useCurrentUser();
   const currentPath = useLocalePathname();
   const { currentPlan, isLoading: isPaymentLoading } = usePayment();
@@ -110,7 +112,17 @@ export function PricingModal({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto border p-0 sm:max-w-3xl">
+      <DialogContent
+        className="max-h-[calc(100vh-2rem)] overflow-y-auto border p-0 sm:max-w-3xl"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          const selectedButton =
+            interval === PlanIntervals.YEAR
+              ? yearlyButtonRef.current
+              : monthlyButtonRef.current;
+          selectedButton?.focus();
+        }}
+      >
         <div className="space-y-6 p-5 sm:p-6">
           <DialogHeader className="pr-8">
             <DialogTitle>Choose your plan</DialogTitle>
@@ -129,6 +141,7 @@ export function PricingModal({
           <div className="flex justify-center">
             <div className="inline-flex items-center rounded-lg bg-muted p-1">
               <button
+                ref={monthlyButtonRef}
                 type="button"
                 aria-pressed={interval === PlanIntervals.MONTH}
                 onClick={() => setInterval(PlanIntervals.MONTH)}
@@ -141,6 +154,7 @@ export function PricingModal({
                 Monthly
               </button>
               <button
+                ref={yearlyButtonRef}
                 type="button"
                 aria-pressed={interval === PlanIntervals.YEAR}
                 onClick={() => setInterval(PlanIntervals.YEAR)}
@@ -151,9 +165,9 @@ export function PricingModal({
                 }`}
               >
                 Yearly
-                <Badge variant="secondary" className="rounded-full text-xs">
+                <span className="text-xs font-semibold text-primary">
                   Save up to 40%
-                </Badge>
+                </span>
               </button>
             </div>
           </div>
@@ -168,18 +182,15 @@ export function PricingModal({
               );
               const priceDisplay = getPlanPriceDisplay(plan, interval);
               const isCurrentPlan = currentPlan?.id === plan.id;
-              const isProfessional = plan.id === 'professional';
+              const isRecommended = Boolean(plan.recommended);
 
               return (
                 <section
                   key={plan.id}
                   data-plan-id={plan.id}
                   data-current-plan={isCurrentPlan || undefined}
-                  className={`flex flex-col rounded-xl border p-5 ${
-                    isProfessional
-                      ? 'border-primary/50 bg-primary/[0.03]'
-                      : 'border-border'
-                  }`}
+                  data-recommended={isRecommended || undefined}
+                  className="flex flex-col rounded-xl border border-border p-5"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -188,9 +199,9 @@ export function PricingModal({
                         {plan.description}
                       </p>
                     </div>
-                    {isProfessional && (
-                      <Badge variant="outline" className="shrink-0">
-                        Best value
+                    {isRecommended && (
+                      <Badge className="shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold">
+                        Recommended
                       </Badge>
                     )}
                   </div>
