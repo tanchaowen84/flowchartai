@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DiagramDocument } from './contracts';
 import {
+  type FlowchartSkeletonElement,
   annotateDiagramElements,
   buildFlowchartSkeleton,
   elementIdForEntity,
@@ -29,6 +30,17 @@ function makeDocument(): DiagramDocument {
     ],
     groups: [],
   };
+}
+
+function absolutePoints(element: {
+  x: number;
+  y: number;
+  points?: Array<[number, number]>;
+}): Array<{ x: number; y: number }> {
+  return (element.points || []).map(([x, y]) => ({
+    x: element.x + x,
+    y: element.y + y,
+  }));
 }
 
 describe('diagram renderer semantic identity', () => {
@@ -72,6 +84,30 @@ describe('diagram renderer semantic identity', () => {
       })
     );
     expect(circle?.width).toBe(circle?.height);
+  });
+
+  it('uses a clean, non-hand-drawn presentation for nodes and edges', () => {
+    const [start, , edge] = buildFlowchartSkeleton(makeDocument());
+
+    expect(start).toEqual(
+      expect.objectContaining({
+        roughness: 0,
+        fillStyle: 'solid',
+        label: {
+          text: 'Start',
+          fontFamily: 2,
+        },
+      })
+    );
+    expect(edge).toEqual(
+      expect.objectContaining({
+        roughness: 0,
+        label: {
+          text: 'next',
+          fontFamily: 2,
+        },
+      })
+    );
   });
 
   it('keeps cyclic flowcharts distributed across the requested direction', () => {
@@ -156,11 +192,145 @@ describe('diagram renderer semantic identity', () => {
       (element) =>
         element.id === elementIdForEntity('diagram-1', 'edge', 'retry__review')
     );
-    expect(reviewToRetry?.points).toHaveLength(3);
-    expect(retryToReview?.points).toHaveLength(3);
-    expect(reviewToRetry?.points?.[1]?.[1]).toBeGreaterThan(0);
-    expect(retryToReview?.points?.[1]?.[1]).toBeLessThan(0);
+    expect(reviewToRetry?.points).toHaveLength(2);
+    expect(retryToReview?.points).toHaveLength(4);
+
+    const retryRoute = absolutePoints(
+      retryToReview as FlowchartSkeletonElement
+    );
+    const minimumNodeY = Math.min(
+      ...[...nodeById.values()].map((element) => element.y)
+    );
+    expect(retryRoute[1]?.y).toBeLessThan(minimumNodeY);
+    expect(retryRoute[2]?.y).toBeLessThan(minimumNodeY);
   });
+
+  it('routes multiple multi-rank feedback edges through distinct outer lanes', () => {
+    const document = makeDocument();
+    document.nodes = [
+      { semanticId: 'start', label: 'Start', shape: 'rectangle' },
+      { semanticId: 'review', label: 'Review', shape: 'rectangle' },
+      { semanticId: 'decision', label: 'Any issues?', shape: 'diamond' },
+      { semanticId: 'retry', label: 'Revise', shape: 'rectangle' },
+      { semanticId: 'approve', label: 'Approve', shape: 'rectangle' },
+      { semanticId: 'done', label: 'Done', shape: 'circle' },
+    ];
+    document.edges = [
+      {
+        semanticId: 'start__review',
+        sourceSemanticId: 'start',
+        targetSemanticId: 'review',
+      },
+      {
+        semanticId: 'review__decision',
+        sourceSemanticId: 'review',
+        targetSemanticId: 'decision',
+      },
+      {
+        semanticId: 'decision__retry',
+        sourceSemanticId: 'decision',
+        targetSemanticId: 'retry',
+      },
+      {
+        semanticId: 'retry__review',
+        sourceSemanticId: 'retry',
+        targetSemanticId: 'review',
+      },
+      {
+        semanticId: 'decision__approve',
+        sourceSemanticId: 'decision',
+        targetSemanticId: 'approve',
+      },
+      {
+        semanticId: 'approve__decision',
+        sourceSemanticId: 'approve',
+        targetSemanticId: 'decision',
+      },
+      {
+        semanticId: 'approve__done',
+        sourceSemanticId: 'approve',
+        targetSemanticId: 'done',
+      },
+    ];
+
+    const skeleton = buildFlowchartSkeleton(document);
+    const feedbackEdges = ['retry__review', 'approve__decision'].map(
+      (semanticId) =>
+        skeleton.find(
+          (element) =>
+            element.id === elementIdForEntity('diagram-1', 'edge', semanticId)
+        )
+    );
+    const nodeElements = skeleton.filter((element) => element.type !== 'arrow');
+    const minimumNodeY = Math.min(...nodeElements.map((element) => element.y));
+    const laneYs = feedbackEdges.map((edge) => {
+      if (!edge) throw new Error('Expected feedback edge');
+      expect(edge.points).toHaveLength(4);
+      const route = absolutePoints(edge);
+      expect(route[1]?.y).toBeLessThan(minimumNodeY);
+      expect(route[2]?.y).toBeLessThan(minimumNodeY);
+      return route[1]?.y;
+    });
+
+    expect(laneYs).toEqual([-80, -128]);
+  });
+
+  it.each(['LR', 'RL', 'TD', 'BT'] as const)(
+    'routes feedback edges outside the graph in %s direction',
+    (direction) => {
+      const document = makeDocument();
+      document.direction = direction;
+      document.nodes = [
+        { semanticId: 'start', label: 'Start', shape: 'rectangle' },
+        { semanticId: 'review', label: 'Review', shape: 'diamond' },
+        { semanticId: 'retry', label: 'Retry', shape: 'rectangle' },
+      ];
+      document.edges = [
+        {
+          semanticId: 'start__review',
+          sourceSemanticId: 'start',
+          targetSemanticId: 'review',
+        },
+        {
+          semanticId: 'review__retry',
+          sourceSemanticId: 'review',
+          targetSemanticId: 'retry',
+        },
+        {
+          semanticId: 'retry__review',
+          sourceSemanticId: 'retry',
+          targetSemanticId: 'review',
+        },
+      ];
+
+      const skeleton = buildFlowchartSkeleton(document);
+      const nodes = skeleton.filter((element) => element.type !== 'arrow');
+      const forward = skeleton.find(
+        (element) =>
+          element.id ===
+          elementIdForEntity('diagram-1', 'edge', 'review__retry')
+      );
+      const feedback = skeleton.find(
+        (element) =>
+          element.id ===
+          elementIdForEntity('diagram-1', 'edge', 'retry__review')
+      );
+      if (!feedback) throw new Error('Expected feedback edge');
+
+      expect(forward?.points).toHaveLength(2);
+      expect(feedback.points).toHaveLength(4);
+      const route = absolutePoints(feedback);
+      if (direction === 'LR' || direction === 'RL') {
+        const minimumNodeY = Math.min(...nodes.map((element) => element.y));
+        expect(route[1]?.y).toBeLessThan(minimumNodeY);
+        expect(route[2]?.y).toBeLessThan(minimumNodeY);
+      } else {
+        const minimumNodeX = Math.min(...nodes.map((element) => element.x));
+        expect(route[1]?.x).toBeLessThan(minimumNodeX);
+        expect(route[2]?.x).toBeLessThan(minimumNodeX);
+      }
+    }
+  );
 
   it('wraps long English and CJK labels into measured node geometry', () => {
     const document = makeDocument();

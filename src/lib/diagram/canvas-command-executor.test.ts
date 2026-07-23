@@ -127,7 +127,7 @@ describe('prepareCanvasCommand', () => {
         expect.objectContaining({
           semanticId: 'A',
           style: {
-            fill: '#f8fafc',
+            fill: '#e8eef8',
             stroke: '#334155',
             'stroke-width': '2px',
           },
@@ -135,7 +135,7 @@ describe('prepareCanvasCommand', () => {
         expect.objectContaining({
           semanticId: 'B',
           style: {
-            fill: '#f8fafc',
+            fill: '#e8eef8',
             stroke: '#334155',
             'stroke-width': '2px',
           },
@@ -147,13 +147,13 @@ describe('prepareCanvasCommand', () => {
         nodes: expect.arrayContaining([
           expect.objectContaining({
             semanticId: 'A',
-            style: expect.objectContaining({ fill: '#f8fafc' }),
+            style: expect.objectContaining({ fill: '#e8eef8' }),
           }),
         ]),
       })
     );
     expect(prepared.sourceMermaid).toContain(
-      'style A fill:#f8fafc,stroke:#334155,stroke-width:2px'
+      'style A fill:#e8eef8,stroke:#334155,stroke-width:2px'
     );
     expect(prepared.nextMetadata.diagrams.created.sourceMermaid).toBe(
       prepared.sourceMermaid
@@ -172,7 +172,7 @@ describe('prepareCanvasCommand', () => {
       expect.arrayContaining([
         expect.objectContaining({
           semanticId: 'A',
-          style: expect.objectContaining({ fill: '#f8fafc' }),
+          style: expect.objectContaining({ fill: '#e8eef8' }),
         }),
       ])
     );
@@ -215,7 +215,7 @@ describe('prepareCanvasCommand', () => {
       expect.objectContaining({
         semanticId: 'B',
         style: {
-          fill: '#f8fafc',
+          fill: '#e8eef8',
           stroke: '#334155',
           'stroke-width': '2px',
         },

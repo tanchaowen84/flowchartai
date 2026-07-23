@@ -10,7 +10,7 @@ export interface FlowchartSkeletonElement {
   y: number;
   width?: number;
   height?: number;
-  label?: { text: string };
+  label?: { text: string; fontFamily?: number };
   start?: { id: string };
   end?: { id: string };
   points?: Array<[number, number]>;
@@ -28,11 +28,19 @@ interface MeasuredNode {
   label: string;
 }
 
+interface LayoutResult {
+  positions: Map<string, { x: number; y: number }>;
+  ranks: Map<string, number>;
+}
+
 const FONT_SIZE = 20;
 const LINE_HEIGHT = 26;
 const MAX_TEXT_WIDTH = 220;
 const PRIMARY_GAP = 120;
 const SECONDARY_GAP = 80;
+const FEEDBACK_LANE_OFFSET = 80;
+const FEEDBACK_LANE_GAP = 48;
+const HELVETICA_FONT_FAMILY = 2;
 
 function elementCenter(element: FlowchartSkeletonElement): Point {
   return {
@@ -214,7 +222,7 @@ function nodeElementType(node: DiagramNode): string {
 function layoutNodes(
   document: DiagramDocument,
   measuredNodes: Map<string, MeasuredNode>
-): Map<string, { x: number; y: number }> {
+): LayoutResult {
   const indegree = new Map(document.nodes.map((node) => [node.semanticId, 0]));
   const outgoing = new Map<string, string[]>();
   for (const edge of document.edges) {
@@ -310,7 +318,7 @@ function layoutNodes(
     }
   }
 
-  return positions;
+  return { positions, ranks };
 }
 
 export function buildFlowchartSkeleton(
@@ -319,7 +327,7 @@ export function buildFlowchartSkeleton(
   const measuredNodes = new Map(
     document.nodes.map((node) => [node.semanticId, measureNode(node)])
   );
-  const positions = layoutNodes(document, measuredNodes);
+  const { positions, ranks } = layoutNodes(document, measuredNodes);
   const nodes: FlowchartSkeletonElement[] = document.nodes.map((node) => {
     const position = positions.get(node.semanticId) || { x: 0, y: 0 };
     const measured = measuredNodes.get(node.semanticId) || measureNode(node);
@@ -330,10 +338,12 @@ export function buildFlowchartSkeleton(
       y: position.y,
       width: measured.width,
       height: measured.height,
-      label: { text: measured.label },
+      label: { text: measured.label, fontFamily: HELVETICA_FONT_FAMILY },
       backgroundColor: node.style?.fill || '#fddf9f',
       strokeColor: node.style?.stroke || '#d68f2f',
       strokeWidth: Number.parseFloat(node.style?.['stroke-width'] || '2'),
+      fillStyle: 'solid',
+      roughness: 0,
       roundness: node.shape === 'rounded' ? { type: 3 } : undefined,
     };
   });
@@ -343,11 +353,12 @@ export function buildFlowchartSkeleton(
   const nodeShapeBySemanticId = new Map(
     document.nodes.map((node) => [node.semanticId, node.shape])
   );
-  const endpointPairs = new Set(
-    document.edges.map(
-      (edge) => `${edge.sourceSemanticId}\u0000${edge.targetSemanticId}`
-    )
-  );
+  const minimumNodeX =
+    nodes.length > 0 ? Math.min(...nodes.map((node) => node.x)) : 0;
+  const minimumNodeY =
+    nodes.length > 0 ? Math.min(...nodes.map((node) => node.y)) : 0;
+  const horizontal = document.direction === 'LR' || document.direction === 'RL';
+  let feedbackEdgeIndex = 0;
   const edges: FlowchartSkeletonElement[] = document.edges.map((edge) => {
     const source = nodeBySemanticId.get(edge.sourceSemanticId);
     const target = nodeBySemanticId.get(edge.targetSemanticId);
@@ -357,33 +368,58 @@ export function buildFlowchartSkeleton(
 
     const sourceCenter = elementCenter(source);
     const targetCenter = elementCenter(target);
-    const start = boundaryPoint(
-      source,
-      targetCenter,
-      nodeShapeBySemanticId.get(edge.sourceSemanticId) || 'rectangle'
-    );
-    const end = boundaryPoint(
-      target,
-      sourceCenter,
-      nodeShapeBySemanticId.get(edge.targetSemanticId) || 'rectangle'
-    );
+    const sourceShape =
+      nodeShapeBySemanticId.get(edge.sourceSemanticId) || 'rectangle';
+    const targetShape =
+      nodeShapeBySemanticId.get(edge.targetSemanticId) || 'rectangle';
+    const sourceRank = ranks.get(edge.sourceSemanticId) || 0;
+    const targetRank = ranks.get(edge.targetSemanticId) || 0;
+    const isFeedbackEdge = targetRank < sourceRank;
+    const laneIndex = isFeedbackEdge ? feedbackEdgeIndex++ : -1;
+
+    let start: Point;
+    let end: Point;
+    let points: Array<[number, number]>;
+    if (isFeedbackEdge && horizontal) {
+      const laneY =
+        minimumNodeY - FEEDBACK_LANE_OFFSET - laneIndex * FEEDBACK_LANE_GAP;
+      start = boundaryPoint(
+        source,
+        { x: sourceCenter.x, y: laneY },
+        sourceShape
+      );
+      end = boundaryPoint(target, { x: targetCenter.x, y: laneY }, targetShape);
+      points = [
+        [0, 0],
+        [0, laneY - start.y],
+        [end.x - start.x, laneY - start.y],
+        [end.x - start.x, end.y - start.y],
+      ];
+    } else if (isFeedbackEdge) {
+      const laneX =
+        minimumNodeX - FEEDBACK_LANE_OFFSET - laneIndex * FEEDBACK_LANE_GAP;
+      start = boundaryPoint(
+        source,
+        { x: laneX, y: sourceCenter.y },
+        sourceShape
+      );
+      end = boundaryPoint(target, { x: laneX, y: targetCenter.y }, targetShape);
+      points = [
+        [0, 0],
+        [laneX - start.x, 0],
+        [laneX - start.x, end.y - start.y],
+        [end.x - start.x, end.y - start.y],
+      ];
+    } else {
+      start = boundaryPoint(source, targetCenter, sourceShape);
+      end = boundaryPoint(target, sourceCenter, targetShape);
+      points = [
+        [0, 0],
+        [end.x - start.x, end.y - start.y],
+      ];
+    }
     const deltaX = end.x - start.x;
     const deltaY = end.y - start.y;
-    const points: Array<[number, number]> = [
-      [0, 0],
-      [deltaX, deltaY],
-    ];
-    const hasReverseEdge = endpointPairs.has(
-      `${edge.targetSemanticId}\u0000${edge.sourceSemanticId}`
-    );
-    const length = Math.hypot(deltaX, deltaY);
-    if (hasReverseEdge && length > 0) {
-      const routeOffset = 48;
-      points.splice(1, 0, [
-        deltaX / 2 + (-deltaY / length) * routeOffset,
-        deltaY / 2 + (deltaX / length) * routeOffset,
-      ]);
-    }
 
     return {
       id: elementIdForEntity(document.diagramId, 'edge', edge.semanticId),
@@ -407,8 +443,11 @@ export function buildFlowchartSkeleton(
           edge.targetSemanticId
         ),
       },
-      label: edge.label ? { text: edge.label } : undefined,
-      strokeStyle: edge.lineStyle === 'solid' ? 'solid' : 'dashed',
+      label: edge.label
+        ? { text: edge.label, fontFamily: HELVETICA_FONT_FAMILY }
+        : undefined,
+      roughness: 0,
+      strokeStyle: edge.lineStyle === 'dashed' ? 'dashed' : 'solid',
     };
   });
   return [...nodes, ...edges];
