@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createMastraStreamMapper, mapMastraChunk } from './stream-protocol';
 
 const baseChunk = { runId: 'run-1', from: 'AGENT' };
@@ -134,5 +134,78 @@ describe('mapMastraChunk', () => {
         payload: { stepResult: { reason: 'stop' }, output: { usage: {} } },
       })
     ).toBeNull();
+  });
+
+  it('reports invalid tool output with safe validation paths only', () => {
+    const onDiagnostic = vi.fn();
+    const mapper = createMastraStreamMapper({ onDiagnostic });
+
+    expect(
+      mapper.map({
+        ...baseChunk,
+        type: 'tool-result',
+        payload: {
+          toolCallId: 'call-1',
+          toolName: 'generate_flowchart',
+          result: {
+            kind: 'patch-diagram',
+            patch: {
+              diagramId: 'diagram-secret',
+              baseRevision: 'wrong',
+              operations: [],
+            },
+          },
+        },
+      })
+    ).toEqual({
+      type: 'error',
+      error: 'Agent returned an invalid canvas command',
+    });
+
+    expect(onDiagnostic).toHaveBeenCalledWith({
+      stage: 'tool_validation',
+      status: 'failed',
+      code: 'invalid_canvas_command',
+      validationIssues: expect.arrayContaining([
+        expect.objectContaining({
+          code: expect.any(String),
+          path: expect.any(String),
+        }),
+      ]),
+    });
+    expect(JSON.stringify(onDiagnostic.mock.calls)).not.toContain(
+      'diagram-secret'
+    );
+  });
+
+  it('reports tool failures without returning raw tool arguments', () => {
+    const onDiagnostic = vi.fn();
+    const mapper = createMastraStreamMapper({ onDiagnostic });
+
+    mapper.map({
+      ...baseChunk,
+      type: 'tool-error',
+      payload: {
+        toolName: 'generate_flowchart',
+        args: {
+          prompt: 'private prompt',
+          patch: { diagramId: 'diagram-secret' },
+        },
+        error: new Error('Revision conflict: expected 2, received 1'),
+      },
+    });
+
+    expect(onDiagnostic).toHaveBeenCalledWith({
+      stage: 'tool_validation',
+      status: 'failed',
+      code: 'revision_conflict',
+      errorName: 'Error',
+    });
+    expect(JSON.stringify(onDiagnostic.mock.calls)).not.toContain(
+      'private prompt'
+    );
+    expect(JSON.stringify(onDiagnostic.mock.calls)).not.toContain(
+      'diagram-secret'
+    );
   });
 });

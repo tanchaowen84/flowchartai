@@ -45,6 +45,13 @@ import {
   serializeCanvasChatSession,
 } from '@/lib/mastra/chat-session-storage';
 import {
+  type FlowchartDiagnosticCode,
+  type FlowchartDiagnosticStage,
+  classifyFlowchartError,
+  getSafeErrorName,
+  logFlowchartDiagnostic,
+} from '@/lib/mastra/flowchart-diagnostics';
+import {
   getPendingAuthAttachmentStorageKey,
   parsePendingAuthAttachment,
   serializePendingAuthAttachment,
@@ -1338,7 +1345,15 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   // Process one agent stream. Canvas mutations are committed only after a
   // validated complete tool result and the terminal finish event arrive.
-  const processAIConversation = async (conversationMessages: any[]) => {
+  const processAIConversationCore = async (
+    conversationMessages: any[],
+    diagnostic: {
+      requestId: string;
+      stage: FlowchartDiagnosticStage;
+      code: FlowchartDiagnosticCode;
+      startedAt: number;
+    }
+  ) => {
     const canvasSnapshot = getCanvasState();
     const sceneElements = excalidrawAPI
       ? [...excalidrawAPI.getSceneElements()]
@@ -1402,8 +1417,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }),
       signal: abortControllerRef.current?.signal,
     });
+    diagnostic.requestId =
+      response.headers.get('x-flowchart-request-id') || 'missing-request-id';
 
     if (!response.ok) {
+      diagnostic.code = 'http_error';
       const errorData = await response.json().catch(() => ({}));
 
       if (response.status === 429) {
@@ -1452,8 +1470,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     const reader = response.body?.getReader();
     if (!reader) {
+      diagnostic.code = 'no_response_body';
       throw new Error('No response body');
     }
+    diagnostic.stage = 'sse_map';
 
     const sseDecoder = createSseEventDecoder();
     const streamingMessageId = `assistant_${Date.now()}_${Math.random()
@@ -1466,6 +1486,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     let finishToolCallsCompleted = false;
     let streamAborted = false;
     let streamError: Error | null = null;
+    let streamFailureCode: FlowchartDiagnosticCode | null = null;
     let receivedDone = false;
     let receivedFirstEvent = false;
 
@@ -1529,10 +1550,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         const parsed = canvasCommandSchema.safeParse(data.args);
         if (data.toolName !== 'generate_flowchart' || !parsed.success) {
           streamError = new Error('Agent returned an invalid canvas command');
+          streamFailureCode = 'invalid_sse_command';
           return;
         }
         if (pendingCommand) {
           streamError = new Error('Agent returned multiple canvas commands');
+          streamFailureCode = 'multiple_canvas_commands';
           return;
         }
         pendingCommand = parsed.data;
@@ -1552,6 +1575,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }
       if (data.type === 'error') {
         streamError = new Error(data.error || 'Agent stream failed');
+        streamFailureCode = 'agent_stream_error';
       }
     };
 
@@ -1598,20 +1622,81 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     if (streamAborted || abortControllerRef.current?.signal.aborted) {
+      diagnostic.code = 'stream_aborted';
       throw new DOMException('Request aborted', 'AbortError');
     }
-    if (streamError) throw streamError;
+    if (streamError) {
+      diagnostic.code =
+        streamFailureCode || classifyFlowchartError(streamError);
+      throw streamError;
+    }
     if (!streamFinished) {
+      diagnostic.code = 'stream_incomplete';
       throw new Error('Agent stream ended before completion');
     }
     if (completedCommand && !finishToolCallsCompleted) {
+      diagnostic.code = 'canvas_command_incomplete';
       throw new Error('Canvas command was not completed by the agent');
     }
     if (!completedCommand && finishToolCallsCompleted) {
+      diagnostic.code = 'canvas_command_missing';
       throw new Error('Agent completed a tool without a canvas command');
     }
+    logFlowchartDiagnostic({
+      requestId: diagnostic.requestId,
+      stage: 'sse_map',
+      status: 'success',
+      code: 'stream_finished',
+      elapsedMs: Date.now() - diagnostic.startedAt,
+    });
     if (completedCommand) {
+      diagnostic.stage = 'prepare_canvas';
+      diagnostic.code = 'prepare_canvas_failed';
       await applyCanvasCommand(completedCommand);
+      logFlowchartDiagnostic({
+        requestId: diagnostic.requestId,
+        stage: 'prepare_canvas',
+        status: 'success',
+        code: 'prepare_canvas_succeeded',
+        commandKind: completedCommand.kind,
+        operation:
+          completedCommand.kind === 'patch-diagram'
+            ? 'patch'
+            : completedCommand.operation,
+        operationCount:
+          completedCommand.kind === 'patch-diagram'
+            ? completedCommand.patch.operations.length
+            : undefined,
+        elapsedMs: Date.now() - diagnostic.startedAt,
+      });
+    }
+  };
+
+  const processAIConversation = async (conversationMessages: any[]) => {
+    const diagnostic = {
+      requestId: 'not-issued',
+      stage: 'request' as FlowchartDiagnosticStage,
+      code: 'client_request_failed' as FlowchartDiagnosticCode,
+      startedAt: Date.now(),
+    };
+
+    try {
+      await processAIConversationCore(conversationMessages, diagnostic);
+    } catch (error) {
+      const aborted = error instanceof Error && error.name === 'AbortError';
+      logFlowchartDiagnostic({
+        requestId: diagnostic.requestId,
+        stage: diagnostic.stage,
+        status: aborted ? 'aborted' : 'failed',
+        code: aborted
+          ? 'stream_aborted'
+          : diagnostic.code === 'client_request_failed'
+            ? classifyFlowchartError(error)
+            : diagnostic.code,
+        errorName: getSafeErrorName(error),
+        elapsedMs: Date.now() - diagnostic.startedAt,
+      });
+      throw error;
     }
   };
 

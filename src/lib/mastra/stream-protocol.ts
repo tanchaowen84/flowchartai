@@ -1,4 +1,10 @@
 import { canvasCommandSchema } from '../diagram/contracts';
+import {
+  type FlowchartDiagnosticEvent,
+  classifyFlowchartError,
+  extractSafeValidationIssues,
+  getSafeErrorName,
+} from './flowchart-diagnostics';
 
 export type StableAgentEvent =
   | { type: 'text'; content: string }
@@ -18,13 +24,19 @@ export interface MastraStreamMapper {
   hasCompletedToolCall: () => boolean;
 }
 
+interface MastraStreamMapperOptions {
+  onDiagnostic?: (event: FlowchartDiagnosticEvent) => void;
+}
+
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
   return 'Agent stream failed';
 }
 
-export function createMastraStreamMapper(): MastraStreamMapper {
+export function createMastraStreamMapper(
+  options: MastraStreamMapperOptions = {}
+): MastraStreamMapper {
   let terminated = false;
   let completedToolCall = false;
 
@@ -46,6 +58,12 @@ export function createMastraStreamMapper(): MastraStreamMapper {
         const command = canvasCommandSchema.safeParse(chunk.payload.result);
         if (!command.success) {
           terminated = true;
+          options.onDiagnostic?.({
+            stage: 'tool_validation',
+            status: 'failed',
+            code: 'invalid_canvas_command',
+            validationIssues: extractSafeValidationIssues(command.error),
+          });
           return {
             type: 'error',
             error: 'Agent returned an invalid canvas command',
@@ -53,6 +71,20 @@ export function createMastraStreamMapper(): MastraStreamMapper {
         }
 
         completedToolCall = true;
+        options.onDiagnostic?.({
+          stage: 'tool_validation',
+          status: 'success',
+          code: 'canvas_command_valid',
+          commandKind: command.data.kind,
+          operation:
+            command.data.kind === 'patch-diagram'
+              ? 'patch'
+              : command.data.operation,
+          operationCount:
+            command.data.kind === 'patch-diagram'
+              ? command.data.patch.operations.length
+              : undefined,
+        });
         return {
           type: 'tool-call',
           toolCallId: chunk.payload.toolCallId || '',
@@ -63,11 +95,30 @@ export function createMastraStreamMapper(): MastraStreamMapper {
 
       if (chunk?.type === 'abort') {
         terminated = true;
+        options.onDiagnostic?.({
+          stage: 'sse_map',
+          status: 'aborted',
+          code: 'stream_aborted',
+        });
         return { type: 'aborted' };
       }
 
       if (chunk?.type === 'error' || chunk?.type === 'tool-error') {
         terminated = true;
+        const error = chunk.payload?.error;
+        options.onDiagnostic?.({
+          stage: chunk.type === 'tool-error' ? 'tool_validation' : 'sse_map',
+          status: 'failed',
+          code:
+            chunk.type === 'tool-error'
+              ? classifyFlowchartError(error)
+              : 'agent_stream_error',
+          errorName: getSafeErrorName(error),
+          validationIssues:
+            extractSafeValidationIssues(error).length > 0
+              ? extractSafeValidationIssues(error)
+              : undefined,
+        });
         return {
           type: 'error',
           error: errorMessage(chunk.payload?.error),
@@ -76,6 +127,12 @@ export function createMastraStreamMapper(): MastraStreamMapper {
 
       if (chunk?.type === 'finish') {
         terminated = true;
+        options.onDiagnostic?.({
+          stage: 'sse_map',
+          status: 'success',
+          code: 'stream_finished',
+          toolCallsCompleted: completedToolCall,
+        });
         return { type: 'finish', toolCallsCompleted: completedToolCall };
       }
 

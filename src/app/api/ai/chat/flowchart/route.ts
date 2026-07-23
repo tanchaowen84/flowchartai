@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { getFlowchartModelForMode } from '@/lib/ai-models';
 import type { AiAssistantMode } from '@/lib/ai-modes';
 import { canUserUseAI } from '@/lib/ai-usage';
@@ -7,6 +8,11 @@ import {
   screenPromptWithCreem,
 } from '@/lib/creem-moderation';
 import { flowchartAgent } from '@/lib/mastra/flowchart-agent';
+import {
+  classifyFlowchartError,
+  getSafeErrorName,
+  logFlowchartDiagnostic,
+} from '@/lib/mastra/flowchart-diagnostics';
 import {
   generateImageModeInstructions,
   generateSystemPrompt,
@@ -30,10 +36,17 @@ interface AgentRequestBody {
   aiContext?: Record<string, any>;
 }
 
-function jsonResponse(body: Record<string, unknown>, status: number): Response {
+function jsonResponse(
+  body: Record<string, unknown>,
+  status: number,
+  requestId: string
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Flowchart-Request-Id': requestId,
+    },
   });
 }
 
@@ -77,12 +90,21 @@ function buildAgentInstructions(
 
 function createAgentStreamResponse(
   output: { fullStream: AsyncIterable<any> },
-  requestSignal: AbortSignal
+  requestSignal: AbortSignal,
+  requestId: string,
+  startedAt: number
 ): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const mapper = createMastraStreamMapper();
+      const mapper = createMastraStreamMapper({
+        onDiagnostic: (event) =>
+          logFlowchartDiagnostic({
+            requestId,
+            elapsedMs: Date.now() - startedAt,
+            ...event,
+          }),
+      });
       const emit = (event: unknown) => {
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
@@ -101,6 +123,13 @@ function createAgentStreamResponse(
             const aborted = mapper.map({ type: 'abort', payload: {} });
             if (aborted) emit(aborted);
           } else {
+            logFlowchartDiagnostic({
+              requestId,
+              stage: 'sse_map',
+              status: 'stream_incomplete',
+              code: 'stream_incomplete',
+              elapsedMs: Date.now() - startedAt,
+            });
             emit({
               type: 'error',
               error: 'Agent stream ended before a final event.',
@@ -112,6 +141,14 @@ function createAgentStreamResponse(
           const aborted = mapper.map({ type: 'abort', payload: {} });
           if (aborted) emit(aborted);
         } else {
+          logFlowchartDiagnostic({
+            requestId,
+            stage: 'sse_map',
+            status: 'failed',
+            code: 'stream_exception',
+            errorName: getSafeErrorName(error),
+            elapsedMs: Date.now() - startedAt,
+          });
           emit({
             type: 'error',
             error:
@@ -130,27 +167,72 @@ function createAgentStreamResponse(
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
+      'X-Flowchart-Request-Id': requestId,
     },
   });
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const requestId = randomUUID();
+  const startedAt = Date.now();
   let body: AgentRequestBody;
   try {
     body = (await request.json()) as AgentRequestBody;
   } catch {
-    return jsonResponse({ error: 'Invalid JSON body' }, 400);
+    logFlowchartDiagnostic({
+      requestId,
+      stage: 'request',
+      status: 'failed',
+      code: 'invalid_json',
+      elapsedMs: Date.now() - startedAt,
+    });
+    return jsonResponse({ error: 'Invalid JSON body' }, 400, requestId);
   }
 
   if (!Array.isArray(body.messages)) {
-    return jsonResponse({ error: 'Invalid messages format' }, 400);
+    logFlowchartDiagnostic({
+      requestId,
+      stage: 'request',
+      status: 'failed',
+      code: 'invalid_messages',
+      elapsedMs: Date.now() - startedAt,
+    });
+    return jsonResponse({ error: 'Invalid messages format' }, 400, requestId);
   }
 
   const imageCount = countImagesInLatestUserMessage(body.messages);
+  const requestedMode = getRequestedMode(body.messages, body.aiContext);
+  const targetStatus = body.aiContext?.targetResolution?.status;
+  logFlowchartDiagnostic({
+    requestId,
+    stage: 'request',
+    status: 'started',
+    code: 'request_received',
+    mode: requestedMode,
+    targetStatus:
+      targetStatus === 'none' ||
+      targetStatus === 'resolved' ||
+      targetStatus === 'ambiguous'
+        ? targetStatus
+        : undefined,
+    messageCount: body.messages.length,
+    imageCount,
+    elapsedMs: Date.now() - startedAt,
+  });
   if (body.aiContext?.mode === IMAGE_MODE && imageCount > 1) {
+    logFlowchartDiagnostic({
+      requestId,
+      stage: 'request',
+      status: 'failed',
+      code: 'too_many_images',
+      mode: requestedMode,
+      imageCount,
+      elapsedMs: Date.now() - startedAt,
+    });
     return jsonResponse(
       { error: 'Only one image is supported for image_to_flowchart mode' },
-      400
+      400,
+      requestId
     );
   }
 
@@ -169,7 +251,6 @@ export async function POST(request: Request): Promise<Response> {
             externalId: `user_${userId}_flowchart_${Date.now()}`,
           }),
         invokeAgent: async () => {
-          const requestedMode = getRequestedMode(body.messages, body.aiContext);
           const agentMessages = buildMastraRequestMessages({
             mode: requestedMode,
             messages: body.messages,
@@ -179,6 +260,14 @@ export async function POST(request: Request): Promise<Response> {
             getFlowchartModelForMode(requestedMode)
           );
 
+          logFlowchartDiagnostic({
+            requestId,
+            stage: 'agent',
+            status: 'started',
+            code: 'agent_invoked',
+            mode: requestedMode,
+            elapsedMs: Date.now() - startedAt,
+          });
           return flowchartAgent.stream(agentMessages as any, {
             model,
             instructions: buildAgentInstructions(requestedMode, body.aiContext),
@@ -196,12 +285,32 @@ export async function POST(request: Request): Promise<Response> {
     );
 
     if (!guarded.ok) {
-      return jsonResponse(guarded.body, guarded.status);
+      logFlowchartDiagnostic({
+        requestId,
+        stage: 'guard',
+        status: 'failed',
+        code: 'guard_rejected',
+        mode: requestedMode,
+        elapsedMs: Date.now() - startedAt,
+      });
+      return jsonResponse(guarded.body, guarded.status, requestId);
     }
 
-    return createAgentStreamResponse(guarded.value, request.signal);
+    return createAgentStreamResponse(
+      guarded.value,
+      request.signal,
+      requestId,
+      startedAt
+    );
   } catch (error) {
-    console.error('FlowchartAgent route error:', error);
+    logFlowchartDiagnostic({
+      requestId,
+      stage: 'agent',
+      status: 'failed',
+      code: classifyFlowchartError(error),
+      errorName: getSafeErrorName(error),
+      elapsedMs: Date.now() - startedAt,
+    });
     return jsonResponse(
       {
         error: 'Internal server error',
@@ -210,7 +319,8 @@ export async function POST(request: Request): Promise<Response> {
             ? error.message
             : 'An unexpected error occurred.',
       },
-      500
+      500,
+      requestId
     );
   }
 }
