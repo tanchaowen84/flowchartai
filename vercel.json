@@ -1,7 +1,7 @@
 {
   "functions": {
-    "app/api/**/*": {
-      "maxDuration": 60
+    "src/app/api/ai/chat/flowchart/route.ts": {
+      "maxDuration": 300
     }
   }
 }

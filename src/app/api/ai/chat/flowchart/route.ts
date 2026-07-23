@@ -26,7 +26,7 @@ import { createMastraStreamMapper } from '@/lib/mastra/stream-protocol';
 import { headers } from 'next/headers';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const TEXT_MODE: AiAssistantMode = 'text_to_flowchart';
 const IMAGE_MODE: AiAssistantMode = 'image_to_flowchart';
