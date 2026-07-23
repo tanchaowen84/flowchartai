@@ -22,6 +22,18 @@ interface Point {
   y: number;
 }
 
+interface MeasuredNode {
+  width: number;
+  height: number;
+  label: string;
+}
+
+const FONT_SIZE = 20;
+const LINE_HEIGHT = 26;
+const MAX_TEXT_WIDTH = 220;
+const PRIMARY_GAP = 120;
+const SECONDARY_GAP = 80;
+
 function elementCenter(element: FlowchartSkeletonElement): Point {
   return {
     x: element.x + (element.width || 0) / 2,
@@ -31,7 +43,8 @@ function elementCenter(element: FlowchartSkeletonElement): Point {
 
 function boundaryPoint(
   element: FlowchartSkeletonElement,
-  toward: Point
+  toward: Point,
+  shape: DiagramNode['shape']
 ): Point {
   const center = elementCenter(element);
   const deltaX = toward.x - center.x;
@@ -40,11 +53,138 @@ function boundaryPoint(
 
   const halfWidth = Math.max((element.width || 0) / 2, 1);
   const halfHeight = Math.max((element.height || 0) / 2, 1);
-  const scale =
-    1 / Math.max(Math.abs(deltaX) / halfWidth, Math.abs(deltaY) / halfHeight);
+  let scale: number;
+  if (shape === 'diamond') {
+    scale = 1 / (Math.abs(deltaX) / halfWidth + Math.abs(deltaY) / halfHeight);
+  } else if (shape === 'ellipse' || shape === 'stadium' || shape === 'circle') {
+    scale =
+      1 /
+      Math.sqrt(
+        (deltaX * deltaX) / (halfWidth * halfWidth) +
+          (deltaY * deltaY) / (halfHeight * halfHeight)
+      );
+  } else {
+    scale =
+      1 / Math.max(Math.abs(deltaX) / halfWidth, Math.abs(deltaY) / halfHeight);
+  }
   return {
     x: center.x + deltaX * scale,
     y: center.y + deltaY * scale,
+  };
+}
+
+function isWideCodePoint(codePoint: number): boolean {
+  return (
+    (codePoint >= 0x1100 && codePoint <= 0x115f) ||
+    (codePoint >= 0x2e80 && codePoint <= 0xa4cf) ||
+    (codePoint >= 0xac00 && codePoint <= 0xd7a3) ||
+    (codePoint >= 0xf900 && codePoint <= 0xfaff) ||
+    (codePoint >= 0xfe10 && codePoint <= 0xfe6f) ||
+    (codePoint >= 0xff00 && codePoint <= 0xff60) ||
+    (codePoint >= 0xffe0 && codePoint <= 0xffe6) ||
+    (codePoint >= 0x1f300 && codePoint <= 0x1faff)
+  );
+}
+
+function characterWidth(character: string): number {
+  const codePoint = character.codePointAt(0) || 0;
+  if (/\s/u.test(character)) return FONT_SIZE * 0.35;
+  if (isWideCodePoint(codePoint)) return FONT_SIZE;
+  if (/[.,:;!?'"()[\]{}|/\\_-]/u.test(character)) {
+    return FONT_SIZE * 0.5;
+  }
+  return FONT_SIZE * 0.62;
+}
+
+function textWidth(text: string): number {
+  return Array.from(text).reduce(
+    (width, character) => width + characterWidth(character),
+    0
+  );
+}
+
+function splitOversizedToken(token: string): string[] {
+  const parts: string[] = [];
+  let current = '';
+  for (const character of Array.from(token)) {
+    const candidate = `${current}${character}`;
+    if (current && textWidth(candidate) > MAX_TEXT_WIDTH) {
+      parts.push(current);
+      current = character;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) parts.push(current);
+  return parts;
+}
+
+function wrapLabel(label: string): string[] {
+  const lines: string[] = [];
+  for (const paragraph of label.split(/\r?\n/u)) {
+    const tokens = paragraph.trim().match(/\S+/gu) || [''];
+    let current = '';
+    for (const token of tokens) {
+      const tokenParts =
+        textWidth(token) > MAX_TEXT_WIDTH
+          ? splitOversizedToken(token)
+          : [token];
+      for (const part of tokenParts) {
+        const candidate = current ? `${current} ${part}` : part;
+        if (current && textWidth(candidate) > MAX_TEXT_WIDTH) {
+          lines.push(current);
+          current = part;
+        } else {
+          current = candidate;
+        }
+      }
+    }
+    lines.push(current);
+  }
+  return lines.length > 0 ? lines : [''];
+}
+
+function measureNode(node: DiagramNode): MeasuredNode {
+  const lines = wrapLabel(node.label);
+  const measuredTextWidth = Math.max(...lines.map(textWidth), 0);
+  const measuredTextHeight = Math.max(lines.length, 1) * LINE_HEIGHT;
+  const label = lines.join('\n');
+
+  if (node.shape === 'circle') {
+    const diameter = Math.max(
+      120,
+      Math.ceil(
+        Math.max(measuredTextWidth, measuredTextHeight) * Math.SQRT2 + 40
+      )
+    );
+    return { width: diameter, height: diameter, label };
+  }
+
+  if (node.shape === 'diamond') {
+    let width = Math.max(180, Math.ceil(measuredTextWidth + 80));
+    let height = Math.max(120, Math.ceil(measuredTextHeight + 72));
+    const safeAreaRatio =
+      (measuredTextWidth + 16) / width + (measuredTextHeight + 12) / height;
+    if (safeAreaRatio > 0.82) {
+      const scale = safeAreaRatio / 0.82;
+      width = Math.ceil(width * scale);
+      height = Math.ceil(height * scale);
+    }
+    return { width, height, label };
+  }
+
+  if (node.shape === 'ellipse' || node.shape === 'stadium') {
+    return {
+      width: Math.max(180, Math.ceil(measuredTextWidth + 64)),
+      height: Math.max(90, Math.ceil(measuredTextHeight + 44)),
+      label,
+    };
+  }
+
+  return {
+    width: Math.max(160, Math.ceil(measuredTextWidth + 48)),
+    height: Math.max(80, Math.ceil(measuredTextHeight + 36)),
+    label,
   };
 }
 
@@ -72,7 +212,8 @@ function nodeElementType(node: DiagramNode): string {
 }
 
 function layoutNodes(
-  document: DiagramDocument
+  document: DiagramDocument,
+  measuredNodes: Map<string, MeasuredNode>
 ): Map<string, { x: number; y: number }> {
   const indegree = new Map(document.nodes.map((node) => [node.semanticId, 0]));
   const outgoing = new Map<string, string[]>();
@@ -122,22 +263,51 @@ function layoutNodes(
     rankRows.set(rank, [...(rankRows.get(rank) || []), node.semanticId]);
   }
 
+  const horizontal = document.direction === 'LR' || document.direction === 'RL';
+  const reverse = document.direction === 'RL' || document.direction === 'BT';
+  const rankDimensions = new Map<number, number>();
+  for (const [rank, ids] of rankRows) {
+    rankDimensions.set(
+      rank,
+      Math.max(
+        ...ids.map((id) => {
+          const measured = measuredNodes.get(id);
+          return horizontal ? measured?.width || 0 : measured?.height || 0;
+        }),
+        0
+      )
+    );
+  }
+  const rankCenters = new Map<number, number>();
+  let primaryCursor = 0;
+  for (const rank of [...rankRows.keys()].sort((left, right) => left - right)) {
+    const dimension = rankDimensions.get(rank) || 0;
+    rankCenters.set(rank, primaryCursor + dimension / 2);
+    primaryCursor += dimension + PRIMARY_GAP;
+  }
+
   const positions = new Map<string, { x: number; y: number }>();
   for (const [rank, ids] of rankRows) {
-    ids.forEach((id, row) => {
-      const primary = rank * 280;
-      const secondary = row * 160;
-      const horizontal =
-        document.direction === 'LR' || document.direction === 'RL';
-      const reverse =
-        document.direction === 'RL' || document.direction === 'BT';
+    let secondaryCursor = 0;
+    for (const id of ids) {
+      const measured = measuredNodes.get(id) || {
+        width: 160,
+        height: 80,
+        label: id,
+      };
+      const primaryDimension = horizontal ? measured.width : measured.height;
+      const primaryCenter = rankCenters.get(rank) || 0;
+      const primary = reverse
+        ? -primaryCenter - primaryDimension / 2
+        : primaryCenter - primaryDimension / 2;
+      const secondary = secondaryCursor;
       positions.set(
         id,
-        horizontal
-          ? { x: reverse ? -primary : primary, y: secondary }
-          : { x: secondary, y: reverse ? -primary : primary }
+        horizontal ? { x: primary, y: secondary } : { x: secondary, y: primary }
       );
-    });
+      secondaryCursor +=
+        (horizontal ? measured.height : measured.width) + SECONDARY_GAP;
+    }
   }
 
   return positions;
@@ -146,19 +316,21 @@ function layoutNodes(
 export function buildFlowchartSkeleton(
   document: DiagramDocument
 ): FlowchartSkeletonElement[] {
-  const positions = layoutNodes(document);
+  const measuredNodes = new Map(
+    document.nodes.map((node) => [node.semanticId, measureNode(node)])
+  );
+  const positions = layoutNodes(document, measuredNodes);
   const nodes: FlowchartSkeletonElement[] = document.nodes.map((node) => {
     const position = positions.get(node.semanticId) || { x: 0, y: 0 };
-    const contentWidth = Math.max(160, node.label.length * 10 + 40);
-    const circleSize = Math.max(120, node.label.length * 10 + 40);
+    const measured = measuredNodes.get(node.semanticId) || measureNode(node);
     return {
       id: elementIdForEntity(document.diagramId, 'node', node.semanticId),
       type: nodeElementType(node),
       x: position.x,
       y: position.y,
-      width: node.shape === 'circle' ? circleSize : contentWidth,
-      height: node.shape === 'circle' ? circleSize : 80,
-      label: { text: node.label },
+      width: measured.width,
+      height: measured.height,
+      label: { text: measured.label },
       backgroundColor: node.style?.fill || '#fddf9f',
       strokeColor: node.style?.stroke || '#d68f2f',
       strokeWidth: Number.parseFloat(node.style?.['stroke-width'] || '2'),
@@ -167,6 +339,9 @@ export function buildFlowchartSkeleton(
   });
   const nodeBySemanticId = new Map(
     document.nodes.map((node, index) => [node.semanticId, nodes[index]])
+  );
+  const nodeShapeBySemanticId = new Map(
+    document.nodes.map((node) => [node.semanticId, node.shape])
   );
   const endpointPairs = new Set(
     document.edges.map(
@@ -182,8 +357,16 @@ export function buildFlowchartSkeleton(
 
     const sourceCenter = elementCenter(source);
     const targetCenter = elementCenter(target);
-    const start = boundaryPoint(source, targetCenter);
-    const end = boundaryPoint(target, sourceCenter);
+    const start = boundaryPoint(
+      source,
+      targetCenter,
+      nodeShapeBySemanticId.get(edge.sourceSemanticId) || 'rectangle'
+    );
+    const end = boundaryPoint(
+      target,
+      sourceCenter,
+      nodeShapeBySemanticId.get(edge.targetSemanticId) || 'rectangle'
+    );
     const deltaX = end.x - start.x;
     const deltaY = end.y - start.y;
     const points: Array<[number, number]> = [

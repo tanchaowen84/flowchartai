@@ -10,6 +10,7 @@ import {
   canvasCommandSchema,
   flowchartAiMetadataSchema,
 } from './contracts';
+import { materializeDefaultCreateTheme } from './default-theme';
 import { renderDiagramDocument } from './diagram-renderer';
 import { isDiagramSceneSemanticallyAligned } from './diagram-scene-alignment';
 import {
@@ -315,11 +316,17 @@ export async function prepareCanvasCommand<T extends ReconcilerElement>({
 
   let rendered: T[];
   let files: Record<string, unknown> = {};
+  let effectiveSourceMermaid = command.mermaidCode;
   if (isPatchableFlowchart(command.mermaidCode)) {
-    const document = parseFlowchartMermaid(command.mermaidCode, {
+    const parsedDocument = parseFlowchartMermaid(command.mermaidCode, {
       diagramId,
       revision,
     });
+    const document =
+      command.operation === 'create'
+        ? materializeDefaultCreateTheme(parsedDocument)
+        : parsedDocument;
+    effectiveSourceMermaid = document.sourceMermaid;
     rendered = await renderFlowchart(document);
     nextMetadata.diagrams[diagramId] = document;
     delete nextMetadata.mermaidDiagrams?.[diagramId];
@@ -356,7 +363,7 @@ export async function prepareCanvasCommand<T extends ReconcilerElement>({
     diagramId,
     command.diagramType,
     revision,
-    command.mermaidCode
+    effectiveSourceMermaid
   );
 
   return {
@@ -368,6 +375,6 @@ export async function prepareCanvasCommand<T extends ReconcilerElement>({
     nextMetadata,
     operation: command.operation,
     diagramId,
-    sourceMermaid: command.mermaidCode,
+    sourceMermaid: effectiveSourceMermaid,
   };
 }

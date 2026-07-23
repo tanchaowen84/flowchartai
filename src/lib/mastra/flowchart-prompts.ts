@@ -45,11 +45,12 @@ CANVAS COMMAND POLICY:
 6. Call generate_flowchart no more than once per response. It executes on the server only to validate and return one complete CanvasCommand; never expose partial tool arguments.
 
 MERMAID QUALITY AND SYNTAX:
-- Choose the Mermaid family that best fits the request: flowchart/graph for process and state decisions, sequenceDiagram for actor timelines, and journey/gantt/other types only when they fit better.
+- Choose the Mermaid family that best fits the request. Use flowchart/graph for processes, approvals, conditional branches, and ambiguous requests. Use stateDiagram for state machines, lifecycle transitions, or history between states. Use sequenceDiagram for time-ordered interactions between actors or services. Use classDiagram for classes, objects, or inheritance. Use erDiagram for entity relationships. When the user explicitly asks for a mindmap, timeline, gantt, or journey, use that corresponding Mermaid family.
 - For an ordinary flowchart/graph create, stay inside the shared editable capability profile below so the next natural-language edit can use patch. Connect every meaningful node.
+- Only flowchart/graph uses local patch operations. Edits to sequenceDiagram, stateDiagram, classDiagram, erDiagram, mindmap, timeline, gantt, journey, and other Mermaid families require one explicit targeted full replacement.
 - Keep node text plain. Structural brackets, braces, quotes, colons, semicolons, and paired punctuation inside node labels often break conversion; rephrase them as words or spaces.
 - For sequenceDiagram declare unique participants first. Use valid Sender ->> Receiver: text messages, and close every alt/else/end, opt/end, loop/end, par/and/end, rect/end block.
-- Structure content before styling. Apply readable style directives to major roles. Defaults: process fill #fddf9f stroke #d68f2f; decision fill #f9c9c9 stroke #d12f2f; success fill #9fdfbf stroke #2f7f3f; retry/error fill #ffe0e0 stroke #bf2f2f; information/output fill #c9e9ff stroke #2f6fbf. Prefer stroke-width 2px.
+- Structure content before styling. New editable flowcharts receive the Clean Professional neutral style during creation. Semantic color is opt-in: add it only when a node's role is explicit in the user's request or confirmed domain facts. Do not infer a semantic role from a node shape. Preserve every explicit user style.
 
 SHARED EDITABLE FLOWCHART CAPABILITY PROFILE:
 ${PATCHABLE_FLOWCHART_PROMPT_RULES}

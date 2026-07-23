@@ -139,12 +139,11 @@ describe('diagram renderer semantic identity', () => {
     ).toEqual(
       expect.objectContaining({
         x: 160,
-        y: 40,
-        width: 120,
-        height: 0,
+        width: expect.any(Number),
+        height: expect.any(Number),
         points: [
           [0, 0],
-          [120, 0],
+          [expect.any(Number), expect.any(Number)],
         ],
       })
     );
@@ -161,6 +160,86 @@ describe('diagram renderer semantic identity', () => {
     expect(retryToReview?.points).toHaveLength(3);
     expect(reviewToRetry?.points?.[1]?.[1]).toBeGreaterThan(0);
     expect(retryToReview?.points?.[1]?.[1]).toBeLessThan(0);
+  });
+
+  it('wraps long English and CJK labels into measured node geometry', () => {
+    const document = makeDocument();
+    document.nodes = [
+      {
+        semanticId: 'english',
+        label: 'Review the complete customer onboarding request',
+        shape: 'rectangle',
+      },
+      {
+        semanticId: 'cjk',
+        label: '检查客户提交的完整资料并确认是否可以继续处理',
+        shape: 'rounded',
+      },
+    ];
+    document.edges = [];
+
+    const [english, cjk] = buildFlowchartSkeleton(document);
+
+    expect(english?.label?.text).toContain('\n');
+    expect(cjk?.label?.text).toContain('\n');
+    expect(english?.height).toBeGreaterThan(80);
+    expect(cjk?.height).toBeGreaterThan(80);
+    expect(english?.width).toBeLessThanOrEqual(280);
+    expect(cjk?.width).toBeLessThanOrEqual(280);
+    expect((english?.y || 0) + (english?.height || 0)).toBeLessThan(
+      cjk?.y || 0
+    );
+  });
+
+  it('gives decision text a safe diamond area and lands diagonal edges on its boundary', () => {
+    const document = makeDocument();
+    document.nodes = [
+      { semanticId: 'start', label: 'Start', shape: 'rectangle' },
+      { semanticId: 'decision', label: 'Any Issues?', shape: 'diamond' },
+      { semanticId: 'retry', label: 'Retry', shape: 'rectangle' },
+      { semanticId: 'done', label: 'Done', shape: 'rectangle' },
+    ];
+    document.edges = [
+      {
+        semanticId: 'start__decision',
+        sourceSemanticId: 'start',
+        targetSemanticId: 'decision',
+      },
+      {
+        semanticId: 'decision__retry',
+        sourceSemanticId: 'decision',
+        targetSemanticId: 'retry',
+      },
+      {
+        semanticId: 'decision__done',
+        sourceSemanticId: 'decision',
+        targetSemanticId: 'done',
+      },
+    ];
+
+    const skeleton = buildFlowchartSkeleton(document);
+    const decision = skeleton.find(
+      (element) =>
+        element.id === elementIdForEntity('diagram-1', 'node', 'decision')
+    );
+    const diagonalEdge = skeleton.find(
+      (element) =>
+        element.id === elementIdForEntity('diagram-1', 'edge', 'decision__done')
+    );
+    if (!decision || !diagonalEdge) {
+      throw new Error('Expected decision node and diagonal edge');
+    }
+
+    expect(decision.label?.text).toBe('Any Issues?');
+    expect(decision.width).toBeGreaterThanOrEqual(180);
+    expect(decision.height).toBeGreaterThanOrEqual(120);
+
+    const centerX = decision.x + (decision.width || 0) / 2;
+    const centerY = decision.y + (decision.height || 0) / 2;
+    const normalizedDiamondDistance =
+      Math.abs(diagonalEdge.x - centerX) / ((decision.width || 0) / 2) +
+      Math.abs(diagonalEdge.y - centerY) / ((decision.height || 0) / 2);
+    expect(normalizedDiamondDistance).toBeCloseTo(1, 5);
   });
 
   it('annotates rectangle, bound text, arrow, and edge label with semantic metadata', () => {

@@ -99,18 +99,107 @@ describe('prepareCanvasCommand', () => {
     };
     const userElement = { id: 'user-note', x: 500, y: 500 };
 
-    const prepared = await prepareCanvasCommand({
+    const renderFlowchart = vi.fn(async (document: DiagramDocument) => [
+      {
+        id: 'created-node',
+        x: 0,
+        y: 0,
+        customData: {
+          diagramId: document.diagramId,
+          semanticId: 'A',
+          entityType: 'node',
+        },
+      },
+    ]);
+    const prepared = await prepareCanvasCommand<ReconcilerElement>({
       command,
       currentElements: [userElement],
       metadata: { schemaVersion: 1, diagrams: {} },
       targetResolution: { status: 'none' },
+      renderFlowchart,
+    });
+
+    expect(prepared.nextElements[0]).toBe(userElement);
+    expect(prepared.nextMetadata.diagrams.created).toMatchObject({
+      diagramId: 'created',
+      revision: 0,
+      nodes: [
+        expect.objectContaining({
+          semanticId: 'A',
+          style: {
+            fill: '#f8fafc',
+            stroke: '#334155',
+            'stroke-width': '2px',
+          },
+        }),
+        expect.objectContaining({
+          semanticId: 'B',
+          style: {
+            fill: '#f8fafc',
+            stroke: '#334155',
+            'stroke-width': '2px',
+          },
+        }),
+      ],
+    });
+    expect(renderFlowchart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nodes: expect.arrayContaining([
+          expect.objectContaining({
+            semanticId: 'A',
+            style: expect.objectContaining({ fill: '#f8fafc' }),
+          }),
+        ]),
+      })
+    );
+    expect(prepared.sourceMermaid).toContain(
+      'style A fill:#f8fafc,stroke:#334155,stroke-width:2px'
+    );
+    expect(prepared.nextMetadata.diagrams.created.sourceMermaid).toBe(
+      prepared.sourceMermaid
+    );
+    expect(
+      prepared.nextElements.find(
+        (element) => element.customData?.diagramId === 'created'
+      )?.customData?.originalMermaid
+    ).toBe(prepared.sourceMermaid);
+
+    const reloaded = deriveFlowchartAiMetadataFromElements(
+      prepared.nextElements,
+      prepared.nextMetadata
+    );
+    expect(reloaded.diagrams.created.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          semanticId: 'A',
+          style: expect.objectContaining({ fill: '#f8fafc' }),
+        }),
+      ])
+    );
+  });
+
+  it('preserves explicit partial styles while theming only unstyled nodes on create', async () => {
+    const prepared = await prepareCanvasCommand({
+      command: {
+        kind: 'render-mermaid',
+        operation: 'create',
+        diagramId: 'partial-style',
+        diagramType: 'flowchart',
+        mermaidCode: `flowchart LR
+  A[Explicit] --> B[Default]
+  style A fill:#abcdef`,
+        description: 'Create partially styled flowchart',
+      },
+      currentElements: [],
+      metadata: { schemaVersion: 1, diagrams: {} },
+      targetResolution: { status: 'none' },
       renderFlowchart: async () => [
         {
-          id: 'created-node',
+          id: 'partial-a',
           x: 0,
           y: 0,
           customData: {
-            diagramId: 'created',
+            diagramId: 'partial-style',
             semanticId: 'A',
             entityType: 'node',
           },
@@ -118,11 +207,20 @@ describe('prepareCanvasCommand', () => {
       ],
     });
 
-    expect(prepared.nextElements[0]).toBe(userElement);
-    expect(prepared.nextMetadata.diagrams.created).toMatchObject({
-      diagramId: 'created',
-      revision: 0,
-    });
+    expect(prepared.nextMetadata.diagrams['partial-style'].nodes).toEqual([
+      expect.objectContaining({
+        semanticId: 'A',
+        style: { fill: '#abcdef' },
+      }),
+      expect.objectContaining({
+        semanticId: 'B',
+        style: {
+          fill: '#f8fafc',
+          stroke: '#334155',
+          'stroke-width': '2px',
+        },
+      }),
+    ]);
   });
 
   it('creates a styled managed flowchart and patches it without replacement', async () => {
@@ -569,8 +667,15 @@ describe('prepareCanvasCommand', () => {
       revision: 5,
       nodes: expect.arrayContaining([
         expect.objectContaining({ semanticId: 'A', label: 'Ready' }),
+        expect.objectContaining({
+          semanticId: 'B',
+          label: 'Keep',
+          style: undefined,
+        }),
       ]),
     });
+    expect(replaced.sourceMermaid).toContain('A[Ready] --> B[Keep]');
+    expect(replaced.sourceMermaid).not.toContain('style B');
     expect(
       replaced.nextMetadata.mermaidDiagrams?.['legacy-full']
     ).toBeUndefined();
@@ -724,6 +829,10 @@ describe('prepareCanvasCommand', () => {
       }),
     ]);
     expect(prepared.nextMetadata.diagrams.main.revision).toBe(1);
+    expect(prepared.nextMetadata.diagrams.main.nodes).toEqual([
+      expect.objectContaining({ semanticId: 'A', style: undefined }),
+      expect.objectContaining({ semanticId: 'B', style: undefined }),
+    ]);
     expect(prepared.operation).toBe('patch');
   });
 
