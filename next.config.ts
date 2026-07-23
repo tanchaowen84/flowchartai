@@ -12,9 +12,12 @@ const nextConfig: NextConfig = {
   // bundle so Vercel can trace the package directly instead of minifying it.
   serverExternalPackages: ['@mastra/core'],
 
-  // Remove all console.* calls in production only
+  // Keep diagnostics observable on Vercel Preview while preserving the
+  // existing console stripping behavior for Production and local builds.
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole:
+      process.env.NODE_ENV === 'production' &&
+      process.env.VERCEL_ENV !== 'preview',
   },
 
   images: {
