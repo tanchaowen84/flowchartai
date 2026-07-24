@@ -16,11 +16,17 @@ vi.mock('@/components/pricing/create-checkout-button', () => ({
   CheckoutButton: ({
     children,
     planId,
+    priceId,
   }: {
     children: React.ReactNode;
     planId: string;
+    priceId: string;
   }) => (
-    <button type="button" data-checkout-plan={planId}>
+    <button
+      type="button"
+      data-checkout-plan={planId}
+      data-checkout-price={priceId}
+    >
       {children}
     </button>
   ),
@@ -62,9 +68,13 @@ vi.mock('@/components/ui/card', () => ({
 vi.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
     open ? <div>{children}</div> : null,
-  DialogContent: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  DialogContent: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => <div className={className}>{children}</div>,
   DialogDescription: ({ children }: { children: React.ReactNode }) => (
     <p>{children}</p>
   ),
@@ -91,7 +101,13 @@ vi.mock('@/config/price-config', () => ({
       id: 'hobby',
       name: 'Hobby',
       description: 'For individuals',
-      features: ['100 AI requests'],
+      features: [
+        '100 AI requests',
+        'AI generation and editing',
+        'Unlimited storage',
+        'Text and image input',
+        'Email support',
+      ],
       prices: [
         {
           type: PaymentTypes.SUBSCRIPTION,
@@ -115,7 +131,15 @@ vi.mock('@/config/price-config', () => ({
       id: 'professional',
       name: 'Professional',
       description: 'For professionals',
-      features: ['Unlimited AI requests'],
+      features: [
+        'Unlimited AI requests',
+        'Priority AI processing',
+        'Unlimited storage',
+        'Real-time AI editing',
+        'Technical support',
+        'Text and image input',
+        'Content ownership',
+      ],
       prices: [
         {
           type: PaymentTypes.SUBSCRIPTION,
@@ -204,6 +228,8 @@ describe('PricingModal', () => {
     expect(markup).not.toContain('Save 20%');
     expect(markup).toContain('$60 billed yearly');
     expect(markup).toContain('$96 billed yearly');
+    expect(markup).toContain('data-checkout-price="hobby-year"');
+    expect(markup).toContain('data-checkout-price="professional-year"');
     expect(
       getPlanPriceDisplay(
         {
@@ -239,5 +265,43 @@ describe('PricingModal', () => {
     expect(markup).toContain('Current plan');
     expect(markup).not.toContain('data-checkout-plan="hobby"');
     expect(markup).toContain('data-checkout-plan="professional"');
+  });
+
+  it('keeps each decision card compact with three core benefits', () => {
+    const markup = renderToStaticMarkup(
+      <PricingModal isOpen onClose={() => undefined} />
+    );
+
+    expect(markup).toContain('100 AI requests');
+    expect(markup).toContain('AI generation and editing');
+    expect(markup).toContain('Text and image input');
+    expect(markup).toContain('Unlimited AI requests');
+    expect(markup).toContain('Priority AI processing');
+    expect(markup).toContain('Real-time AI editing');
+
+    expect(markup).not.toContain('Unlimited storage');
+    expect(markup).not.toContain('Email support');
+    expect(markup).not.toContain('Technical support');
+    expect(markup).not.toContain('Content ownership');
+  });
+
+  it('defaults the mobile plan selector to the recommended plan', () => {
+    const markup = renderToStaticMarkup(
+      <PricingModal isOpen onClose={() => undefined} />
+    );
+
+    expect(markup).toMatch(
+      /data-mobile-plan-selector[^>]*>[\s\S]*data-plan-select="professional"[^>]*aria-pressed="true"/
+    );
+    expect(markup).toMatch(/data-plan-select="hobby"[^>]*aria-pressed="false"/);
+  });
+
+  it('does not make the pricing dialog an inner scrolling region', () => {
+    const markup = renderToStaticMarkup(
+      <PricingModal isOpen onClose={() => undefined} />
+    );
+
+    expect(markup).not.toContain('overflow-y-auto');
+    expect(markup).not.toContain('max-h-[calc(100vh-2rem)]');
   });
 });
