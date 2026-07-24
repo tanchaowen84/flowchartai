@@ -3,10 +3,12 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  currentPlanId: 'free',
-  isLoading: false,
-}));
+const mocks = vi.hoisted(
+  (): { currentPlanId: string | null; isLoading: boolean } => ({
+    currentPlanId: 'free',
+    isLoading: false,
+  })
+);
 
 vi.mock('@/components/auth/login-wrapper', () => ({
   LoginWrapper: ({ children }: { children: React.ReactNode }) => children,
@@ -264,6 +266,18 @@ describe('PricingModal', () => {
 
     expect(markup).toContain('Current plan');
     expect(markup).not.toContain('data-checkout-plan="hobby"');
+    expect(markup).toContain('data-checkout-plan="professional"');
+  });
+
+  it('allows checkout when the signed-in user has no active paid plan', () => {
+    mocks.currentPlanId = null;
+
+    const markup = renderToStaticMarkup(
+      <PricingModal isOpen onClose={() => undefined} />
+    );
+
+    expect(markup).not.toContain('Checking current plan…');
+    expect(markup).toContain('data-checkout-plan="hobby"');
     expect(markup).toContain('data-checkout-plan="professional"');
   });
 

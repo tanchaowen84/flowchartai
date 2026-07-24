@@ -112,9 +112,7 @@ export function PricingModal({
       !plan.disabled &&
       (plan.id === 'hobby' || plan.id === 'professional')
   );
-  const isCurrentPlanPending = Boolean(
-    currentUser && (isPaymentLoading || !currentPlan)
-  );
+  const isCurrentPlanPending = Boolean(currentUser && isPaymentLoading);
 
   return (
     <Dialog
