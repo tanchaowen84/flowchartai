@@ -238,7 +238,7 @@ export function parseFlowchartMermaid(
       groups.push(currentGroup);
       continue;
     }
-    if (/^end\b/i.test(line)) {
+    if (/^end$/i.test(line)) {
       currentGroup = null;
       continue;
     }

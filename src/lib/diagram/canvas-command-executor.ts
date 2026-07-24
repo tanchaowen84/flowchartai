@@ -210,6 +210,14 @@ function changedSemanticIdsForPatch(
   return changed;
 }
 
+function patchChangesTopology(
+  command: Extract<CanvasCommand, { kind: 'patch-diagram' }>
+): boolean {
+  return command.patch.operations.some((operation) =>
+    ['addNode', 'removeNode', 'addEdge', 'removeEdge'].includes(operation.type)
+  );
+}
+
 async function defaultRenderMermaid<T extends ReconcilerElement>(
   source: string
 ): Promise<RenderedMermaid<T>> {
@@ -255,6 +263,7 @@ export async function prepareCanvasCommand<T extends ReconcilerElement>({
     }
 
     const nextDocument = applyDiagramPatch(target.document, command.patch);
+    const changesTopology = patchChangesTopology(command);
     const rendered = alignToCurrentDiagram(
       await renderFlowchart(nextDocument),
       currentElements,
@@ -265,7 +274,7 @@ export async function prepareCanvasCommand<T extends ReconcilerElement>({
       nextElements: rendered,
       diagramId: nextDocument.diagramId,
       changedSemanticIds: changedSemanticIdsForPatch(command),
-      mode: 'patch',
+      mode: changesTopology ? 'replace' : 'patch',
     });
     const nextElements = attachMetadataCarrier(
       reconciledElements,

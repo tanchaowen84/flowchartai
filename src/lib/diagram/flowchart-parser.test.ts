@@ -71,6 +71,32 @@ describe('flowchart Mermaid parser', () => {
     expect(isPatchableFlowchart(document.sourceMermaid)).toBe(true);
   });
 
+  it('treats End([结束]) as a node instead of a subgraph terminator', () => {
+    const source = `flowchart TD
+      Start[开始] --> End
+      End([结束])`;
+    const document = parseFlowchartMermaid(source, {
+      diagramId: 'localized-end',
+    });
+
+    expect(document.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          semanticId: 'End',
+          label: '结束',
+          shape: 'stadium',
+        }),
+      ])
+    );
+    expect(document.edges).toEqual([
+      expect.objectContaining({
+        sourceSemanticId: 'Start',
+        targetSemanticId: 'End',
+      }),
+    ]);
+    expect(isPatchableFlowchart(source)).toBe(true);
+  });
+
   it('detects subgraph structure and refuses local patch instead of losing it', () => {
     const source = `flowchart LR
       subgraph auth[Authentication]

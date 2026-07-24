@@ -467,6 +467,113 @@ describe('prepareCanvasCommand', () => {
     expect(stylePatched.nextMetadata.diagrams['styled-real'].revision).toBe(2);
   });
 
+  it('reflows the target diagram when a patch changes topology', async () => {
+    const userElement = { id: 'user-note-topology', x: 800, y: 120 };
+    const created = await prepareCanvasCommand<ReconcilerElement>({
+      command: {
+        kind: 'render-mermaid',
+        operation: 'create',
+        diagramId: 'topology-reflow',
+        diagramType: 'flowchart',
+        mermaidCode: 'flowchart TD\n  A[Start] --> B[Done]',
+        description: 'Create topology reflow graph',
+      },
+      currentElements: [userElement],
+      metadata: { schemaVersion: 1, diagrams: {} },
+      targetResolution: { status: 'none' },
+      renderFlowchart: renderManagedFlowchart,
+    });
+    const initialA = created.nextElements.find(
+      (element) =>
+        element.customData?.diagramId === 'topology-reflow' &&
+        element.customData?.semanticId === 'A' &&
+        element.customData?.entityType === 'node'
+    );
+    const initialB = created.nextElements.find(
+      (element) =>
+        element.customData?.diagramId === 'topology-reflow' &&
+        element.customData?.semanticId === 'B' &&
+        element.customData?.entityType === 'node'
+    );
+    const targetResolution = resolveDiagramTarget({
+      elements: created.nextElements,
+      selectedElementIds: {},
+      metadata: created.nextMetadata,
+    });
+    if (targetResolution.status !== 'resolved' || !targetResolution.document) {
+      throw new Error('Expected topology graph to resolve as patchable');
+    }
+
+    const patched = await prepareCanvasCommand<ReconcilerElement>({
+      command: {
+        kind: 'patch-diagram',
+        description: 'Insert review before done',
+        patch: {
+          patchId: 'insert-review',
+          diagramId: 'topology-reflow',
+          baseRevision: 0,
+          operations: [
+            { type: 'removeEdge', semanticId: 'A__B' },
+            {
+              type: 'addNode',
+              node: {
+                semanticId: 'Review',
+                label: 'Review',
+                shape: 'diamond',
+              },
+            },
+            {
+              type: 'addEdge',
+              edge: {
+                semanticId: 'A__Review',
+                sourceSemanticId: 'A',
+                targetSemanticId: 'Review',
+                lineStyle: 'solid',
+              },
+            },
+            {
+              type: 'addEdge',
+              edge: {
+                semanticId: 'Review__B',
+                sourceSemanticId: 'Review',
+                targetSemanticId: 'B',
+                lineStyle: 'solid',
+              },
+            },
+          ],
+        },
+      },
+      currentElements: created.nextElements,
+      metadata: created.nextMetadata,
+      targetResolution,
+      renderFlowchart: renderManagedFlowchart,
+    });
+    const nextA = patched.nextElements.find(
+      (element) =>
+        element.customData?.diagramId === 'topology-reflow' &&
+        element.customData?.semanticId === 'A' &&
+        element.customData?.entityType === 'node'
+    );
+    const review = patched.nextElements.find(
+      (element) =>
+        element.customData?.diagramId === 'topology-reflow' &&
+        element.customData?.semanticId === 'Review' &&
+        element.customData?.entityType === 'node'
+    );
+    const nextB = patched.nextElements.find(
+      (element) =>
+        element.customData?.diagramId === 'topology-reflow' &&
+        element.customData?.semanticId === 'B' &&
+        element.customData?.entityType === 'node'
+    );
+
+    expect(patched.nextElements[0]).toBe(userElement);
+    expect(nextA).toMatchObject({ x: initialA?.x, y: initialA?.y });
+    expect(nextB?.y).not.toBe(initialB?.y);
+    expect(nextB?.y).toBeGreaterThan(review?.y ?? Number.POSITIVE_INFINITY);
+    expect(review?.y).not.toBe(nextB?.y);
+  });
+
   it('keeps edge add, update, remove, metadata derivation, and next patch patchable', async () => {
     let prepared = await prepareCanvasCommand<ReconcilerElement>({
       command: {
