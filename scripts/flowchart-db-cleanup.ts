@@ -690,7 +690,8 @@ async function migrate(args: Args): Promise<void> {
       const rows = await sql`
         select id, content, updated_at
         from public.flowcharts
-        where id > ${cursor} and content like '%"originalMermaid"%'
+        where id > ${cursor}
+          and content like '%"originalMermaid"%"originalMermaid"%'
         order by id
         limit 100
       `;
