@@ -769,7 +769,7 @@ async function migrate(args: Args): Promise<void> {
           update public.flowcharts
           set content = ${change.afterContent}
           where id = ${change.id}
-            and updated_at = ${change.updatedAt}
+            and date_trunc('milliseconds', updated_at) = ${change.updatedAt}::timestamptz
             and content = ${change.beforeContent}
           returning id
         `;
@@ -998,7 +998,7 @@ async function rollbackMigrate(args: Args): Promise<void> {
           update public.flowcharts
           set content = ${backupRow.content}
           where id = ${row.id}
-            and updated_at = ${row.updatedAt}
+            and date_trunc('milliseconds', updated_at) = ${row.updatedAt}::timestamptz
             and content = ${String(current.content)}
           returning id
         `;
