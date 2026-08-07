@@ -765,17 +765,24 @@ async function migrate(args: Args): Promise<void> {
     }
 
     await sql.begin(async (tx) => {
-      for (const change of changes) {
-        const updated = await tx`
-          update public.flowcharts
-          set content = ${change.afterContent}
-          where id = ${change.id}
-            and content = ${change.beforeContent}
-          returning id
-        `;
-        if (updated.length !== 1) {
-          throw new Error(`Optimistic lock failed: ${change.id}`);
-        }
+      const updateRows = changes.map((change) => [
+        change.id,
+        change.beforeContent,
+        change.afterContent,
+      ]);
+      const updated = await tx`
+        update public.flowcharts as flowchart
+        set content = update_data.after_content
+        from (values ${tx(updateRows)})
+          as update_data (id, before_content, after_content)
+        where flowchart.id = update_data.id
+          and flowchart.content = update_data.before_content
+        returning flowchart.id
+      `;
+      if (updated.length !== changes.length) {
+        throw new Error(
+          `Optimistic lock failed: updated ${updated.length}/${changes.length} rows`
+        );
       }
     });
 
