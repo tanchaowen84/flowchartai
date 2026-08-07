@@ -114,8 +114,12 @@ function attachMetadataCarrier<T extends ReconcilerElement>(
   const carrierId = target[0]?.id;
   if (!carrierId) return elements;
 
-  return elements.map((element) =>
-    element.id === carrierId
+  return elements.map((element) => {
+    if (element.customData?.diagramId !== diagramId) return element;
+    const { originalMermaid: _duplicateSource, ...customData } =
+      element.customData || {};
+
+    return element.id === carrierId
       ? ({
           ...element,
           version: Math.max(element.version || 1, 1) + 1,
@@ -125,7 +129,7 @@ function attachMetadataCarrier<T extends ReconcilerElement>(
               : (element.versionNonce || 0) + 1,
           updated: Math.max(Date.now(), (element.updated || 0) + 1),
           customData: {
-            ...element.customData,
+            ...customData,
             aiGenerated: true,
             diagramId,
             diagramType,
@@ -133,8 +137,10 @@ function attachMetadataCarrier<T extends ReconcilerElement>(
             revision,
           },
         } as T)
-      : element
-  );
+      : 'originalMermaid' in (element.customData || {})
+        ? ({ ...element, customData } as T)
+        : element;
+  });
 }
 
 function boundsOrigin(

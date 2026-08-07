@@ -1123,6 +1123,57 @@ describe('prepareCanvasCommand', () => {
     );
   });
 
+  it('keeps original Mermaid on exactly one deterministic carrier', async () => {
+    const source = 'sequenceDiagram\n  A->>B: Hello';
+    const prepared = await prepareCanvasCommand({
+      command: {
+        kind: 'render-mermaid',
+        operation: 'create',
+        diagramId: 'sequence',
+        diagramType: 'sequenceDiagram',
+        mermaidCode: source,
+        description: 'Create sequence',
+      },
+      currentElements: [],
+      metadata: { schemaVersion: 1, diagrams: {} },
+      targetResolution: { status: 'none' },
+      renderMermaid: async () => ({
+        elements: [
+          {
+            id: 'label-z',
+            type: 'text',
+            customData: { originalMermaid: source, converterData: 'keep-z' },
+          },
+          {
+            id: 'node-b',
+            type: 'rectangle',
+            customData: { originalMermaid: source, converterData: 'keep-b' },
+          },
+          {
+            id: 'node-a',
+            type: 'rectangle',
+            customData: { originalMermaid: source, converterData: 'keep-a' },
+          },
+        ],
+        files: {},
+      }),
+    });
+
+    expect(
+      prepared.nextElements.filter(
+        (element) => element.customData?.originalMermaid === source
+      )
+    ).toHaveLength(1);
+    expect(
+      prepared.nextElements.find(
+        (element) => element.customData?.originalMermaid === source
+      )?.id
+    ).toBe('node-a');
+    expect(
+      prepared.nextElements.map((element) => element.customData?.converterData)
+    ).toEqual(['keep-z', 'keep-b', 'keep-a']);
+  });
+
   it('does not mutate metadata when rendering or patching fails', async () => {
     const original = structuredClone(metadata);
     await expect(

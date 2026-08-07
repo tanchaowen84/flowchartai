@@ -77,6 +77,20 @@ const DEFAULT_CONFIG: MermaidConfig = {
   maxTextSize: 50000,
 };
 
+export function markAiGeneratedElements<
+  T extends { customData?: Record<string, unknown> },
+>(elements: T[]): Array<T & { customData: Record<string, unknown> }> {
+  const generatedAt = Date.now();
+  return elements.map((element) => ({
+    ...element,
+    customData: {
+      ...element.customData,
+      aiGenerated: true,
+      generatedAt,
+    },
+  }));
+}
+
 export async function preloadMermaidConverter(): Promise<void> {
   await Promise.all([
     import('@excalidraw/excalidraw'),
@@ -129,17 +143,10 @@ export async function convertMermaidToExcalidraw(
       regenerateIds: true, // Generate new IDs for elements
     });
 
-    // Mark all elements as AI-generated for easier management
-    const markedElements = excalidrawElements.map((element) => ({
-      ...element,
-      customData: {
-        ...element.customData,
-        aiGenerated: true,
-        generatedAt: Date.now(),
-        originalMermaid: mermaidSyntax, // 保存原始Mermaid代码用于扩展
-        sessionId: `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 标记同一次生成的元素组
-      },
-    }));
+    // Source Mermaid is attached once by the canvas command executor's
+    // deterministic metadata carrier. Repeating it on every element caused
+    // large TOAST growth in persisted flowcharts.
+    const markedElements = markAiGeneratedElements(excalidrawElements);
 
     return {
       success: true,

@@ -8,6 +8,7 @@ import {
   isPatchableFlowchart,
   parseFlowchartMermaid,
 } from './flowchart-parser';
+import { groupLegacyMermaidElements } from './legacy-mermaid-groups';
 
 interface TargetElement {
   id: string;
@@ -105,68 +106,11 @@ function resolveManaged(
 }
 
 function groupLegacyElements(elements: TargetElement[]): LegacyDiagramGroup[] {
-  const bySource = new Map<string, TargetElement[]>();
-  for (const element of elements) {
-    const source = element.customData?.originalMermaid;
-    if (
-      !element.customData?.aiGenerated ||
-      element.customData?.diagramId ||
-      !source
-    ) {
-      continue;
-    }
-    bySource.set(source, [...(bySource.get(source) || []), element]);
-  }
-
-  const groups: LegacyDiagramGroup[] = [];
-  for (const [source, sourceElements] of bySource) {
-    const withoutGeneration = sourceElements.filter(
-      (element) => !Number.isFinite(element.customData?.generatedAt)
-    );
-    if (withoutGeneration.length > 0) {
-      groups.push({
-        diagramId: legacyDiagramId(source),
-        elements: withoutGeneration,
-        source,
-      });
-    }
-
-    const timestamped = sourceElements
-      .filter((element) => Number.isFinite(element.customData?.generatedAt))
-      .sort(
-        (left, right) =>
-          (left.customData?.generatedAt || 0) -
-          (right.customData?.generatedAt || 0)
-      );
-    let cluster: TargetElement[] = [];
-    let clusterStart: number | undefined;
-    let previousTimestamp: number | undefined;
-    const flush = () => {
-      if (cluster.length === 0 || clusterStart === undefined) return;
-      groups.push({
-        diagramId: legacyDiagramId(source, clusterStart),
-        elements: cluster,
-        source,
-      });
-      cluster = [];
-      clusterStart = undefined;
-      previousTimestamp = undefined;
-    };
-    for (const element of timestamped) {
-      const timestamp = element.customData?.generatedAt as number;
-      if (
-        previousTimestamp !== undefined &&
-        timestamp - previousTimestamp > 1_000
-      ) {
-        flush();
-      }
-      clusterStart ??= timestamp;
-      cluster.push(element);
-      previousTimestamp = timestamp;
-    }
-    flush();
-  }
-  return groups;
+  return groupLegacyMermaidElements(elements).map((group) => ({
+    diagramId: legacyDiagramId(group.source, group.generationKey),
+    elements: group.elements,
+    source: group.source,
+  }));
 }
 
 function resolveLegacy(group: LegacyDiagramGroup): DiagramTargetResolution {
