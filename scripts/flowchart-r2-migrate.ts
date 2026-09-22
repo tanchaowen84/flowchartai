@@ -20,6 +20,7 @@ import {
   type FlowchartBackupRow,
   parseAndVerifyBackupShard,
 } from './flowchart-db-cleanup-core';
+import { withR2Retry } from './flowchart-r2-retry';
 
 const args = process.argv.slice(2);
 function option(name: string, fallback = ''): string {
@@ -35,7 +36,8 @@ const concurrency = Number(option('concurrency', '4'));
 const output = resolve(option('output', '/tmp/flowchart-r2-migration'));
 const sql = postgres(process.env.DATABASE_URL!, {
   prepare: false,
-  max: concurrency,
+  // Most work waits on R2; keep database connections bounded independently.
+  max: Math.min(concurrency, 4),
   connect_timeout: 20,
   connection: { statement_timeout: 20000, lock_timeout: 3000 },
 });
@@ -47,7 +49,13 @@ const s3 = new S3Client({
     secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY!,
   },
 });
-const store = createFlowchartAssetStore();
+const rawStore = createFlowchartAssetStore();
+const store = {
+  put: (...args: Parameters<typeof rawStore.put>) =>
+    withR2Retry(() => rawStore.put(...args)),
+  get: (...args: Parameters<typeof rawStore.get>) =>
+    withR2Retry(() => rawStore.get(...args)),
+};
 interface Manifest {
   status: string;
   createdAt: string;
@@ -69,22 +77,26 @@ interface Journal {
   afterThumbnail: string | null;
 }
 async function getObject(key: string): Promise<Buffer> {
-  const result = await s3.send(
-    new GetObjectCommand({ Bucket: bucket, Key: key })
-  );
-  if (!result.Body) throw new Error('Missing backup object');
-  return Buffer.from(await result.Body.transformToByteArray());
+  return withR2Retry(async () => {
+    const result = await s3.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key })
+    );
+    if (!result.Body) throw new Error('Missing backup object');
+    return Buffer.from(await result.Body.transformToByteArray());
+  });
 }
 async function putJournal(key: string, value: unknown): Promise<void> {
   const body = Buffer.from(JSON.stringify(value));
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: body,
-      ContentType: 'application/json',
-      Metadata: { sha256: assetDigest(body) },
-    })
+  await withR2Retry(() =>
+    s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: body,
+        ContentType: 'application/json',
+        Metadata: { sha256: assetDigest(body) },
+      })
+    )
   );
   if (assetDigest(await getObject(key)) !== assetDigest(body))
     throw new Error('Journal readback mismatch');
@@ -103,10 +115,10 @@ async function main(): Promise<void> {
     limit < 1 ||
     !Number.isSafeInteger(concurrency) ||
     concurrency < 1 ||
-    concurrency > 8
+    concurrency > 32
   )
     throw new Error(
-      'Require manifest-key, positive limit and concurrency 1..8'
+      'Require manifest-key, positive limit and concurrency 1..32'
     );
   if (
     bucket === process.env.STORAGE_BUCKET_NAME ||
@@ -152,7 +164,7 @@ async function main(): Promise<void> {
 
   async function processRow(row: FlowchartBackupRow): Promise<void> {
     const [current] =
-      await sql`select id, user_id, content, thumbnail, updated_at::text as exact_updated_at from public.flowcharts where id=${row.id}`;
+      await sql`select id, user_id, encode(sha256(convert_to(content, 'UTF8')), 'hex') as content_hash, encode(sha256(convert_to(coalesce(to_json(thumbnail)::text, 'null'), 'UTF8')), 'hex') as thumbnail_hash, updated_at::text as exact_updated_at from public.flowcharts where id=${row.id}`;
     if (!current) {
       drifted++;
       return;
@@ -179,8 +191,8 @@ async function main(): Promise<void> {
       )
         throw new Error('Rollback backup mismatch');
       if (
-        assetDigest(current.content) !== record.afterContentHash ||
-        hashThumbnail(current.thumbnail) !== record.afterThumbnailHash ||
+        current.content_hash !== record.afterContentHash ||
+        current.thumbnail_hash !== record.afterThumbnailHash ||
         current.user_id !== row.userId ||
         current.exact_updated_at !== record.updatedAt
       ) {
@@ -190,15 +202,15 @@ async function main(): Promise<void> {
       candidates++;
       if (!apply) return;
       const changed =
-        await sql`update public.flowcharts set content=${row.content},thumbnail=${row.thumbnail} where id=${row.id} and user_id=${row.userId} and content=${current.content} and thumbnail is not distinct from ${current.thumbnail} and updated_at=${current.exact_updated_at}::timestamp returning id`;
+        await sql`update public.flowcharts set content=${row.content},thumbnail=${row.thumbnail} where id=${row.id} and user_id=${row.userId} and content=${record.afterContent} and thumbnail is not distinct from ${record.afterThumbnail} and updated_at=${current.exact_updated_at}::text::timestamp returning id`;
       if (changed.length) migrated++;
       else drifted++;
       return;
     }
     // Resume accepts rows already converted under this same verified backup.
     if (
-      current.content !== row.content ||
-      current.thumbnail !== row.thumbnail ||
+      current.content_hash !== assetDigest(row.content) ||
+      current.thumbnail_hash !== hashThumbnail(row.thumbnail) ||
       current.user_id !== row.userId
     ) {
       if (current.user_id === row.userId) {
@@ -208,8 +220,8 @@ async function main(): Promise<void> {
           ) as Journal;
           if (
             journal.manifestSha256 === manifestHash &&
-            assetDigest(current.content) === journal.afterContentHash &&
-            hashThumbnail(current.thumbnail) === journal.afterThumbnailHash &&
+            current.content_hash === journal.afterContentHash &&
+            current.thumbnail_hash === journal.afterThumbnailHash &&
             current.exact_updated_at === journal.updatedAt
           ) {
             unchanged++;
@@ -283,17 +295,16 @@ async function main(): Promise<void> {
       { mode: 0o600 }
     );
     assertFresh();
+    // Force a text parameter before the server timestamp cast: postgres-js otherwise
+    // serializes timestamp parameters through Date and discards microseconds.
     const changed =
-      await sql`update public.flowcharts set content=${transformed.content!},thumbnail=${transformed.thumbnail ?? null} where id=${row.id} and user_id=${row.userId} and content=${row.content} and thumbnail is not distinct from ${row.thumbnail} and updated_at=${current.exact_updated_at}::timestamp returning content,thumbnail,updated_at::text as exact_updated_at`;
+      await sql`update public.flowcharts set content=case when ${transformed.content !== row.content} then ${transformed.content!} else content end,thumbnail=${transformed.thumbnail ?? null} where id=${row.id} and user_id=${row.userId} and content=${row.content} and thumbnail is not distinct from ${row.thumbnail} and updated_at=${current.exact_updated_at}::text::timestamp returning encode(sha256(convert_to(content, 'UTF8')), 'hex') as content_hash,encode(sha256(convert_to(coalesce(to_json(thumbnail)::text, 'null'), 'UTF8')), 'hex') as thumbnail_hash,updated_at::text as exact_updated_at`;
     if (!changed.length) {
       drifted++;
       return;
     }
-    assert.equal(assetDigest(changed[0].content), record.afterContentHash);
-    assert.equal(
-      hashThumbnail(changed[0].thumbnail),
-      record.afterThumbnailHash
-    );
+    assert.equal(changed[0].content_hash, record.afterContentHash);
+    assert.equal(changed[0].thumbnail_hash, record.afterThumbnailHash);
     assert.equal(changed[0].exact_updated_at, record.updatedAt);
     migrated++;
   }
@@ -308,7 +319,7 @@ async function main(): Promise<void> {
         row.content.includes('data:image/') ||
         (rollback && (row.thumbnail || row.content.includes('files')))
     );
-    for (let index = 0; index < possible.length; index += concurrency) {
+    for (let index = 0; index < possible.length; ) {
       if (candidates >= limit || stopped) break outer;
       const batch = possible.slice(
         index,
@@ -324,6 +335,7 @@ async function main(): Promise<void> {
           }
         })
       );
+      index += batch.length;
       process.stdout.write(
         `${JSON.stringify({ candidates, migrated, unchanged, drifted, bytesSaved })}\n`
       );
