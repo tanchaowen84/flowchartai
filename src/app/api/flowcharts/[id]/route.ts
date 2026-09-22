@@ -1,6 +1,12 @@
 import { getDb } from '@/db';
 import { flowcharts } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import {
+  externalizeFlowchartAssets,
+  hydrateFlowchartContent,
+  thumbnailUrl,
+} from '@/lib/flowchart-assets';
+import { createFlowchartAssetStore } from '@/storage/flowchart-asset-store';
 import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -46,8 +52,12 @@ export async function GET(
     return NextResponse.json({
       id: flowchart.id,
       title: flowchart.title,
-      content: flowchart.content,
-      thumbnail: flowchart.thumbnail,
+      content: await hydrateFlowchartContent(
+        session.user.id,
+        flowchart.content,
+        createFlowchartAssetStore()
+      ),
+      thumbnail: thumbnailUrl(flowchart.id, flowchart.thumbnail),
       createdAt: flowchart.createdAt,
       updatedAt: flowchart.updatedAt,
     });
@@ -96,19 +106,29 @@ export async function PUT(
     }
 
     // Update only provided fields
+    const storedAssets = await externalizeFlowchartAssets(
+      session.user.id,
+      validatedData,
+      createFlowchartAssetStore()
+    );
     const updateData: any = {};
     if (validatedData.title !== undefined) {
       updateData.title = validatedData.title;
     }
     if (validatedData.content !== undefined) {
-      updateData.content = validatedData.content;
+      updateData.content = storedAssets.content;
     }
     if (validatedData.thumbnail !== undefined) {
-      updateData.thumbnail = validatedData.thumbnail;
+      updateData.thumbnail = storedAssets.thumbnail;
     }
     updateData.updatedAt = new Date();
 
-    await db.update(flowcharts).set(updateData).where(eq(flowcharts.id, id));
+    await db
+      .update(flowcharts)
+      .set(updateData)
+      .where(
+        and(eq(flowcharts.id, id), eq(flowcharts.userId, session.user.id))
+      );
 
     return NextResponse.json({
       success: true,

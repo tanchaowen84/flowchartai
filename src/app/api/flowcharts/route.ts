@@ -1,6 +1,11 @@
 import { getDb } from '@/db';
 import { flowcharts } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import {
+  externalizeFlowchartAssets,
+  thumbnailUrl,
+} from '@/lib/flowchart-assets';
+import { createFlowchartAssetStore } from '@/storage/flowchart-asset-store';
 import { desc, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -29,7 +34,6 @@ export async function GET(request: NextRequest) {
       .select({
         id: flowcharts.id,
         title: flowcharts.title,
-        content: flowcharts.content,
         thumbnail: flowcharts.thumbnail,
         createdAt: flowcharts.createdAt,
         updatedAt: flowcharts.updatedAt,
@@ -39,7 +43,10 @@ export async function GET(request: NextRequest) {
       .orderBy(desc(flowcharts.updatedAt));
 
     return NextResponse.json({
-      flowcharts: userFlowcharts,
+      flowcharts: userFlowcharts.map((chart) => ({
+        ...chart,
+        thumbnail: thumbnailUrl(chart.id, chart.thumbnail),
+      })),
     });
   } catch (error) {
     console.error('Error fetching flowcharts:', error);
@@ -93,6 +100,11 @@ export async function POST(request: NextRequest) {
 
     // Regular creation with content
     const validatedData = createFlowchartSchema.parse(body);
+    const storedAssets = await externalizeFlowchartAssets(
+      session.user.id,
+      validatedData,
+      createFlowchartAssetStore()
+    );
 
     // Generate unique ID
     const flowchartId = `flowchart_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -103,8 +115,8 @@ export async function POST(request: NextRequest) {
       .values({
         id: flowchartId,
         title: validatedData.title,
-        content: validatedData.content,
-        thumbnail: validatedData.thumbnail,
+        content: storedAssets.content!,
+        thumbnail: storedAssets.thumbnail,
         userId: session.user.id,
       })
       .returning({ id: flowcharts.id });
