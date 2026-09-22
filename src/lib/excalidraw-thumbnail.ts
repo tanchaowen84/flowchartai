@@ -1,4 +1,6 @@
-// Use any types to avoid complex Excalidraw type imports
+import type { BinaryFiles } from '@excalidraw/excalidraw/types';
+
+// Use any types to avoid complex Excalidraw element type imports
 export interface ExcalidrawElement {
   id: string;
   type: string;
@@ -12,6 +14,7 @@ export interface AppState {
 export interface ExcalidrawData {
   elements: readonly ExcalidrawElement[];
   appState: AppState;
+  files?: BinaryFiles;
 }
 
 /**
@@ -50,7 +53,7 @@ export async function generateThumbnail(
         // Don't crop, show full scene
         exportPadding: 20,
       },
-      files: null,
+      files: canvasData.files ?? null,
     });
 
     // Create a smaller canvas for the thumbnail

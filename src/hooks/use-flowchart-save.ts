@@ -63,7 +63,7 @@ export const useFlowchartSave = (
     if (elements.length > 0) {
       try {
         thumbnail = await generateThumbnail(
-          { elements, appState },
+          { elements, appState, files },
           300,
           200,
           0.9
