@@ -11,7 +11,6 @@ export const retryPolicySchema = z
     retryStepId: z.string(),
     eligibilityId: z.string(),
     manualHandlerId: z.string(),
-    parentId: z.string(),
     maxRetries: z.number().int().positive(),
   })
   .strict();
@@ -27,7 +26,6 @@ export function compileRetryPolicy(
     policy.retryStepId,
     policy.eligibilityId,
     policy.manualHandlerId,
-    policy.parentId,
   ])
     if (!map.has(id)) throw new Error(`Retry policy object ${id} is missing`);
   const base = `bounded_${policy.actionId}`;
@@ -98,7 +96,7 @@ export function compileRetryPolicy(
           id: check,
           label,
           shape: 'decision',
-          parent: policy.parentId,
+          parent: retry.parent,
           x: 24,
           y: 44,
         },
@@ -106,7 +104,7 @@ export function compileRetryPolicy(
           id: increment,
           label: chinese ? '重试次数 + 1' : 'Retry count + 1',
           shape: 'process',
-          parent: policy.parentId,
+          parent: retry.parent,
           x: 24,
           y: 244,
         },

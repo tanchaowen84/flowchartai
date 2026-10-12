@@ -79,3 +79,48 @@ it('leaves unrelated/manual connection paths untouched during color changes', ()
   };
   expect(routeDrawioPatch(current, patch)).toEqual(patch);
 });
+
+it('falls back to draw.io routing when overlapping endpoints prevent a safe route', () => {
+  const current: DrawioDocument = {
+    editorKind: 'drawio',
+    formatVersion: 1,
+    documentId: 'overlap',
+    revision: 0,
+    diagramType: 'flowchart',
+    xml: compileNativeGraph({
+      nodes: [
+        { id: 'a', label: 'A', shape: 'process', x: 0, y: 0 },
+        { id: 'b', label: 'B', shape: 'process', x: 500, y: 0 },
+        {
+          id: 'cover',
+          label: '容器说明',
+          shape: 'process',
+          x: -40,
+          y: -40,
+          width: 760,
+          height: 140,
+        },
+      ],
+      edges: [],
+    }),
+  };
+  const patch: DrawioPatch = {
+    baseRevision: 0,
+    operations: [
+      {
+        type: 'addCell',
+        xml: '<mxCell id="e" edge="1" source="a" target="b" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>',
+      },
+    ],
+  };
+  const routed = routeDrawioPatch(current, patch);
+  const operation = routed.operations.find(
+    (op) => op.type === 'updateCell' && op.id === 'e'
+  );
+  expect(
+    operation?.type === 'updateCell' && operation.changes.style?.edgeStyle
+  ).toBe('orthogonalEdgeStyle');
+  expect(operation?.type === 'updateCell' && operation.changes.points).toEqual(
+    []
+  );
+});

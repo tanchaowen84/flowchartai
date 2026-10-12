@@ -22,7 +22,7 @@ async function main(): Promise<void> {
     JSON.parse(readFileSync(documentFile, 'utf8'))
   );
   const prompt = readFileSync(promptFile, 'utf8');
-  const agent = createDrawioAgent(document, [], prompt);
+  const agent = createDrawioAgent(document, []);
   const counts: Record<string, number> = {};
   let command: unknown;
   const trace: unknown[] = [];

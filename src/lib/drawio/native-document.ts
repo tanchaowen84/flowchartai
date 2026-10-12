@@ -170,39 +170,6 @@ export function readNativeCells(document: DrawioDocument): NativeCellSummary[] {
   });
 }
 
-function selectionScope(
-  cells: Map<string, CellRecord>,
-  selection: string[]
-): Set<string> | null {
-  if (!selection.length) return null;
-  const scope = new Set<string>(selection);
-  for (const id of selection)
-    if (!cells.has(id)) throw new Error(`Selection object ${id} is missing`);
-  for (const id of selection) {
-    const cell = cells.get(id)?.cell;
-    for (const key of ['source', 'target']) {
-      const endpoint = cell?.getAttribute(key);
-      if (endpoint) scope.add(endpoint);
-    }
-  }
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const { cell, id } of cells.values())
-      if (scope.has(cell.getAttribute('parent') || '') && !scope.has(id)) {
-        scope.add(id);
-        changed = true;
-      }
-  }
-  for (const { cell, id } of cells.values())
-    if (
-      scope.has(cell.getAttribute('source') || '') ||
-      scope.has(cell.getAttribute('target') || '')
-    )
-      scope.add(id);
-  return scope;
-}
-
 function mergeStyle(
   current: string,
   changes: Record<string, string>,
@@ -230,8 +197,7 @@ function mergeStyle(
 
 export function applyDrawioPatch(
   document: DrawioDocument,
-  input: DrawioPatch,
-  selection: string[] = []
+  input: DrawioPatch
 ): DrawioDocument {
   const current = drawioDocumentSchema.parse(document);
   const patch = drawioPatchSchema.parse(input);
@@ -242,12 +208,6 @@ export function applyDrawioPatch(
   validateDrawioXml(current.xml, current.pageId);
   const parsed = parseXml(current.xml);
   const root = graphRoot(activeModel(parsed, current.pageId));
-  const original = cellMap(root);
-  const scope = selectionScope(original, selection);
-  const selectionParents = new Set(
-    selection.map((id) => original.get(id)?.cell.getAttribute('parent'))
-  );
-  const added = new Set<string>();
   for (const op of patch.operations) {
     const cells = cellMap(root);
     if (op.type === 'addCell') {
@@ -261,25 +221,13 @@ export function applyDrawioPatch(
       const record = cellRecord(element);
       if (cells.has(record.id))
         throw new Error(`Duplicate cell ID: ${record.id}`);
-      const parent = record.cell.getAttribute('parent') || '';
-      if (
-        scope &&
-        record.cell.getAttribute('vertex') === '1' &&
-        !scope.has(parent) &&
-        !selectionParents.has(parent) &&
-        !added.has(parent)
-      )
-        throw new Error('New object is outside the selected region');
       root.appendChild(parsed.importNode(element, true));
-      added.add(record.id);
       continue;
     }
     if (op.id === '0' || op.id === '1')
       throw new Error(
         'Graph root/layer cannot be removed or edited by the assistant'
       );
-    if (scope && !scope.has(op.id) && !added.has(op.id))
-      throw new Error(`Object ${op.id} is outside the selection`);
     const record = cells.get(op.id);
     if (!record) throw new Error(`Cell reference ${op.id} is missing`);
     if (op.type === 'removeCell') {
@@ -330,34 +278,6 @@ export function applyDrawioPatch(
         geometry.appendChild(points);
       }
     }
-  }
-  if (scope) {
-    const finalCells = cellMap(root);
-    const connected = new Set(scope);
-    for (const id of added) {
-      const parent = finalCells.get(id)?.cell.getAttribute('parent');
-      if (parent && scope.has(parent)) connected.add(id);
-    }
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const id of added) {
-        const cell = finalCells.get(id)?.cell;
-        if (!cell) continue;
-        const a = cell.getAttribute('source');
-        const b = cell.getAttribute('target');
-        if ((a && connected.has(a)) || (b && connected.has(b))) {
-          for (const key of [id, a, b])
-            if (key && !connected.has(key)) {
-              connected.add(key);
-              changed = true;
-            }
-        }
-      }
-    }
-    for (const id of added)
-      if (!connected.has(id))
-        throw new Error(`New object ${id} is outside the selection`);
   }
   const xml = validateDrawioXml(serialize(parsed), current.pageId);
   return { ...current, xml, revision: current.revision + 1 };

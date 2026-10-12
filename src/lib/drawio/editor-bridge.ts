@@ -124,7 +124,7 @@ export function createDrawioBridge(
       if (committed.has(command.commandId))
         throw new Error('This edit was already applied');
       sync();
-      const candidate = prepareDrawioCommand(document, command, selection());
+      const candidate = prepareDrawioCommand(document, command);
       const parsed = win.mxUtils.parseXml(candidate.xml);
       const models = Array.from(
         parsed.getElementsByTagName('mxGraphModel')

@@ -46,32 +46,28 @@ describe('complex native diagram editing', () => {
   it('changes a nested retry loop atomically without moving any existing vertex', () => {
     const doc = complexRefundFixture();
     const before = readNativeCells(doc);
-    const next = applyDrawioPatch(
-      doc,
-      {
-        baseRevision: 4,
-        operations: [
-          { type: 'removeCell', id: 'edge_26' },
-          {
-            type: 'addCell',
-            xml: '<mxCell id="retry_limit" value="已重试3次？" vertex="1" parent="retry_group"><mxGeometry x="20" y="120" width="180" height="50" as="geometry"/></mxCell>',
-          },
-          {
-            type: 'addCell',
-            xml: '<mxCell id="retry_check" edge="1" parent="1" source="retry" target="retry_limit"><mxGeometry relative="1" as="geometry"/></mxCell>',
-          },
-          {
-            type: 'addCell',
-            xml: '<mxCell id="retry_again" value="否" edge="1" parent="1" source="retry_limit" target="refund"><mxGeometry relative="1" as="geometry"/></mxCell>',
-          },
-          {
-            type: 'addCell',
-            xml: '<mxCell id="retry_manual" value="是" edge="1" parent="1" source="retry_limit" target="manual"><mxGeometry relative="1" as="geometry"/></mxCell>',
-          },
-        ],
-      },
-      ['payment']
-    );
+    const next = applyDrawioPatch(doc, {
+      baseRevision: 4,
+      operations: [
+        { type: 'removeCell', id: 'edge_26' },
+        {
+          type: 'addCell',
+          xml: '<mxCell id="retry_limit" value="已重试3次？" vertex="1" parent="retry_group"><mxGeometry x="20" y="120" width="180" height="50" as="geometry"/></mxCell>',
+        },
+        {
+          type: 'addCell',
+          xml: '<mxCell id="retry_check" edge="1" parent="1" source="retry" target="retry_limit"><mxGeometry relative="1" as="geometry"/></mxCell>',
+        },
+        {
+          type: 'addCell',
+          xml: '<mxCell id="retry_again" value="否" edge="1" parent="1" source="retry_limit" target="refund"><mxGeometry relative="1" as="geometry"/></mxCell>',
+        },
+        {
+          type: 'addCell',
+          xml: '<mxCell id="retry_manual" value="是" edge="1" parent="1" source="retry_limit" target="manual"><mxGeometry relative="1" as="geometry"/></mxCell>',
+        },
+      ],
+    });
     const after = readNativeCells(next);
     for (const cell of before.filter((c) => !c.source && !c.target))
       expect(after.find((c) => c.id === cell.id)).toEqual(cell);
@@ -94,45 +90,6 @@ describe('complex native diagram editing', () => {
         xml.replace('<mxGraphModel>', '<mxGraphModel dx="900" dy="600">')
       )
     ).toBe(nativeContentFingerprint(xml));
-  });
-  it('rejects newly added edges unrelated to the selected region', () => {
-    expect(() =>
-      applyDrawioPatch(
-        complexRefundFixture(),
-        {
-          baseRevision: 4,
-          operations: [
-            {
-              type: 'addCell',
-              xml: '<mxCell id="unrelated" edge="1" parent="1" source="request" target="archive"><mxGeometry relative="1" as="geometry"/></mxCell>',
-            },
-          ],
-        },
-        ['payment']
-      )
-    ).toThrow(/selection/i);
-  });
-  it('rejects an out-of-selection mutation without corrupting the original batch', () => {
-    const doc = complexRefundFixture();
-    const before = doc.xml;
-    expect(() =>
-      applyDrawioPatch(
-        doc,
-        {
-          baseRevision: 4,
-          operations: [
-            { type: 'updateCell', id: 'retry', changes: { value: 'changed' } },
-            {
-              type: 'updateCell',
-              id: 'request',
-              changes: { value: 'wrong target' },
-            },
-          ],
-        },
-        ['payment']
-      )
-    ).toThrow(/selection/i);
-    expect(doc.xml).toBe(before);
   });
   it('rejects dangling references and parent cycles', () => {
     const doc = complexRefundFixture();

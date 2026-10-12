@@ -294,12 +294,7 @@ export async function POST(request: Request): Promise<Response> {
               )
             : [];
           const agent = nativeDocument
-            ? createDrawioAgent(
-                nativeDocument,
-                nativeSelection,
-                latestUserPrompt,
-                request.signal
-              )
+            ? createDrawioAgent(nativeDocument, nativeSelection)
             : flowchartAgent;
           const agentMessages = buildMastraRequestMessages({
             mode: requestedMode,

@@ -1,6 +1,6 @@
 /**
  * [INPUT] A validated flowchart patch and current native geometry.
- * [OUTPUT] The same atomic patch with affected connectors routed around nodes.
+ * [OUTPUT] Affected connectors routed around nodes, or draw.io automatic routing.
  * [POS] Fixed-node routing; never moves unrelated objects or reroutes other edges.
  * [UPDATE] Verify obstacle avoidance, nested coordinates and preserved manual paths.
  */
@@ -258,23 +258,19 @@ export function routeDrawioPatch(
         /* Try another safe attachment side. */
       }
     }
-    if (!points)
-      throw new Error(
-        `Connection ${edge.id} (${edge.source} -> ${edge.target}) cannot avoid overlapping nodes; create space around its endpoints.`
-      );
     const parent = offset(edge.parent);
     operations.push({
       type: 'updateCell',
       id: edge.id,
       changes: {
         style: {
-          edgeStyle: 'segmentEdgeStyle',
+          edgeStyle: points ? 'segmentEdgeStyle' : 'orthogonalEdgeStyle',
           exitX: String(exit.x),
           exitY: String(exit.y),
           entryX: String(entry.x),
           entryY: String(entry.y),
         },
-        points: points.map((point) => ({
+        points: (points || []).map((point) => ({
           x: point.x - parent.x,
           y: point.y - parent.y,
         })),

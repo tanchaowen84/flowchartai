@@ -10,7 +10,6 @@ it('initializes once outside the failure loop, bounds retries and preserves exis
     retryStepId: 'retry',
     eligibilityId: 'paid',
     manualHandlerId: 'manual',
-    parentId: 'retry_group',
     maxRetries: 3,
   });
   const after = readNativeCells(applyDrawioPatch(current, patch));
