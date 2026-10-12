@@ -28,7 +28,6 @@ import {
   DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
-import { prepareCanvasCommand } from '@/lib/diagram/canvas-command-executor';
 import {
   type CanvasCommand,
   type FlowchartAiMetadata,
@@ -36,6 +35,8 @@ import {
 } from '@/lib/diagram/contracts';
 import { deriveFlowchartAiMetadataFromElements } from '@/lib/diagram/metadata';
 import { resolveDiagramTarget } from '@/lib/diagram/target-resolver';
+import type { NativeEditorController } from '@/lib/drawio/contracts';
+import { readNativeCells } from '@/lib/drawio/native-document';
 import {
   buildRetryConversation,
   getCanvasChatStorageKey,
@@ -63,7 +64,6 @@ import {
   hasExistingAiFlowchart,
   preloadMermaidConverter,
 } from '@/lib/mermaid-converter';
-import { CaptureUpdateAction } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import {
   AlertCircle,
@@ -103,6 +103,7 @@ interface AiChatSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   excalidrawAPI?: ExcalidrawImperativeAPI | null;
+  nativeEditor?: NativeEditorController | null;
   isAPIReady?: boolean;
   width?: number;
   flowchartId?: string;
@@ -165,6 +166,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   isOpen,
   onToggle,
   excalidrawAPI,
+  nativeEditor,
   isAPIReady = false,
   width = 400,
   flowchartId,
@@ -195,6 +197,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     initialMode ?? DEFAULT_AI_ASSISTANT_MODE
   );
   const [isChatHydrated, setIsChatHydrated] = useState(false);
+  const nativeEditorRef = useRef(nativeEditor);
+  nativeEditorRef.current = nativeEditor;
   const hasAutoSentRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -421,7 +425,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       cancelIdleCallback?: (id: number) => void;
     };
     const preload = () => {
-      void preloadMermaidConverter().catch(() => undefined);
+      if (!nativeEditor) void preloadMermaidConverter().catch(() => undefined);
     };
     if (idleWindow.requestIdleCallback) {
       const idleId = idleWindow.requestIdleCallback(preload);
@@ -429,7 +433,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
     const timeoutId = window.setTimeout(preload, 1500);
     return () => window.clearTimeout(timeoutId);
-  }, [isAPIReady]);
+  }, [isAPIReady, nativeEditor]);
 
   // Auto-adjust textarea height when input changes
   useEffect(() => {
@@ -808,6 +812,15 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   }
 
   const getCanvasState = () => {
+    if (nativeEditor) {
+      const document = nativeEditor.getDocument();
+      return {
+        editorKind: 'drawio',
+        revision: document.revision,
+        objects: readNativeCells(document),
+        selectedElementIds: nativeEditor.getSelection(),
+      };
+    }
     if (!excalidrawAPI) return null;
 
     try {
@@ -918,6 +931,44 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   }>({});
 
   const applyCanvasCommand = async (command: CanvasCommand) => {
+    if (command.kind === 'drawio-command') {
+      const editor = nativeEditorRef.current;
+      if (!editor) throw new Error('Native diagram editor is not ready');
+      if (abortControllerRef.current?.signal.aborted)
+        throw new DOMException('Request aborted', 'AbortError');
+      setAssistantResponsePhase('rendering');
+      try {
+        await editor.applyCommand(command);
+      } catch (error) {
+        if (error instanceof Error)
+          (error as Error & { userFacingMessage?: string }).userFacingMessage =
+            /revision|target|page changed/i.test(error.message)
+              ? 'The diagram changed while I was working. Retry with the current diagram.'
+              : 'The change could not be applied. Your diagram was kept; retry or select the part to edit.';
+        throw error;
+      }
+      markFlowchartPerformance('canvasCommitted');
+      const response = await fetch('/api/ai/usage/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'flowchart_generation',
+          success: true,
+          metadata: {
+            operation: command.operation,
+            diagramId: command.documentId,
+            generationId: command.commandId,
+            editorKind: 'drawio',
+            sourceMode: aiMode,
+            isImageMode: aiMode === 'image_to_flowchart',
+          },
+        }),
+      }).catch(() => null);
+      if (!response?.ok)
+        console.warn('Diagram committed; usage acknowledgement needs retry');
+      toast({ title: 'Diagram updated', description: command.description });
+      return;
+    }
     if (!excalidrawAPI) {
       throw new Error('Canvas is not ready');
     }
@@ -959,6 +1010,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         selectedElementIds: excalidrawAPI.getAppState().selectedElementIds,
         metadata: currentMetadata,
       });
+      const [{ prepareCanvasCommand }, { CaptureUpdateAction }] =
+        await Promise.all([
+          import('@/lib/diagram/canvas-command-executor'),
+          import('@excalidraw/excalidraw'),
+        ]);
       const prepared = await prepareCanvasCommand({
         command,
         currentElements,
@@ -1388,8 +1444,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     ) {
       onFlowchartAiMetadataChange(currentMetadata);
     }
-    const inferredMode =
-      targetResolution.status === 'resolved' ? 'extend' : 'replace';
+    const nativeSnapshot = nativeEditor?.getDocument();
+    const nativeSelection = nativeEditor?.getSelection() ?? [];
+    const nativeHasObjects = nativeSnapshot
+      ? readNativeCells(nativeSnapshot).some(
+          (cell) => cell.parent && cell.parent !== '0'
+        )
+      : false;
+    const inferredMode = nativeSnapshot
+      ? nativeHasObjects
+        ? 'patch'
+        : 'create'
+      : targetResolution.status === 'resolved'
+        ? 'extend'
+        : 'replace';
 
     setSendStatus(null);
     setAssistantResponsePhase('thinking');
@@ -1403,6 +1471,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       body: JSON.stringify({
         messages: conversationMessages,
         aiContext: {
+          ...(nativeSnapshot
+            ? {
+                editorKind: 'drawio',
+                nativeDocument: nativeSnapshot,
+                nativeSelection,
+              }
+            : {}),
           canvasSnapshot,
           lastMermaid: canvasContextRef.current.lastMermaid,
           requestedMode: inferredMode,
@@ -1642,6 +1717,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       diagnostic.code = 'canvas_command_missing';
       throw new Error('Agent completed a tool without a canvas command');
     }
+    if (!completedCommand && !accumulatedContent.trim()) {
+      const error = new Error('The assistant returned no usable result');
+      (error as Error & { userFacingMessage?: string }).userFacingMessage =
+        'The assistant returned no usable result. Your diagram was kept. Please retry.';
+      throw error;
+    }
     logFlowchartDiagnostic({
       requestId: diagnostic.requestId,
       stage: 'sse_map',
@@ -1860,7 +1941,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             <div className="space-y-4 px-4 pb-4 min-h-0">
               {messages.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  <p className="text-sm">Ask me to create a flowchart!</p>
+                  <p className="text-sm">
+                    {nativeEditor
+                      ? 'Ask me to create or edit a diagram!'
+                      : 'Ask me to create a flowchart!'}
+                  </p>
                   <p className="text-xs mt-1 opacity-75">
                     I can help you visualize processes, workflows, and ideas.
                   </p>
@@ -2020,7 +2105,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                     {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
                       (mode) => (
                         <SelectItem key={mode} value={mode}>
-                          {AI_ASSISTANT_MODES[mode].label}
+                          {nativeEditor
+                            ? mode === 'image_to_flowchart'
+                              ? 'Image to Diagram'
+                              : 'Text to Diagram'
+                            : AI_ASSISTANT_MODES[mode].label}
                         </SelectItem>
                       )
                     )}
@@ -2089,7 +2178,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         <LoginDialogContent
           callbackUrl={loginCallbackUrl || currentPath}
           title="Continue to your flowchart"
-          description="Sign in or create a free account to keep generating flowcharts."
+          description={
+            nativeEditor
+              ? 'Sign in or create a free account to generate and edit diagrams.'
+              : 'Sign in or create a free account to keep generating flowcharts.'
+          }
         />
       </Dialog>
 

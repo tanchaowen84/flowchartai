@@ -4,7 +4,7 @@ import { useFlowchart } from '@/hooks/use-flowchart';
 import dynamic from 'next/dynamic';
 
 const ExcalidrawWrapper = dynamic(
-  () => import('@/components/canvas/excalidraw-wrapper'),
+  () => import('@/components/canvas/canvas-workspace'),
   {
     ssr: false,
     loading: () => (

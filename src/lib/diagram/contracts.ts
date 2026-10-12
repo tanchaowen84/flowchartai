@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { drawioCommandSchema } from '../drawio/contracts';
 import {
   PATCHABLE_FLOWCHART_DIRECTIONS,
   PATCHABLE_FLOWCHART_EDGE_STYLES,
@@ -228,6 +229,7 @@ export const patchDiagramCommandSchema = z.object({
 export const canvasCommandSchema = z.discriminatedUnion('kind', [
   renderMermaidCommandSchema,
   patchDiagramCommandSchema,
+  drawioCommandSchema,
 ]);
 
 export type DiagramNode = z.infer<typeof diagramNodeSchema>;
