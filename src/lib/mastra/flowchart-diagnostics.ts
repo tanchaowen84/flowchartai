@@ -65,7 +65,7 @@ export interface FlowchartDiagnosticEvent {
   validationIssues?: SafeValidationIssue[];
   mode?: 'text_to_flowchart' | 'image_to_flowchart';
   targetStatus?: 'none' | 'resolved' | 'ambiguous';
-  commandKind?: 'render-mermaid' | 'patch-diagram';
+  commandKind?: 'render-mermaid' | 'patch-diagram' | 'drawio-command';
   operation?: 'create' | 'replace' | 'patch';
   operationCount?: number;
   messageCount?: number;

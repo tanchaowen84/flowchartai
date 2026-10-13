@@ -28,7 +28,6 @@ import {
   DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
-import { prepareCanvasCommand } from '@/lib/diagram/canvas-command-executor';
 import {
   type CanvasCommand,
   type FlowchartAiMetadata,
@@ -36,6 +35,11 @@ import {
 } from '@/lib/diagram/contracts';
 import { deriveFlowchartAiMetadataFromElements } from '@/lib/diagram/metadata';
 import { resolveDiagramTarget } from '@/lib/diagram/target-resolver';
+import type {
+  DrawioCommand,
+  NativeEditorController,
+} from '@/lib/drawio/contracts';
+import { readNativeCells } from '@/lib/drawio/native-document';
 import {
   buildRetryConversation,
   getCanvasChatStorageKey,
@@ -57,13 +61,17 @@ import {
   serializePendingAuthAttachment,
 } from '@/lib/mastra/pending-auth-attachment';
 import { createSseEventDecoder } from '@/lib/mastra/sse-client';
+import {
+  type AssistantPhase,
+  type DiagramTaskStatus,
+  taskStatusLabel,
+} from '@/lib/mastra/task-status';
 import { createCanvasUsageGate } from '@/lib/mastra/usage-gate';
 import {
   extractExistingMermaidCode,
   hasExistingAiFlowchart,
   preloadMermaidConverter,
 } from '@/lib/mermaid-converter';
-import { CaptureUpdateAction } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import {
   AlertCircle,
@@ -73,7 +81,13 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 interface MessageContent {
   type: 'text' | 'image_url';
@@ -103,6 +117,7 @@ interface AiChatSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   excalidrawAPI?: ExcalidrawImperativeAPI | null;
+  nativeEditor?: NativeEditorController | null;
   isAPIReady?: boolean;
   width?: number;
   flowchartId?: string;
@@ -118,6 +133,13 @@ interface AiChatSidebarProps {
   flowchartAiMetadata: FlowchartAiMetadata;
   onFlowchartAiMetadataChange: (metadata: FlowchartAiMetadata) => void;
   onReady?: () => void;
+  embedded?: boolean;
+  onTaskStatusChange?: (status: DiagramTaskStatus) => void;
+  onDiagramTitle?: (
+    title: string,
+    operation: DrawioCommand['operation']
+  ) => void;
+  onFocusChanges?: () => void;
 }
 
 function getUserFacingErrorMessage(
@@ -140,7 +162,7 @@ const ASSISTANT_THINKING_STATUS = 'Thinking...';
 const FLOWCHART_EDITING_STATUS = 'Editing...';
 const FLOWCHART_RENDERING_STATUS = 'Rendering...';
 
-type AssistantResponsePhase = 'idle' | 'thinking' | 'editing' | 'rendering';
+type AssistantResponsePhase = AssistantPhase;
 
 function markFlowchartPerformance(name: string): void {
   if (typeof performance !== 'undefined') {
@@ -165,6 +187,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   isOpen,
   onToggle,
   excalidrawAPI,
+  nativeEditor,
   isAPIReady = false,
   width = 400,
   flowchartId,
@@ -176,7 +199,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   flowchartAiMetadata,
   onFlowchartAiMetadataChange,
   onReady,
+  embedded = false,
+  onTaskStatusChange,
+  onDiagramTitle,
+  onFocusChanges,
 }) => {
+  const [taskStartedAt, setTaskStartedAt] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [taskOutcome, setTaskOutcome] =
+    useState<DiagramTaskStatus['outcome']>('ready');
+  const [lastChange, setLastChange] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -195,9 +227,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     initialMode ?? DEFAULT_AI_ASSISTANT_MODE
   );
   const [isChatHydrated, setIsChatHydrated] = useState(false);
+  const nativeEditorRef = useRef(nativeEditor);
+  nativeEditorRef.current = nativeEditor;
   const hasAutoSentRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestCommittedRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
@@ -213,6 +248,38 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const { handleLimitReached: handleGuestLimitReached } = useGuestAIUsage();
 
   const activeSendStatus = sendStatus;
+  const taskStatus: DiagramTaskStatus = {
+    active: isLoading,
+    phase: assistantResponsePhase,
+    startedAt: taskStartedAt,
+    outcome: taskOutcome,
+  };
+  const taskLabel = taskStatusLabel(taskStatus);
+  useEffect(() => {
+    if (!isLoading) return;
+    const startedAt = Date.now();
+    setTaskStartedAt(startedAt);
+    setElapsedSeconds(0);
+    const timer = window.setInterval(
+      () => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)),
+      1000
+    );
+    return () => window.clearInterval(timer);
+  }, [isLoading]);
+  useEffect(() => {
+    onTaskStatusChange?.({
+      active: isLoading,
+      phase: assistantResponsePhase,
+      startedAt: taskStartedAt,
+      outcome: taskOutcome,
+    });
+  }, [
+    isLoading,
+    assistantResponsePhase,
+    taskStartedAt,
+    taskOutcome,
+    onTaskStatusChange,
+  ]);
 
   useEffect(() => {
     if (!hasReportedReadyRef.current) {
@@ -243,7 +310,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       // Reset height to auto to get the correct scrollHeight
       textarea.style.height = 'auto';
       // Calculate new height based on content
-      const minHeight = 80;
+      const minHeight = embedded ? 72 : 80;
       const maxHeight = 200;
       const scrollHeight = textarea.scrollHeight;
       const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
@@ -253,7 +320,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading, isOpen]);
 
   // Initialize textarea height on mount and when input changes
   useEffect(() => {
@@ -421,7 +488,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       cancelIdleCallback?: (id: number) => void;
     };
     const preload = () => {
-      void preloadMermaidConverter().catch(() => undefined);
+      if (!nativeEditor) void preloadMermaidConverter().catch(() => undefined);
     };
     if (idleWindow.requestIdleCallback) {
       const idleId = idleWindow.requestIdleCallback(preload);
@@ -429,7 +496,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
     const timeoutId = window.setTimeout(preload, 1500);
     return () => window.clearTimeout(timeoutId);
-  }, [isAPIReady]);
+  }, [isAPIReady, nativeEditor]);
 
   // Auto-adjust textarea height when input changes
   useEffect(() => {
@@ -454,6 +521,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
+    setTaskOutcome('ready');
+    requestCommittedRef.current = false;
+    setLastChange('');
+    abortControllerRef.current = new AbortController();
     setSendStatus(null);
 
     // Create user message with the provided text
@@ -536,8 +607,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return false;
       }
 
-      // Create new abort controller for this request
-      abortControllerRef.current = new AbortController();
+      if (abortControllerRef.current?.signal.aborted)
+        throw new DOMException('Request aborted', 'AbortError');
 
       await processAIConversation([
         // Send complete conversation history for context
@@ -583,6 +654,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }
       }
 
+      setTaskOutcome('failed');
       const userFacingMessage = getUserFacingErrorMessage(
         error,
         'Sorry, I encountered an error while processing your request. Please try again.'
@@ -808,6 +880,15 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   }
 
   const getCanvasState = () => {
+    if (nativeEditor) {
+      const document = nativeEditor.getDocument();
+      return {
+        editorKind: 'drawio',
+        revision: document.revision,
+        objects: readNativeCells(document),
+        selectedElementIds: nativeEditor.getSelection(),
+      };
+    }
     if (!excalidrawAPI) return null;
 
     try {
@@ -918,6 +999,50 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   }>({});
 
   const applyCanvasCommand = async (command: CanvasCommand) => {
+    if (command.kind === 'drawio-command') {
+      const editor = nativeEditorRef.current;
+      if (!editor) throw new Error('Native diagram editor is not ready');
+      if (abortControllerRef.current?.signal.aborted)
+        throw new DOMException('Request aborted', 'AbortError');
+      setAssistantResponsePhase('rendering');
+      try {
+        await editor.applyCommand(command);
+      } catch (error) {
+        if (error instanceof Error)
+          (error as Error & { userFacingMessage?: string }).userFacingMessage =
+            /revision|target|page changed/i.test(error.message)
+              ? 'The diagram changed while I was working. Retry with the current diagram.'
+              : 'The change could not be applied. Your diagram was kept; retry or select the part to edit.';
+        throw error;
+      }
+      markFlowchartPerformance('canvasCommitted');
+      requestCommittedRef.current = true;
+      setAssistantResponsePhase('complete');
+      setTaskOutcome('done');
+      setLastChange(command.description);
+      if (command.title) onDiagramTitle?.(command.title, command.operation);
+      const response = await fetch('/api/ai/usage/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'flowchart_generation',
+          success: true,
+          metadata: {
+            operation: command.operation,
+            diagramId: command.documentId,
+            generationId: command.commandId,
+            editorKind: 'drawio',
+            sourceMode: aiMode,
+            isImageMode: aiMode === 'image_to_flowchart',
+          },
+        }),
+      }).catch(() => null);
+      if (!response?.ok)
+        console.warn('Diagram committed; usage acknowledgement needs retry');
+      if (!embedded)
+        toast({ title: 'Diagram updated', description: command.description });
+      return;
+    }
     if (!excalidrawAPI) {
       throw new Error('Canvas is not ready');
     }
@@ -959,6 +1084,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         selectedElementIds: excalidrawAPI.getAppState().selectedElementIds,
         metadata: currentMetadata,
       });
+      const [{ prepareCanvasCommand }, { CaptureUpdateAction }] =
+        await Promise.all([
+          import('@/lib/diagram/canvas-command-executor'),
+          import('@excalidraw/excalidraw'),
+        ]);
       const prepared = await prepareCanvasCommand({
         command,
         currentElements,
@@ -1033,6 +1163,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
+    setTaskOutcome('ready');
+    requestCommittedRef.current = false;
+    setLastChange('');
+    abortControllerRef.current = new AbortController();
     setSendStatus(null);
     setIsStreamingResponse(true);
     setAssistantResponsePhase('thinking');
@@ -1055,7 +1189,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }
 
       setMessages(retryMessages);
-      abortControllerRef.current = new AbortController();
+      if (abortControllerRef.current?.signal.aborted)
+        throw new DOMException('Request aborted', 'AbortError');
       await processAIConversation(
         retryMessages.map((message) => ({
           role: message.role,
@@ -1071,6 +1206,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return;
       }
 
+      setTaskOutcome('failed');
       const userFacingMessage = getUserFacingErrorMessage(
         error,
         'The request failed. Please try it again.'
@@ -1118,6 +1254,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
+    setTaskOutcome('ready');
+    requestCommittedRef.current = false;
+    setLastChange('');
+    abortControllerRef.current = new AbortController();
     setSendStatus(null);
 
     // Prepare message content
@@ -1262,8 +1402,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return;
       }
 
-      // Create new abort controller for this request
-      abortControllerRef.current = new AbortController();
+      if (abortControllerRef.current?.signal.aborted)
+        throw new DOMException('Request aborted', 'AbortError');
 
       const conversationPayload: any[] = [
         ...messages.map((msg) => ({
@@ -1313,6 +1453,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }
       }
 
+      setTaskOutcome('failed');
       const userFacingMessage = getUserFacingErrorMessage(
         error,
         'Sorry, I encountered an error while processing your request. Please try again.'
@@ -1388,8 +1529,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     ) {
       onFlowchartAiMetadataChange(currentMetadata);
     }
-    const inferredMode =
-      targetResolution.status === 'resolved' ? 'extend' : 'replace';
+    const nativeSnapshot = nativeEditor?.getDocument();
+    const nativeSelection = nativeEditor?.getSelection() ?? [];
+    const nativeHasObjects = nativeSnapshot
+      ? readNativeCells(nativeSnapshot).some(
+          (cell) => cell.parent && cell.parent !== '0'
+        )
+      : false;
+    const inferredMode = nativeSnapshot
+      ? nativeHasObjects
+        ? 'patch'
+        : 'create'
+      : targetResolution.status === 'resolved'
+        ? 'extend'
+        : 'replace';
 
     setSendStatus(null);
     setAssistantResponsePhase('thinking');
@@ -1403,6 +1556,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       body: JSON.stringify({
         messages: conversationMessages,
         aiContext: {
+          ...(nativeSnapshot
+            ? {
+                editorKind: 'drawio',
+                nativeDocument: nativeSnapshot,
+                nativeSelection,
+              }
+            : {}),
           canvasSnapshot,
           lastMermaid: canvasContextRef.current.lastMermaid,
           requestedMode: inferredMode,
@@ -1541,9 +1701,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       const data = event as Record<string, any>;
       if (data.type === 'text') {
-        setAssistantResponsePhase('idle');
+        setAssistantResponsePhase('responding');
         setSendStatus(null);
         appendStreamingContent(data.content ?? '');
+        return;
+      }
+      if (
+        data.type === 'progress' &&
+        ['building', 'preparing'].includes(data.stage)
+      ) {
+        setAssistantResponsePhase(data.stage);
         return;
       }
       if (data.type === 'tool-call') {
@@ -1642,6 +1809,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       diagnostic.code = 'canvas_command_missing';
       throw new Error('Agent completed a tool without a canvas command');
     }
+    if (!completedCommand && !accumulatedContent.trim()) {
+      const error = new Error('The assistant returned no usable result');
+      (error as Error & { userFacingMessage?: string }).userFacingMessage =
+        'The assistant returned no usable result. Your diagram was kept. Please retry.';
+      throw error;
+    }
     logFlowchartDiagnostic({
       requestId: diagnostic.requestId,
       stage: 'sse_map',
@@ -1707,16 +1880,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
-  const handleStopGeneration = () => {
-    if (abortControllerRef.current) {
+  const handleStopGeneration = useCallback(() => {
+    if (abortControllerRef.current && !requestCommittedRef.current) {
       abortControllerRef.current.abort();
-      setIsLoading(false);
-      setSendStatus(null);
-      setAssistantResponsePhase('idle');
-      setIsStreamingResponse(false);
-      streamingMessageIdRef.current = null;
+      setTaskOutcome('cancelled');
+      setAssistantResponsePhase('cancelling');
     }
-  };
+  }, []);
 
   const handleNewConversation = () => {
     // 如果正在加载中，先停止当前对话
@@ -1726,6 +1896,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     // 清空对话历史
     setMessages([]);
+    setLastChange('');
+    setTaskOutcome('ready');
     setInput('');
     setSendStatus(null);
     setAssistantResponsePhase('idle');
@@ -1809,44 +1981,50 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 z-40 h-full w-screen max-w-full bg-white shadow-lg transition-transform duration-300 ease-in-out md:w-[var(--sidebar-width)] ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
+      className={
+        embedded
+          ? `relative h-full w-full min-h-0 bg-muted text-foreground ${isOpen ? '' : 'hidden'} ${className || ''}`
+          : `fixed top-0 right-0 z-40 h-full w-screen max-w-full bg-white shadow-lg transition-transform duration-300 ease-in-out md:w-[var(--sidebar-width)] ${
+              isOpen ? 'translate-x-0' : 'translate-x-full'
+            }`
+      }
+      data-embedded-assistant={embedded || undefined}
       style={{ '--sidebar-width': `${width}px` } as CSSProperties}
     >
       <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-medium text-gray-900">
-              AI Assistant
-            </h2>
+        {!embedded && (
+          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-medium text-gray-900">
+                AI Assistant
+              </h2>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                onClick={handleNewConversation}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                disabled={isLoading}
+                aria-label="New conversation"
+                title="New conversation"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={onToggle}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Close AI assistant"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              onClick={handleNewConversation}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-              disabled={isLoading}
-              aria-label="New conversation"
-              title="New conversation"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={onToggle}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-              aria-label="Close AI assistant"
-              title="Close"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
+        )}
         {/* Guest Usage Indicator */}
         {!currentUser && (
           <div className="px-4 pb-4">
@@ -1854,13 +2032,31 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           </div>
         )}
 
+        {embedded && (
+          <div className="flex justify-end px-3 py-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={handleNewConversation}
+              disabled={isLoading}
+            >
+              <Plus className="h-3 w-3" />
+              New conversation
+            </Button>
+          </div>
+        )}
         {/* Messages */}
         <div className="flex-1 overflow-hidden relative">
           <ScrollArea ref={scrollAreaRef} className="h-full w-full">
             <div className="space-y-4 px-4 pb-4 min-h-0">
               {messages.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  <p className="text-sm">Ask me to create a flowchart!</p>
+                  <p className="text-sm">
+                    {nativeEditor
+                      ? 'Ask me to create or edit a diagram!'
+                      : 'Ask me to create a flowchart!'}
+                  </p>
                   <p className="text-xs mt-1 opacity-75">
                     I can help you visualize processes, workflows, and ideas.
                   </p>
@@ -1870,13 +2066,34 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`${message.role === 'user' ? 'flex justify-end' : ''}`}
+                  className={
+                    !embedded && message.role === 'user'
+                      ? 'flex justify-end'
+                      : ''
+                  }
                 >
                   {message.role === 'user' ? (
-                    <Card className="max-w-[280px] p-3 bg-gray-100 text-gray-900 border-gray-100">
+                    <Card
+                      className={
+                        embedded
+                          ? 'border-0 border-b rounded-none shadow-none bg-transparent p-0 pb-3 text-foreground'
+                          : 'max-w-[280px] p-3 bg-gray-100 text-gray-900 border-gray-100'
+                      }
+                    >
                       <div className="text-sm leading-relaxed space-y-2">
                         {typeof message.content === 'string' ? (
-                          <p>{message.content}</p>
+                          embedded && message.content.length > 240 ? (
+                            <details>
+                              <summary className="text-xs text-muted-foreground">
+                                <span className="line-clamp-2">
+                                  {message.content.slice(0, 60)}…
+                                </span>
+                              </summary>
+                              <p className="mt-2">{message.content}</p>
+                            </details>
+                          ) : (
+                            <p>{message.content}</p>
+                          )
                         ) : (
                           message.content.map((content, index) => (
                             <div key={index}>
@@ -1902,14 +2119,73 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   ) : (
                     <div className="max-w-full">
                       <div className="flex-1">
-                        {renderMessageContent(message)}
+                        {embedded &&
+                        typeof message.content === 'string' &&
+                        message.content.length > 400 &&
+                        (message.isFlowchart ||
+                          streamingMessageIdRef.current === message.id) ? (
+                          <details>
+                            <summary className="text-xs text-muted-foreground">
+                              Structure notes
+                            </summary>
+                            {renderMessageContent(message)}
+                          </details>
+                        ) : (
+                          renderMessageContent(message)
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
               ))}
 
-              {isStreamingResponse &&
+              {embedded && isLoading && (
+                <div
+                  className="flex items-start gap-2 py-1 text-sm"
+                  data-ai-task-progress
+                >
+                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p aria-live="polite">{activeSendStatus || taskLabel}</p>
+                    <span
+                      className="text-xs text-muted-foreground"
+                      aria-live="off"
+                    >
+                      {elapsedSeconds}s
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={handleStopGeneration}
+                    disabled={
+                      assistantResponsePhase === 'complete' ||
+                      assistantResponsePhase === 'cancelling'
+                    }
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {embedded && !isLoading && taskOutcome === 'cancelled' && (
+                <output className="block text-xs text-muted-foreground">
+                  {taskLabel}
+                </output>
+              )}
+              {embedded && lastChange && !isLoading && (
+                <div className="text-xs" aria-live="polite">
+                  <p>{lastChange}</p>
+                  <button
+                    type="button"
+                    className="mt-1 text-primary underline-offset-2 hover:underline"
+                    onClick={onFocusChanges}
+                  >
+                    View changes
+                  </button>
+                </div>
+              )}
+              {!embedded &&
+                isStreamingResponse &&
                 assistantResponsePhase === 'thinking' &&
                 !streamingMessageIdRef.current && (
                   <div className="max-w-full">
@@ -1923,7 +2199,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   </div>
                 )}
 
-              {isStreamingResponse &&
+              {!embedded &&
+                isStreamingResponse &&
                 (assistantResponsePhase === 'editing' ||
                   assistantResponsePhase === 'rendering') && (
                   <div className="max-w-full">
@@ -2020,7 +2297,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                     {(Object.keys(AI_ASSISTANT_MODES) as AiAssistantMode[]).map(
                       (mode) => (
                         <SelectItem key={mode} value={mode}>
-                          {AI_ASSISTANT_MODES[mode].label}
+                          {nativeEditor
+                            ? mode === 'image_to_flowchart'
+                              ? 'Image to Diagram'
+                              : 'Text to Diagram'
+                            : AI_ASSISTANT_MODES[mode].label}
                         </SelectItem>
                       )
                     )}
@@ -2042,13 +2323,27 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
                 <div className="min-w-0 flex-1" />
 
-                {isLoading ? (
+                {isLoading && embedded ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    disabled
+                    aria-label="AI is working"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </Button>
+                ) : isLoading ? (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="h-8 shrink-0 px-2 text-gray-600 hover:bg-gray-100"
                     onClick={handleStopGeneration}
+                    disabled={
+                      assistantResponsePhase === 'complete' ||
+                      assistantResponsePhase === 'cancelling'
+                    }
                   >
                     Cancel
                   </Button>
@@ -2068,18 +2363,22 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               </div>
             </div>
 
-            <p
-              className="mt-2 flex min-h-4 items-center gap-1.5 px-1 text-xs text-gray-400"
-              aria-live="polite"
-            >
-              {activeSendStatus && (
-                <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
-              )}
-              <span>
-                {activeSendStatus ??
-                  'Enter to send · Shift+Enter for a new line'}
-              </span>
-            </p>
+            {!embedded && (
+              <p
+                className="mt-2 flex min-h-4 items-center gap-1.5 px-1 text-xs text-gray-400"
+                aria-live="off"
+              >
+                {(activeSendStatus || isLoading) && (
+                  <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                )}
+                <span>
+                  {isLoading
+                    ? `${activeSendStatus || taskLabel} · ${elapsedSeconds}s`
+                    : (activeSendStatus ??
+                      'Enter to send · Shift+Enter for a new line')}
+                </span>
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -2089,7 +2388,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         <LoginDialogContent
           callbackUrl={loginCallbackUrl || currentPath}
           title="Continue to your flowchart"
-          description="Sign in or create a free account to keep generating flowcharts."
+          description={
+            nativeEditor
+              ? 'Sign in or create a free account to generate and edit diagrams.'
+              : 'Sign in or create a free account to keep generating flowcharts.'
+          }
         />
       </Dialog>
 

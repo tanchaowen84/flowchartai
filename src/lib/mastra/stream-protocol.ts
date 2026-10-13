@@ -8,6 +8,7 @@ import {
 
 export type StableAgentEvent =
   | { type: 'text'; content: string }
+  | { type: 'progress'; stage: 'building' | 'preparing' }
   | {
       type: 'tool-call';
       toolCallId: string;
@@ -26,6 +27,8 @@ export interface MastraStreamMapper {
 
 interface MastraStreamMapperOptions {
   onDiagnostic?: (event: FlowchartDiagnosticEvent) => void;
+  recoverToolErrors?: boolean;
+  nativeProgress?: boolean;
 }
 
 function errorMessage(error: unknown): string {
@@ -39,10 +42,21 @@ export function createMastraStreamMapper(
 ): MastraStreamMapper {
   let terminated = false;
   let completedToolCall = false;
+  let recoverableToolError: string | null = null;
 
   return {
     map(chunk: any): StableAgentEvent | null {
       if (terminated) return null;
+
+      if (
+        options.nativeProgress &&
+        chunk.payload?.toolName === 'generate_flowchart'
+      ) {
+        if (chunk.type === 'tool-call-input-streaming-start')
+          return { type: 'progress', stage: 'building' };
+        if (chunk.type === 'tool-call')
+          return { type: 'progress', stage: 'preparing' };
+      }
 
       if (
         chunk?.type === 'text-delta' &&
@@ -55,6 +69,19 @@ export function createMastraStreamMapper(
         chunk?.type === 'tool-result' &&
         chunk.payload?.toolName === 'generate_flowchart'
       ) {
+        const result = chunk.payload.result;
+        if (
+          options.recoverToolErrors &&
+          !completedToolCall &&
+          result?.error === true &&
+          'validationErrors' in result
+        ) {
+          recoverableToolError =
+            typeof result.message === 'string'
+              ? result.message
+              : 'Native tool validation failed';
+          return null;
+        }
         const command = canvasCommandSchema.safeParse(chunk.payload.result);
         if (!command.success) {
           terminated = true;
@@ -71,6 +98,7 @@ export function createMastraStreamMapper(
         }
 
         completedToolCall = true;
+        recoverableToolError = null;
         options.onDiagnostic?.({
           stage: 'tool_validation',
           status: 'success',
@@ -104,6 +132,14 @@ export function createMastraStreamMapper(
       }
 
       if (chunk?.type === 'error' || chunk?.type === 'tool-error') {
+        if (
+          chunk.type === 'tool-error' &&
+          options.recoverToolErrors &&
+          !completedToolCall
+        ) {
+          recoverableToolError = errorMessage(chunk.payload?.error);
+          return null;
+        }
         terminated = true;
         const error = chunk.payload?.error;
         options.onDiagnostic?.({
@@ -127,6 +163,8 @@ export function createMastraStreamMapper(
 
       if (chunk?.type === 'finish') {
         terminated = true;
+        if (recoverableToolError && !completedToolCall)
+          return { type: 'error', error: recoverableToolError };
         options.onDiagnostic?.({
           stage: 'sse_map',
           status: 'success',

@@ -2,6 +2,7 @@ import { getFlowchartModelForMode } from '@/lib/ai-models';
 import type { AiAssistantMode } from '@/lib/ai-modes';
 import { recordAIUsage } from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
+import { getNativeModelForMode } from '@/lib/mastra/native-model';
 import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -39,7 +40,10 @@ export async function POST(request: NextRequest) {
     // Record successful flowchart generation
     await recordAIUsage(session.user.id, validatedData.type, {
       tokensUsed: 0,
-      model: getFlowchartModelForMode(getUsageMode(validatedData.metadata)),
+      model:
+        validatedData.metadata.editorKind === 'drawio'
+          ? getNativeModelForMode(getUsageMode(validatedData.metadata))
+          : getFlowchartModelForMode(getUsageMode(validatedData.metadata)),
       success: validatedData.success,
       metadata: validatedData.metadata,
     });

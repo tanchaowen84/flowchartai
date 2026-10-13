@@ -7,6 +7,12 @@ import {
   extractLatestUserPrompt,
   screenPromptWithCreem,
 } from '@/lib/creem-moderation';
+import { drawioDocumentSchema } from '@/lib/drawio/contracts';
+import { nativeModelSettings } from '@/lib/drawio/model-settings';
+import {
+  createDrawioAgent,
+  nativeAgentInstructions,
+} from '@/lib/mastra/drawio-agent';
 import { flowchartAgent } from '@/lib/mastra/flowchart-agent';
 import {
   classifyFlowchartError,
@@ -17,6 +23,10 @@ import {
   generateImageModeInstructions,
   generateSystemPrompt,
 } from '@/lib/mastra/flowchart-prompts';
+import {
+  createNativeModel,
+  getNativeModelForMode,
+} from '@/lib/mastra/native-model';
 import {
   buildGatewayModelId,
   buildMastraRequestMessages,
@@ -92,12 +102,15 @@ function createAgentStreamResponse(
   output: { fullStream: AsyncIterable<any> },
   requestSignal: AbortSignal,
   requestId: string,
-  startedAt: number
+  startedAt: number,
+  native = false
 ): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const mapper = createMastraStreamMapper({
+        recoverToolErrors: native,
+        nativeProgress: native,
         onDiagnostic: (event) =>
           logFlowchartDiagnostic({
             requestId,
@@ -112,7 +125,26 @@ function createAgentStreamResponse(
       };
 
       try {
+        const eventCounts: Record<string, number> = {};
         for await (const chunk of output.fullStream) {
+          if (
+            native &&
+            typeof chunk?.type === 'string' &&
+            /^[a-z0-9_-]{1,48}$/i.test(chunk.type)
+          ) {
+            eventCounts[chunk.type] = (eventCounts[chunk.type] || 0) + 1;
+            if (chunk.type === 'finish') {
+              const usage =
+                chunk.payload?.output?.usage || chunk.payload?.usage;
+              console.info('[native-agent-result]', {
+                requestId,
+                eventCounts,
+                reason: chunk.payload?.stepResult?.reason,
+                inputTokens: usage?.inputTokens,
+                outputTokens: usage?.outputTokens,
+              });
+            }
+          }
           const event = mapper.map(chunk);
           if (event) emit(event);
           if (mapper.isTerminated()) break;
@@ -251,14 +283,32 @@ export async function POST(request: Request): Promise<Response> {
             externalId: `user_${userId}_flowchart_${Date.now()}`,
           }),
         invokeAgent: async () => {
+          const nativeDocument =
+            body.aiContext?.editorKind === 'drawio'
+              ? drawioDocumentSchema.parse(body.aiContext.nativeDocument)
+              : null;
+          const nativeSelection: string[] = Array.isArray(
+            body.aiContext?.nativeSelection
+          )
+            ? body.aiContext.nativeSelection.filter(
+                (id: unknown): id is string => typeof id === 'string'
+              )
+            : [];
+          const agent = nativeDocument
+            ? createDrawioAgent(
+                nativeDocument,
+                nativeSelection,
+                latestUserPrompt
+              )
+            : flowchartAgent;
           const agentMessages = buildMastraRequestMessages({
             mode: requestedMode,
             messages: body.messages,
             requestedMode: body.aiContext?.requestedMode,
           });
-          const model = buildGatewayModelId(
-            getFlowchartModelForMode(requestedMode)
-          );
+          const model = nativeDocument
+            ? createNativeModel(requestedMode)
+            : buildGatewayModelId(getFlowchartModelForMode(requestedMode));
 
           logFlowchartDiagnostic({
             requestId,
@@ -268,16 +318,26 @@ export async function POST(request: Request): Promise<Response> {
             mode: requestedMode,
             elapsedMs: Date.now() - startedAt,
           });
-          return flowchartAgent.stream(agentMessages as any, {
+          return agent.stream(agentMessages as any, {
             model,
-            instructions: buildAgentInstructions(requestedMode, body.aiContext),
-            maxSteps: 2,
+            instructions: nativeDocument
+              ? nativeAgentInstructions(
+                  nativeDocument,
+                  nativeSelection,
+                  latestUserPrompt
+                )
+              : buildAgentInstructions(requestedMode, body.aiContext),
+            maxSteps: nativeDocument ? 5 : 2,
             toolChoice: 'auto',
             abortSignal: request.signal,
             modelSettings: {
-              temperature: requestedMode === IMAGE_MODE ? 0.3 : 0.7,
-              maxOutputTokens: 4096,
-              maxRetries: 1,
+              ...(nativeDocument
+                ? nativeModelSettings(getNativeModelForMode(requestedMode))
+                : {
+                    temperature: requestedMode === IMAGE_MODE ? 0.3 : 0.7,
+                    maxOutputTokens: 4096,
+                    maxRetries: 1,
+                  }),
             },
           });
         },
@@ -300,7 +360,8 @@ export async function POST(request: Request): Promise<Response> {
       guarded.value,
       request.signal,
       requestId,
-      startedAt
+      startedAt,
+      body.aiContext?.editorKind === 'drawio'
     );
   } catch (error) {
     logFlowchartDiagnostic({

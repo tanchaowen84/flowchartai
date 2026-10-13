@@ -1,0 +1,4 @@
+ELK JavaScript 0.12.0, unmodified library.
+Source: https://github.com/kieler/elkjs
+License: Eclipse Public License 2.0. See LICENSE.md.
+Used by the existing server runtime to compute new native diagram layouts.

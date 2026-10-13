@@ -245,6 +245,9 @@ export async function prepareCanvasCommand<T extends ReconcilerElement>({
   renderMermaid = defaultRenderMermaid,
 }: PrepareCanvasCommandInput<T>): Promise<PreparedCanvasCommand<T>> {
   const command = canvasCommandSchema.parse(commandInput);
+  if (command.kind === 'drawio-command') {
+    throw new Error('Native diagram commands require the native editor');
+  }
   const nextMetadata = copyMetadata(metadataInput);
 
   if (targetResolution.status === 'ambiguous') {

@@ -4,6 +4,43 @@ import { createMastraStreamMapper, mapMastraChunk } from './stream-protocol';
 const baseChunk = { runId: 'run-1', from: 'AGENT' };
 
 describe('mapMastraChunk', () => {
+  it('exposes native task phases without exposing partial command data or skill results', () => {
+    const mapper = createMastraStreamMapper({ nativeProgress: true });
+    expect(
+      mapper.map({
+        type: 'tool-call-input-streaming-start',
+        payload: {
+          toolName: 'generate_flowchart',
+          args: 'private incomplete XML',
+        },
+      })
+    ).toEqual({ type: 'progress', stage: 'building' });
+    expect(
+      mapper.map({
+        type: 'tool-call',
+        payload: {
+          toolName: 'generate_flowchart',
+          args: { private: 'incomplete command' },
+        },
+      })
+    ).toEqual({ type: 'progress', stage: 'preparing' });
+    expect(mapper.hasCompletedToolCall()).toBe(false);
+    expect(
+      mapper.map({
+        type: 'tool-result',
+        payload: { toolName: 'skill_read', result: 'private guide' },
+      })
+    ).toBeNull();
+    expect(mapper.map({ type: 'abort', payload: {} })).toEqual({
+      type: 'aborted',
+    });
+    expect(
+      mapper.map({
+        type: 'tool-call-input-streaming-start',
+        payload: { toolName: 'generate_flowchart' },
+      })
+    ).toBeNull();
+  });
   it('maps Mastra text deltas to the stable existing SSE shape', () => {
     expect(
       mapMastraChunk({
@@ -207,5 +244,59 @@ describe('mapMastraChunk', () => {
     expect(JSON.stringify(onDiagnostic.mock.calls)).not.toContain(
       'diagram-secret'
     );
+  });
+});
+
+describe('native bounded tool recovery', () => {
+  it('keeps a rejected candidate off the canvas and permits one corrected result', () => {
+    const mapper = createMastraStreamMapper({ recoverToolErrors: true });
+    expect(
+      mapper.map({
+        type: 'tool-error',
+        payload: { error: new Error('Missing parallel branch') },
+      })
+    ).toBeNull();
+    expect(mapper.isTerminated()).toBe(false);
+    const result = {
+      kind: 'drawio-command',
+      commandId: 'c1',
+      documentId: 'd1',
+      baseRevision: 0,
+      operation: 'create',
+      diagramType: 'flowchart',
+      xml: '<mxGraphModel/>',
+      description: 'Fixed',
+    };
+    expect(
+      mapper.map({
+        type: 'tool-result',
+        payload: { toolName: 'generate_flowchart', result },
+      })
+    ).toMatchObject({ type: 'tool-call', args: result });
+    expect(mapper.map({ type: 'finish' })).toEqual({
+      type: 'finish',
+      toolCallsCompleted: true,
+    });
+  });
+  it('reports failure when correction finishes without a successful command', () => {
+    const mapper = createMastraStreamMapper({ recoverToolErrors: true });
+    mapper.map({
+      type: 'tool-error',
+      payload: { error: new Error('Missing branch') },
+    });
+    expect(mapper.map({ type: 'finish' })).toEqual({
+      type: 'error',
+      error: 'Missing branch',
+    });
+  });
+  it('never recovers provider errors or cancellation', () => {
+    const mapper = createMastraStreamMapper({ recoverToolErrors: true });
+    expect(
+      mapper.map({
+        type: 'error',
+        payload: { error: new Error('Provider unavailable') },
+      })
+    ).toMatchObject({ type: 'error' });
+    expect(mapper.map({ type: 'finish' })).toBeNull();
   });
 });

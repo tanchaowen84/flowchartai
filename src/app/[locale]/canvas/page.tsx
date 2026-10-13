@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 // Dynamic import for Excalidraw with SSR disabled for client-side rendering
 const ExcalidrawWrapper = dynamic(
-  () => import('@/components/canvas/excalidraw-wrapper'),
+  () => import('@/components/canvas/canvas-workspace'),
   {
     ssr: false,
     loading: () => (

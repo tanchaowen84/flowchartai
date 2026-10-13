@@ -66,3 +66,5 @@ next-env.d.ts
 .env.production
 
 .sh
+# Pinned editor assets are prepared by dev/build, never fetched at runtime.
+/public/drawio/
