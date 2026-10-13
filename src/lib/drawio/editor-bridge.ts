@@ -150,7 +150,13 @@ export function createDrawioBridge(
       ),
     })),
   });
-  const viewChanged = (): void => onView(getView());
+  const viewChanged = (): void => {
+    win.document.documentElement.toggleAttribute(
+      'data-flowchart-single-page',
+      (ui.pages?.length ?? 1) < 2
+    );
+    onView(getView());
+  };
   for (const [source, event] of [
     [graph.getSelectionModel(), win.mxEvent.CHANGE],
     [graph.view, win.mxEvent.SCALE],
@@ -198,6 +204,8 @@ export function createDrawioBridge(
   chrome.textContent = `
     .geMenubarContainer,.geToolbarContainer { display:none!important; }
     .geDiagramContainer,.geSidebarContainer,.geHsplit { top:0!important; }
+    [data-flowchart-single-page] .geTabContainer { display:none!important; }
+    [data-flowchart-single-page] .geDiagramContainer { bottom:0!important; }
     .geSidebarContainer,.geSidebar,.geSidebarFooter,.geFooterContainer,.geTabContainer {
       background: var(--flowchart-chrome)!important;
       color: var(--flowchart-foreground)!important;
@@ -228,7 +236,7 @@ export function createDrawioBridge(
     attributes: true,
     attributeFilter: ['class'],
   });
-  if (ui.isShapesPanelVisible?.()) ui.actions.get('toggleShapes')?.funct();
+  if (!ui.isShapesPanelVisible?.()) ui.actions.get('toggleShapes')?.funct();
   viewChanged();
   return {
     getDocument: () => {
@@ -402,6 +410,9 @@ export function createDrawioBridge(
     dispose: () => {
       disposed = true;
       chrome.remove();
+      win.document.documentElement.removeAttribute(
+        'data-flowchart-single-page'
+      );
       themeObserver.disconnect();
       for (const { source, fn } of listeners) source.removeListener(fn);
     },

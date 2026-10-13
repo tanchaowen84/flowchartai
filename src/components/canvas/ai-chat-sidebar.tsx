@@ -2318,20 +2318,22 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               </div>
             </div>
 
-            <p
-              className="mt-2 flex min-h-4 items-center gap-1.5 px-1 text-xs text-gray-400"
-              aria-live="off"
-            >
-              {(activeSendStatus || isLoading) && (
-                <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
-              )}
-              <span>
-                {isLoading
-                  ? `${activeSendStatus || taskLabel} · ${elapsedSeconds}s`
-                  : (activeSendStatus ??
-                    'Enter to send · Shift+Enter for a new line')}
-              </span>
-            </p>
+            {!embedded && (
+              <p
+                className="mt-2 flex min-h-4 items-center gap-1.5 px-1 text-xs text-gray-400"
+                aria-live="off"
+              >
+                {(activeSendStatus || isLoading) && (
+                  <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                )}
+                <span>
+                  {isLoading
+                    ? `${activeSendStatus || taskLabel} · ${elapsedSeconds}s`
+                    : (activeSendStatus ??
+                      'Enter to send · Shift+Enter for a new line')}
+                </span>
+              </p>
+            )}
           </div>
         </div>
       </div>

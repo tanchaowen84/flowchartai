@@ -4,11 +4,11 @@ Authorized on 2026-10-13: implement the accepted single-editor inspector concept
 
 ## Scope and target
 
-The native canvas, document tools and AI/Style inspector share one workspace. The document header spans the whole workspace; drawing actions occupy one host toolbar. The pinned draw.io renderer retains native objects, libraries, page tabs, keyboard handling and undo. Its redundant menu/tool chrome is hidden in the isolated bridge. Shapes default to collapsed and remain available through Shapes. Host theme/font tokens are reflected in native chrome.
+The native canvas, document tools and AI/Style inspector share one workspace. The document header spans the whole workspace; drawing actions occupy one host toolbar. The pinned draw.io renderer retains native objects, libraries, page tabs, keyboard handling and undo. Its redundant menu/tool chrome is hidden in the isolated bridge. Shapes default to expanded and can be toggled through Shapes. Host theme/font tokens are reflected in native chrome.
 
 Selection updates both inspector modes. The Style panel edits labels, font size, text/fill/line color through native model operations and the existing undo/save path. Multi-selection style changes apply to all selected objects; a label edit binds to its original cell ID. Image input, AI modes, conversations, auth, quota, exports and legacy files retain their existing paths.
 
-Zoom out/in, percentage selection, fit diagram and focus selection remain visible. Focusing uses actual rendered bounds converted into graph coordinates, including nested containers. Pan mode works over cells as well as the background; native overview and text insertion remain available. Ordinary AI patches preserve the existing viewport. View changes brings a changed leaf to at least 100% and selects it.
+One compact footer holds zoom out/in, percentage and fit diagram. Task status appears there while active; an error stays visible after failure. Idle Ready/native-format labels and permanent shortcut instructions are omitted. Single-page diagrams hide native page tabs and reclaim their canvas space; multi-page diagrams retain them. Add page, overview, focus selection and View changes are available in More drawing tools. Selecting an object adds context to the inspector; Whole diagram does not occupy an empty context row. Focusing uses actual rendered bounds converted into graph coordinates, including nested containers. Pan mode works over cells as well as the background. Ordinary AI patches preserve the existing viewport. View changes brings a changed leaf to at least 100% and selects it.
 
 ## Processing contract
 
@@ -18,7 +18,7 @@ The footer remains visible when the inspector is closed or Style is active. Canc
 
 No business-rule veto, extra reviewer/model, vector database, server, auth/payment changes, migrations or package upgrades were added.
 
-## Fresh verification and evidence boundaries
+## Initial V1 verification and evidence boundaries
 
 - Actual Ego Lite preview: selection synchronized with Style; text size 14 → 16; one Undo restored all 64 cells including values, styles, geometry, parent/endpoints.
 - Final production preview: after autosave, reloading the saved file restored exactly the same 64 cells, including values, styles, geometry, hierarchy and endpoints. Pan over a node moved the viewport without changing its geometry; Shapes and inspector hide/show worked.
@@ -32,6 +32,19 @@ Validation passed: 43 files / 198 tests, `pnpm typecheck`, scoped Biome on all 1
 Fresh [AI inspector](qa/editor-experience-v1/inspector-ai.png) and [Style inspector](qa/editor-experience-v1/inspector-style.png) captures show the same selected finance node at 125%. The user's avatar was temporarily hidden in the DOM during capture and immediately restored. The actual SDK-generated [complex refund document](qa/editor-experience-v1/generated-complex-refund.drawio) remains editable.
 
 Original browser acceptance in `qa/native-agent-upgrade/README.md` remains historical evidence; it is not relabelled as a new run. Unredacted local captures remain ignored. This iteration was self-reviewed, not independently reviewed, merged or deployed.
+
+## Simplification follow-up — 2026-10-13
+
+User requested Shapes open by default, less bottom chrome, and a test membership/credit grant. The layout changes above apply this follow-up without altering other accounts or quota rules. A user-authorized 30-day Professional trial and 1,000 gift credits were granted to the exact signed-in owner account in one database transaction, using existing payment, user and credit-history tables. The grant is marked manual, costs zero, has no provider subscription ID and creates no automatic charge. Private identity and grant receipts remain ignored locally. Authenticated `/api/ai/usage` readback returned Professional, monthly quota 9,999, and `canUse: true`.
+
+Affected draw.io/Mastra tests: 21 files / 81 tests passed. Typecheck, scoped Biome, diff check and the production build (41 static pages) passed. Fresh Ego Lite production-preview checks:
+
+- Shapes open after reload and can be toggled closed/open. The single-page tab strip is hidden and the native canvas extends to bottom 0; idle host footer contains only zoom and Fit diagram.
+- More → Add page restores native tabs for two pages. One Undo restores one page, hides the tabs, and preserves exactly the original 64 cells.
+- One real authenticated HTTP AI edit renamed only `n14` from 财务核算 to 财务金额核算. All styles, geometry, hierarchy and endpoints were unchanged. Real footer samples recorded Understanding, response preparation, Building diagram objects and canvas-applied completion across 23 seconds. This was one observed task, not a latency benchmark.
+- View changes focused the changed node. One Undo restored all 64 cells exactly; autosave and reload preserved the restoration. Successful usage recording increased the owner's monthly count by one. API readback remained Professional and usable, with 9,997 requests left in the current monthly allowance. This verifies the manual-grant entitlement path, not a provider purchase or webhook.
+
+The current [simplified workspace capture](qa/editor-experience-v1/simplified-workspace.png) shows the expanded palette and one bottom bar. The avatar was hidden only during capture. The tested graph is restored to its original content; grant and browser trace receipts are ignored locally.
 
 ## Ownership
 

@@ -42,6 +42,7 @@ import {
   Map,
   MessageSquare,
   Minus,
+  MoreHorizontal,
   MousePointer2,
   PanelRight,
   Plus,
@@ -124,7 +125,7 @@ export default function NativeDiagramWorkspace({
   const [panelTab, setPanelTab] = useState<'ai' | 'style'>('ai');
   const [view, setView] = useState<NativeEditorView>({
     zoom: 1,
-    shapesVisible: false,
+    shapesVisible: true,
     panning: false,
     selection: [],
   });
@@ -413,6 +414,7 @@ export default function NativeDiagramWorkspace({
             variant="ghost"
             className={`h-8 w-8 ${view.panning ? 'bg-accent' : ''}`}
             aria-label="Pan canvas"
+            title="Pan canvas · Space + drag"
             disabled={!bridge}
             onClick={() => bridge?.setPanning(true)}
           >
@@ -439,25 +441,43 @@ export default function NativeDiagramWorkspace({
           >
             <Type className="h-4 w-4" />
           </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label="Diagram overview"
-            disabled={!bridge}
-            onClick={() => bridge?.runAction('outline')}
-          >
-            <Map className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={!bridge?.canFocusChanges()}
-            onClick={() => bridge?.focusChanges()}
-          >
-            <Crosshair className="h-4 w-4" />
-            <span className="hidden lg:inline">View changes</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                aria-label="More drawing tools"
+                disabled={!bridge}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => bridge?.runAction('outline')}>
+                <Map className="h-4 w-4" />
+                Diagram overview
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!view.selection.length}
+                onClick={() => bridge?.focusSelection()}
+              >
+                <Crosshair className="h-4 w-4" />
+                Focus selection
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!bridge?.canFocusChanges()}
+                onClick={() => bridge?.focusChanges()}
+              >
+                <Crosshair className="h-4 w-4" />
+                View changes
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => bridge?.runAction('insertPage')}>
+                <Plus className="h-4 w-4" />
+                Add page
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
         {open && (
           <div
@@ -478,75 +498,6 @@ export default function NativeDiagramWorkspace({
               onHistory={onHistory}
               onView={setView}
             />
-            {task.active && (
-              <div
-                className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-sm border bg-background/95 px-2 py-1 text-xs text-muted-foreground"
-                aria-live="polite"
-              >
-                {taskStatusLabel(task)}
-              </div>
-            )}
-          </div>
-          <div className="flex min-h-10 flex-wrap items-center gap-1 border-t px-2 py-1">
-            <span className="mr-auto hidden text-xs text-muted-foreground lg:inline">
-              Space + drag to pan · Alt + wheel to zoom
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              aria-label="Zoom out"
-              disabled={!bridge}
-              onClick={() => bridge?.zoom(view.zoom / 1.2)}
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <select
-              aria-label="Zoom level"
-              className="h-8 rounded-sm border-transparent bg-transparent px-1"
-              value={zoomPercent}
-              disabled={!bridge}
-              onChange={(event) =>
-                bridge?.zoom(Number(event.target.value) / 100)
-              }
-            >
-              {Array.from(
-                new Set([25, 50, 75, 100, 125, 150, 200, 300, zoomPercent])
-              )
-                .sort((a, b) => a - b)
-                .map((value) => (
-                  <option key={value} value={value}>
-                    {value}%
-                  </option>
-                ))}
-            </select>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              aria-label="Zoom in"
-              disabled={!bridge}
-              onClick={() => bridge?.zoom(view.zoom * 1.2)}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <span className="mx-1 h-4 border-l" />
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!bridge}
-              onClick={() => bridge?.fitDiagram()}
-            >
-              Fit diagram
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!view.selection.length}
-              onClick={() => bridge?.focusSelection()}
-            >
-              Focus selection
-            </Button>
           </div>
         </main>
         {open && !mobile && (
@@ -566,17 +517,19 @@ export default function NativeDiagramWorkspace({
           style={mobile ? undefined : { width }}
           aria-label="Editing panel"
         >
-          <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 text-xs">
-            <span className="text-muted-foreground">Selection</span>
-            <button
-              type="button"
-              className="max-w-48 truncate text-left"
-              onClick={() => bridge?.focusSelection()}
-              title={selectionLabel}
-            >
-              {selectionLabel}
-            </button>
-          </div>
+          {view.selection.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 text-xs">
+              <span className="text-muted-foreground">Selected</span>
+              <button
+                type="button"
+                className="max-w-48 truncate text-left"
+                onClick={() => bridge?.focusSelection()}
+                title={`Focus selection: ${selectionLabel}`}
+              >
+                {selectionLabel}
+              </button>
+            </div>
+          )}
           <div
             className={`min-h-0 flex-1 ${panelTab === 'ai' ? '' : 'hidden'}`}
             id="native-ai-panel"
@@ -619,29 +572,77 @@ export default function NativeDiagramWorkspace({
           </div>
         </aside>
       </div>
-      <footer className="flex min-h-7 shrink-0 flex-wrap items-center gap-2 border-t px-3 py-1 text-xs text-muted-foreground">
-        {task.active && <Loader2 className="h-3 w-3 animate-spin" />}
-        <span aria-live="polite">{taskStatusLabel(task)}</span>
-        <span aria-live="off">
-          {task.active && task.startedAt
-            ? ` · ${Math.max(0, Math.floor((now - task.startedAt) / 1000))}s`
-            : ''}
-        </span>
-        {task.active && task.phase !== 'complete' && (
-          <button
-            type="button"
-            className="text-foreground underline-offset-2 hover:underline"
-            disabled={task.phase === 'cancelling'}
-            onClick={() => cancelTask.current?.()}
-          >
-            Cancel
-          </button>
-        )}
-        <span className="ml-auto max-w-[45%] truncate">
-          {view.selection.length
-            ? `Selected: ${selectionLabel}`
-            : 'Editable native diagram'}
-        </span>
+      <footer className="flex min-h-9 shrink-0 items-center gap-1 border-t px-2 text-xs text-muted-foreground">
+        <div className="mr-auto flex min-w-0 items-center gap-2">
+          {task.active && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
+          {(task.active || task.outcome === 'failed') && (
+            <span className="truncate" aria-live="polite">
+              {taskStatusLabel(task)}
+            </span>
+          )}
+          {task.active && task.startedAt && (
+            <span className="shrink-0" aria-live="off">
+              {Math.max(0, Math.floor((now - task.startedAt) / 1000))}s
+            </span>
+          )}
+          {task.active && task.phase !== 'complete' && (
+            <button
+              type="button"
+              className="text-foreground underline-offset-2 hover:underline"
+              disabled={task.phase === 'cancelling'}
+              onClick={() => cancelTask.current?.()}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          aria-label="Zoom out"
+          disabled={!bridge}
+          onClick={() => bridge?.zoom(view.zoom / 1.2)}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <select
+          aria-label="Zoom level"
+          title="Zoom · Alt + wheel"
+          className="h-8 shrink-0 rounded-sm border-transparent bg-transparent px-1"
+          value={zoomPercent}
+          disabled={!bridge}
+          onChange={(event) => bridge?.zoom(Number(event.target.value) / 100)}
+        >
+          {Array.from(
+            new Set([25, 50, 75, 100, 125, 150, 200, 300, zoomPercent])
+          )
+            .sort((a, b) => a - b)
+            .map((value) => (
+              <option key={value} value={value}>
+                {value}%
+              </option>
+            ))}
+        </select>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          aria-label="Zoom in"
+          disabled={!bridge}
+          onClick={() => bridge?.zoom(view.zoom * 1.2)}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="shrink-0"
+          disabled={!bridge}
+          onClick={() => bridge?.fitDiagram()}
+        >
+          Fit diagram
+        </Button>
       </footer>
     </div>
   );
