@@ -227,7 +227,10 @@ it.each([
     expect(chunks.at(-1)?.type).toBe('finish');
     expect(requests).toBe(readSkill ? 3 : firstIsStale ? 2 : 1);
     expect(requestBodies[0]).toContain('REFERENCE references/complex-flow.md');
-    const mapper = createMastraStreamMapper({ recoverToolErrors: true });
+    const mapper = createMastraStreamMapper({
+      recoverToolErrors: true,
+      nativeProgress: true,
+    });
     const events = chunks.map((chunk) => mapper.map(chunk)).filter(Boolean);
     expect(events.filter((event) => event?.type === 'tool-call')).toHaveLength(
       1

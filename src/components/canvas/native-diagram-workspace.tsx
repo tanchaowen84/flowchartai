@@ -24,14 +24,30 @@ import {
   EMPTY_DRAWIO_XML,
   drawioDocumentSchema,
 } from '@/lib/drawio/contracts';
-import type { DrawioBridge } from '@/lib/drawio/editor-bridge';
+import type {
+  DrawioBridge,
+  NativeEditorView,
+} from '@/lib/drawio/editor-bridge';
 import { readNativeCells } from '@/lib/drawio/native-document';
+import {
+  type DiagramTaskStatus,
+  taskStatusLabel,
+} from '@/lib/mastra/task-status';
 import {
   Crosshair,
   Download,
+  Hand,
   Home,
+  Loader2,
+  Map,
   MessageSquare,
+  Minus,
+  MousePointer2,
+  PanelRight,
+  Plus,
   Redo2,
+  Shapes,
+  Type,
   Undo2,
   User,
 } from 'lucide-react';
@@ -39,6 +55,8 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DrawioEditor from './drawio-editor';
+import NativeStylePanel from './native-style-panel';
+import styles from './native-workspace.module.css';
 import ResizableDivider from './resizable-divider';
 import { SaveButton } from './save-button';
 
@@ -102,7 +120,31 @@ export default function NativeDiagramWorkspace({
   const [title, setTitle] = useState(initialFlowchart?.title || 'Untitled');
   const [bridge, setBridge] = useState<DrawioBridge | null>(null);
   const [open, setOpen] = useState(true);
-  const [width, setWidth] = useState(400);
+  const [width, setWidth] = useState(320);
+  const [panelTab, setPanelTab] = useState<'ai' | 'style'>('ai');
+  const [view, setView] = useState<NativeEditorView>({
+    zoom: 1,
+    shapesVisible: false,
+    panning: false,
+    selection: [],
+  });
+  const [task, setTask] = useState<DiagramTaskStatus>({
+    active: false,
+    phase: 'idle',
+    startedAt: null,
+    outcome: 'ready',
+  });
+  const [now, setNow] = useState(Date.now());
+  const cancelTask = useRef<(() => void) | null>(null);
+  const bindCancel = useCallback((cancel: () => void) => {
+    cancelTask.current = cancel;
+  }, []);
+  useEffect(() => {
+    if (!task.active) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [task.active]);
   const [, setHistory] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -192,45 +234,88 @@ export default function NativeDiagramWorkspace({
       setExporting(false);
     }
   };
-  return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
-      <main
-        className="flex min-w-0 flex-1 flex-col"
-        style={{
-          width: open && !mobile ? `calc(100% - ${width}px)` : '100%',
-          flex: open && !mobile ? 'none' : 1,
+  const zoomPercent = Math.round(view.zoom * 100);
+  const selectionLabel =
+    view.selection.length > 1
+      ? `${view.selection.length} objects`
+      : view.selection[0]?.label ||
+        (view.selection.length ? 'Selected object' : 'Whole diagram');
+  const tabs = (
+    <div
+      className="flex h-10 items-center gap-1 border-l px-3"
+      role="tablist"
+      aria-label="Editing panel"
+    >
+      <button
+        type="button"
+        role="tab"
+        id="native-ai-tab"
+        aria-controls="native-ai-panel"
+        aria-selected={panelTab === 'ai'}
+        className={`h-10 border-b-2 px-3 ${panelTab === 'ai' ? 'border-primary text-primary' : 'border-transparent'}`}
+        onClick={() => {
+          setPanelTab('ai');
+          setOpen(true);
         }}
       >
-        <header className="flex min-h-14 flex-wrap items-center gap-2 border-b px-3 py-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            aria-label="Home"
-            onClick={() => router.push('/')}
-          >
-            <Home className="h-4 w-4" />
-          </Button>
-          <Input
-            aria-label="Diagram title"
-            value={title}
-            onChange={(event) => {
-              setTitle(event.target.value);
-              if (
-                user &&
-                bridge &&
-                (fileId ||
-                  readNativeCells(bridge.getDocument()).some(
-                    (cell) => cell.parent && cell.parent !== '0'
-                  ))
-              )
-                save.markChanged();
-            }}
-            className="h-8 min-w-16 max-w-52 flex-1 border-transparent"
-          />
+        AI
+      </button>
+      <button
+        type="button"
+        role="tab"
+        id="native-style-tab"
+        aria-controls="native-style-panel"
+        aria-selected={panelTab === 'style'}
+        className={`h-10 border-b-2 px-3 ${panelTab === 'style' ? 'border-primary text-primary' : 'border-transparent'}`}
+        onClick={() => {
+          setPanelTab('style');
+          setOpen(true);
+        }}
+      >
+        Style
+      </button>
+    </div>
+  );
+  return (
+    <div
+      className={`${styles.workspace} flex h-screen w-screen flex-col overflow-hidden bg-muted text-foreground`}
+      data-native-workspace
+    >
+      <header className="flex min-h-12 flex-wrap items-center gap-2 border-b px-3 py-1.5">
+        <Button
+          size="icon"
+          variant="ghost"
+          aria-label="Home"
+          className="h-8 w-8"
+          onClick={() => router.push('/')}
+        >
+          <Home className="h-4 w-4" />
+        </Button>
+        <span className="hidden font-medium sm:inline">FlowchartAI</span>
+        <span className="hidden h-4 border-l sm:block" />
+        <Input
+          aria-label="Diagram title"
+          value={title}
+          onChange={(event) => {
+            setTitle(event.target.value);
+            if (
+              user &&
+              bridge &&
+              (fileId ||
+                readNativeCells(bridge.getDocument()).some(
+                  (cell) => cell.parent && cell.parent !== '0'
+                ))
+            )
+              save.markChanged();
+          }}
+          className="h-8 min-w-20 max-w-64 flex-1 border-transparent bg-transparent"
+        />
+        <div className="ml-auto flex items-center gap-1">
           <Button
             size="icon"
             variant="ghost"
             aria-label="Undo"
+            className="h-8 w-8"
             disabled={!bridge?.canUndo()}
             onClick={() => bridge?.undo()}
           >
@@ -240,19 +325,11 @@ export default function NativeDiagramWorkspace({
             size="icon"
             variant="ghost"
             aria-label="Redo"
+            className="h-8 w-8"
             disabled={!bridge?.canRedo()}
             onClick={() => bridge?.redo()}
           >
             <Redo2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={!bridge?.canFocusChanges()}
-            onClick={() => bridge?.focusChanges()}
-          >
-            <Crosshair className="h-4 w-4" />
-            <span className="hidden sm:inline">Show changes</span>
           </Button>
           {user && (
             <SaveButton
@@ -265,13 +342,10 @@ export default function NativeDiagramWorkspace({
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!bridge || exporting}
-              >
+              <Button variant="ghost" size="sm" disabled={!bridge || exporting}>
                 <Download className="h-4 w-4" />
-                <span className="sr-only sm:not-sr-only">Export</span>
+                <span className="hidden sm:inline">Export</span>
+                <span className="sr-only sm:hidden">Export</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -289,10 +363,11 @@ export default function NativeDiagramWorkspace({
           <Button
             size="icon"
             variant="ghost"
-            aria-label={open ? 'Hide assistant' : 'Show assistant'}
+            className="h-8 w-8"
+            aria-label={open ? 'Hide editing panel' : 'Show editing panel'}
             onClick={() => setOpen(!open)}
           >
-            <MessageSquare className="h-4 w-4" />
+            <PanelRight className="h-4 w-4" />
           </Button>
           {user ? (
             <UserButton user={user} />
@@ -308,48 +383,266 @@ export default function NativeDiagramWorkspace({
               </Button>
             </LoginWrapper>
           )}
-        </header>
-        {exportError && (
-          <div role="alert" className="px-4 py-2 text-sm text-destructive">
-            {exportError}
+        </div>
+      </header>
+      {exportError && (
+        <div
+          role="alert"
+          className="border-b px-4 py-2 text-sm text-destructive"
+        >
+          {exportError}
+        </div>
+      )}
+      <div className="flex min-h-10 flex-wrap items-center border-b">
+        <nav
+          className="flex min-w-0 flex-1 items-center gap-1 px-2"
+          aria-label="Drawing tools"
+        >
+          <Button
+            size="icon"
+            variant="ghost"
+            className={`h-8 w-8 ${!view.panning ? 'bg-accent' : ''}`}
+            aria-label="Select objects"
+            disabled={!bridge}
+            onClick={() => bridge?.setPanning(false)}
+          >
+            <MousePointer2 className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className={`h-8 w-8 ${view.panning ? 'bg-accent' : ''}`}
+            aria-label="Pan canvas"
+            disabled={!bridge}
+            onClick={() => bridge?.setPanning(true)}
+          >
+            <Hand className="h-4 w-4" />
+          </Button>
+          <span className="mx-1 h-4 border-l" />
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-pressed={view.shapesVisible}
+            disabled={!bridge}
+            onClick={() => bridge?.toggleShapes()}
+          >
+            <Shapes className="h-4 w-4" />
+            Shapes
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label="Insert text"
+            disabled={!bridge}
+            onClick={() => bridge?.runAction('insertText')}
+          >
+            <Type className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label="Diagram overview"
+            disabled={!bridge}
+            onClick={() => bridge?.runAction('outline')}
+          >
+            <Map className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!bridge?.canFocusChanges()}
+            onClick={() => bridge?.focusChanges()}
+          >
+            <Crosshair className="h-4 w-4" />
+            <span className="hidden lg:inline">View changes</span>
+          </Button>
+        </nav>
+        {open && (
+          <div
+            className="shrink-0"
+            style={{ width: mobile ? undefined : width }}
+          >
+            {tabs}
           </div>
         )}
-        <div className="min-h-0 flex-1">
-          <DrawioEditor
-            initialDocument={latestDocument.current}
-            onReady={setBridge}
-            onChange={onChange}
-            onHistory={onHistory}
+      </div>
+      <div className="relative flex min-h-0 flex-1">
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="relative min-h-0 flex-1 bg-background">
+            <DrawioEditor
+              initialDocument={latestDocument.current}
+              onReady={setBridge}
+              onChange={onChange}
+              onHistory={onHistory}
+              onView={setView}
+            />
+            {task.active && (
+              <div
+                className="pointer-events-none absolute left-3 top-3 max-w-[calc(100%-1.5rem)] rounded-sm border bg-background/95 px-2 py-1 text-xs text-muted-foreground"
+                aria-live="polite"
+              >
+                {taskStatusLabel(task)}
+              </div>
+            )}
+          </div>
+          <div className="flex min-h-10 flex-wrap items-center gap-1 border-t px-2 py-1">
+            <span className="mr-auto hidden text-xs text-muted-foreground lg:inline">
+              Space + drag to pan · Alt + wheel to zoom
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Zoom out"
+              disabled={!bridge}
+              onClick={() => bridge?.zoom(view.zoom / 1.2)}
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <select
+              aria-label="Zoom level"
+              className="h-8 rounded-sm border-transparent bg-transparent px-1"
+              value={zoomPercent}
+              disabled={!bridge}
+              onChange={(event) =>
+                bridge?.zoom(Number(event.target.value) / 100)
+              }
+            >
+              {Array.from(
+                new Set([25, 50, 75, 100, 125, 150, 200, 300, zoomPercent])
+              )
+                .sort((a, b) => a - b)
+                .map((value) => (
+                  <option key={value} value={value}>
+                    {value}%
+                  </option>
+                ))}
+            </select>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Zoom in"
+              disabled={!bridge}
+              onClick={() => bridge?.zoom(view.zoom * 1.2)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            <span className="mx-1 h-4 border-l" />
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!bridge}
+              onClick={() => bridge?.fitDiagram()}
+            >
+              Fit diagram
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!view.selection.length}
+              onClick={() => bridge?.focusSelection()}
+            >
+              Focus selection
+            </Button>
+          </div>
+        </main>
+        {open && !mobile && (
+          <ResizableDivider
+            defaultWidth={width}
+            onResize={setWidth}
+            minWidth={280}
+            maxWidth={480}
           />
-        </div>
-      </main>
-      {open && !mobile && (
-        <ResizableDivider
-          defaultWidth={width}
-          onResize={setWidth}
-          minWidth={320}
-          maxWidth={600}
-        />
-      )}
-      <AiChatSidebar
-        isOpen={open}
-        onToggle={() => setOpen(!open)}
-        nativeEditor={bridge}
-        isAPIReady={!!bridge}
-        width={mobile ? undefined : width}
-        flowchartId={fileId}
-        autoInput={auto.input}
-        shouldAutoGenerate={auto.generate}
-        initialMode={auto.mode}
-        initialImage={auto.image}
-        onAutoGenerateComplete={() =>
-          setAuto((value) => ({ ...value, generate: false, image: null }))
-        }
-        flowchartAiMetadata={metadata}
-        onFlowchartAiMetadataChange={() => {
-          throw new Error('Legacy metadata cannot replace a native document');
-        }}
-      />
+        )}
+        <aside
+          className={
+            mobile
+              ? `absolute inset-y-0 right-0 z-20 flex w-[min(100%,360px)] flex-col border-l bg-muted ${open ? '' : 'hidden'}`
+              : `flex shrink-0 flex-col bg-muted ${open ? '' : 'hidden'}`
+          }
+          style={mobile ? undefined : { width }}
+          aria-label="Editing panel"
+        >
+          <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 text-xs">
+            <span className="text-muted-foreground">Selection</span>
+            <button
+              type="button"
+              className="max-w-48 truncate text-left"
+              onClick={() => bridge?.focusSelection()}
+              title={selectionLabel}
+            >
+              {selectionLabel}
+            </button>
+          </div>
+          <div
+            className={`min-h-0 flex-1 ${panelTab === 'ai' ? '' : 'hidden'}`}
+            id="native-ai-panel"
+            role="tabpanel"
+            aria-labelledby="native-ai-tab"
+          >
+            <AiChatSidebar
+              embedded
+              isOpen={open && panelTab === 'ai'}
+              onToggle={() => setOpen(!open)}
+              nativeEditor={bridge}
+              isAPIReady={!!bridge}
+              width={width}
+              flowchartId={fileId}
+              autoInput={auto.input}
+              shouldAutoGenerate={auto.generate}
+              initialMode={auto.mode}
+              initialImage={auto.image}
+              onAutoGenerateComplete={() =>
+                setAuto((value) => ({ ...value, generate: false, image: null }))
+              }
+              flowchartAiMetadata={metadata}
+              onFlowchartAiMetadataChange={() => {
+                throw new Error(
+                  'Legacy metadata cannot replace a native document'
+                );
+              }}
+              onTaskStatusChange={setTask}
+              onCancelAvailable={bindCancel}
+              onFocusChanges={() => bridge?.focusChanges()}
+            />
+          </div>
+          <div
+            className={`min-h-0 flex-1 overflow-y-auto ${panelTab === 'style' ? '' : 'hidden'}`}
+            id="native-style-panel"
+            role="tabpanel"
+            aria-labelledby="native-style-tab"
+          >
+            <NativeStylePanel bridge={bridge} view={view} />
+          </div>
+        </aside>
+      </div>
+      <footer className="flex min-h-7 shrink-0 flex-wrap items-center gap-2 border-t px-3 py-1 text-xs text-muted-foreground">
+        {task.active && <Loader2 className="h-3 w-3 animate-spin" />}
+        <span aria-live="polite">{taskStatusLabel(task)}</span>
+        <span aria-live="off">
+          {task.active && task.startedAt
+            ? ` · ${Math.max(0, Math.floor((now - task.startedAt) / 1000))}s`
+            : ''}
+        </span>
+        {task.active && task.phase !== 'complete' && (
+          <button
+            type="button"
+            className="text-foreground underline-offset-2 hover:underline"
+            disabled={task.phase === 'cancelling'}
+            onClick={() => cancelTask.current?.()}
+          >
+            Cancel
+          </button>
+        )}
+        <span className="ml-auto max-w-[45%] truncate">
+          {view.selection.length
+            ? `Selected: ${selectionLabel}`
+            : 'Editable native diagram'}
+        </span>
+      </footer>
     </div>
   );
 }

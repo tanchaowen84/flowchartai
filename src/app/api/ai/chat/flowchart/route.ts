@@ -110,6 +110,7 @@ function createAgentStreamResponse(
     async start(controller) {
       const mapper = createMastraStreamMapper({
         recoverToolErrors: native,
+        nativeProgress: native,
         onDiagnostic: (event) =>
           logFlowchartDiagnostic({
             requestId,

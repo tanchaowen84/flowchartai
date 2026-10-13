@@ -4,6 +4,43 @@ import { createMastraStreamMapper, mapMastraChunk } from './stream-protocol';
 const baseChunk = { runId: 'run-1', from: 'AGENT' };
 
 describe('mapMastraChunk', () => {
+  it('exposes native task phases without exposing partial command data or skill results', () => {
+    const mapper = createMastraStreamMapper({ nativeProgress: true });
+    expect(
+      mapper.map({
+        type: 'tool-call-input-streaming-start',
+        payload: {
+          toolName: 'generate_flowchart',
+          args: 'private incomplete XML',
+        },
+      })
+    ).toEqual({ type: 'progress', stage: 'building' });
+    expect(
+      mapper.map({
+        type: 'tool-call',
+        payload: {
+          toolName: 'generate_flowchart',
+          args: { private: 'incomplete command' },
+        },
+      })
+    ).toEqual({ type: 'progress', stage: 'preparing' });
+    expect(mapper.hasCompletedToolCall()).toBe(false);
+    expect(
+      mapper.map({
+        type: 'tool-result',
+        payload: { toolName: 'skill_read', result: 'private guide' },
+      })
+    ).toBeNull();
+    expect(mapper.map({ type: 'abort', payload: {} })).toEqual({
+      type: 'aborted',
+    });
+    expect(
+      mapper.map({
+        type: 'tool-call-input-streaming-start',
+        payload: { toolName: 'generate_flowchart' },
+      })
+    ).toBeNull();
+  });
   it('maps Mastra text deltas to the stable existing SSE shape', () => {
     expect(
       mapMastraChunk({

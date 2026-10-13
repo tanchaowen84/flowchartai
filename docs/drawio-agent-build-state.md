@@ -71,3 +71,8 @@ Knowledge covers shapes/styles, real group parenting and relative geometry, conn
 Fresh small acceptance: final generation has 35 vertices (29 flow nodes + 6 groups), 34 edges, explicit independent approval branches and a labelled AND join. Bounded retry and pre-fork risk insertion both passed on the accepted manual-style diagram; finance node/group, success branch, parallel branches and existing retry cells were preserved. Individual elapsed observations: 17.6s / 10.7s / 10.5s. One earlier generation had an ambiguous join label; the reference example was refined and the final generation rerun. These samples are not a reliability benchmark or all-family visual acceptance.
 
 Transport tests use the actual Mastra loop plus modern model adapter: successful command stops after one request; a stale patch is corrected; skill activation and reference read can precede one canvas command. All events pass through the existing SSE mapper. Fresh checks: 42 files / 195 tests PASS; typecheck, scoped Biome and production build recorded in QA. Existing browser Undo/Save/reopen evidence is historical; this change does not alter the browser transaction code. Main self-review only; no production merge/deployment.
+
+
+## Editor experience V1 — 2026-10-13
+
+User approved the revised single-editor shell, shared AI/Style inspector, persistent task feedback and visible zoom/navigation. Implementation and current evidence are in [Editor experience V1](editor-experience-v1.md). Native/legacy model execution remains Mastra; the drawing kernel, billing rules and data format are retained. UI-state simulation is separated from actual native editor and real SDK evidence. No production deployment or independent review.

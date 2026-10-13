@@ -12,6 +12,17 @@ import type {
 } from './contracts';
 import { nativeContentFingerprint, validateDrawioXml } from './native-document';
 
+export interface NativeEditorView {
+  zoom: number;
+  shapesVisible: boolean;
+  panning: boolean;
+  selection: Array<{
+    id: string;
+    label: string;
+    style: Record<string, string>;
+  }>;
+}
+
 export interface DrawioBridge extends NativeEditorController {
   undo: () => void;
   redo: () => void;
@@ -21,6 +32,15 @@ export interface DrawioBridge extends NativeEditorController {
   exportSvg: () => string;
   focusChanges: () => void;
   canFocusChanges: () => boolean;
+  getView: () => NativeEditorView;
+  zoom: (scale: number) => void;
+  fitDiagram: () => void;
+  focusSelection: () => void;
+  toggleShapes: () => void;
+  setPanning: (enabled: boolean) => void;
+  runAction: (name: string) => void;
+  setSelectedStyle: (key: string, value: string) => void;
+  setSelectedLabel: (value: string, cellId?: string) => void;
   dispose: () => void;
 }
 
@@ -56,7 +76,8 @@ export function createDrawioBridge(
   frame: Window,
   initial: DrawioDocument,
   onChange: (document: DrawioDocument) => void,
-  onHistory: () => void
+  onHistory: () => void,
+  onView: (view: NativeEditorView) => void = () => {}
 ): DrawioBridge {
   const win = frame as any;
   const graph = ui?.editor?.graph;
@@ -113,6 +134,102 @@ export function createDrawioBridge(
   }
   const selection = (): string[] =>
     graph.getSelectionCells().map((cell: any) => String(cell.id));
+  const getView = (): NativeEditorView => ({
+    zoom: graph.view.scale,
+    shapesVisible: !!ui.isShapesPanelVisible?.(),
+    panning: !!graph.panningHandler.useLeftButtonForPanning,
+    selection: graph.getSelectionCells().map((cell: any) => ({
+      id: String(cell.id),
+      label: String(graph.convertValueToString(cell)),
+      style: Object.fromEntries(
+        Object.entries(graph.getCellStyle(cell) || {})
+          .filter(([key]) =>
+            ['fontSize', 'fontColor', 'fillColor', 'strokeColor'].includes(key)
+          )
+          .map(([key, value]) => [key, String(value)])
+      ),
+    })),
+  });
+  const viewChanged = (): void => onView(getView());
+  for (const [source, event] of [
+    [graph.getSelectionModel(), win.mxEvent.CHANGE],
+    [graph.view, win.mxEvent.SCALE],
+    [graph.view, win.mxEvent.SCALE_AND_TRANSLATE],
+    [graph.model, win.mxEvent.CHANGE],
+  ]) {
+    source.addListener(event, viewChanged);
+    listeners.push({ source, fn: viewChanged });
+  }
+  const fitCells = (cells: any[]): void => {
+    if (!cells.length) return;
+    const states = cells
+      .map((cell: any) => graph.view.getState(cell))
+      .filter(Boolean);
+    const bounds = states.length
+      ? new win.mxRectangle(
+          states[0].x,
+          states[0].y,
+          states[0].width,
+          states[0].height
+        )
+      : null;
+    for (const state of states.slice(1))
+      bounds.add(
+        new win.mxRectangle(state.x, state.y, state.width, state.height)
+      );
+    if (bounds) {
+      const scale = graph.view.scale;
+      const t = graph.view.translate;
+      graph.fitWindow(
+        new win.mxRectangle(
+          bounds.x / scale - t.x,
+          bounds.y / scale - t.y,
+          bounds.width / scale,
+          bounds.height / scale
+        ),
+        40,
+        1.25
+      );
+    }
+    viewChanged();
+  };
+  // The host owns document/tool chrome. Keep native canvas, page tabs and shapes.
+  const chrome = win.document.createElement('style');
+  chrome.textContent = `
+    .geMenubarContainer,.geToolbarContainer { display:none!important; }
+    .geDiagramContainer,.geSidebarContainer,.geHsplit { top:0!important; }
+    .geSidebarContainer,.geSidebar,.geSidebarFooter,.geFooterContainer,.geTabContainer {
+      background: var(--flowchart-chrome)!important;
+      color: var(--flowchart-foreground)!important;
+      font-family: var(--flowchart-font)!important;
+    }
+  `;
+  win.document.head.appendChild(chrome);
+  const syncChrome = (): void => {
+    const host = win.parent.document;
+    const tokens = win.parent.getComputedStyle(host.documentElement);
+    win.document.documentElement.style.setProperty(
+      '--flowchart-chrome',
+      tokens.getPropertyValue('--muted')
+    );
+    win.document.documentElement.style.setProperty(
+      '--flowchart-foreground',
+      tokens.getPropertyValue('--foreground')
+    );
+    win.document.documentElement.style.setProperty(
+      '--flowchart-font',
+      win.parent.getComputedStyle(host.body).fontFamily
+    );
+    ui.setDarkMode(host.documentElement.classList.contains('dark'));
+  };
+  syncChrome();
+  const themeObserver = new win.MutationObserver(syncChrome);
+  themeObserver.observe(win.parent.document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class'],
+  });
+  if (ui.isShapesPanelVisible?.()) ui.actions.get('toggleShapes')?.funct();
+  viewChanged();
   return {
     getDocument: () => {
       sync();
@@ -235,14 +352,57 @@ export function createDrawioBridge(
         .map((id) => graph.model.getCell(id))
         .find((cell) => cell?.vertex && !cell.children?.length);
       if (!cell) return;
-      if (graph.view.scale < 0.6) graph.zoomTo(0.6);
+      if (graph.view.scale < 1) graph.zoomTo(1);
+      graph.setSelectionCell(cell);
       graph.scrollCellToVisible(cell, true);
       const highlight = new win.mxCellHighlight(graph, '#2563eb', 3);
       highlight.highlight(graph.view.getState(cell));
       win.setTimeout(() => highlight.destroy(), 4000);
     },
+    getView,
+    zoom: (scale) => {
+      graph.zoomTo(scale);
+      viewChanged();
+    },
+    fitDiagram: () => {
+      ui.fitDiagramToWindow(1, null, false);
+      viewChanged();
+    },
+    focusSelection: () => fitCells(graph.getSelectionCells()),
+    toggleShapes: () => {
+      ui.actions.get('toggleShapes')?.funct();
+      viewChanged();
+    },
+    setPanning: (enabled) => {
+      graph.panningHandler.useLeftButtonForPanning = enabled;
+      graph.panningHandler.ignoreCell = enabled;
+      graph.container.style.cursor = enabled ? 'grab' : '';
+      viewChanged();
+    },
+    runAction: (name) => {
+      ui.actions.get(name)?.funct();
+      viewChanged();
+    },
+    setSelectedStyle: (key, value) => {
+      const cells = graph.getSelectionCells();
+      if (!cells.length) return;
+      graph.model.beginUpdate();
+      try {
+        graph.setCellStyles(key, value, cells);
+      } finally {
+        graph.model.endUpdate();
+      }
+    },
+    setSelectedLabel: (value, cellId) => {
+      const cell = cellId
+        ? graph.model.getCell(cellId)
+        : graph.getSelectionCell();
+      if (cell) graph.cellLabelChanged(cell, value);
+    },
     dispose: () => {
       disposed = true;
+      chrome.remove();
+      themeObserver.disconnect();
       for (const { source, fn } of listeners) source.removeListener(fn);
     },
   };

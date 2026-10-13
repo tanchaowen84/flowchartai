@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import type { DrawioDocument } from '@/lib/drawio/contracts';
 import {
   type DrawioBridge,
+  type NativeEditorView,
   createDrawioBridge,
   watchDrawioEditor,
 } from '@/lib/drawio/editor-bridge';
@@ -15,6 +16,7 @@ interface DrawioEditorProps {
   onReady: (bridge: DrawioBridge | null) => void;
   onChange: (document: DrawioDocument) => void;
   onHistory: () => void;
+  onView: (view: NativeEditorView) => void;
 }
 
 export default function DrawioEditor({
@@ -22,10 +24,11 @@ export default function DrawioEditor({
   onReady,
   onChange,
   onHistory,
+  onView,
 }: DrawioEditorProps) {
   const iframe = useRef<HTMLIFrameElement>(null);
-  const callbacks = useRef({ onReady, onChange, onHistory });
-  callbacks.current = { onReady, onChange, onHistory };
+  const callbacks = useRef({ onReady, onChange, onHistory, onView });
+  callbacks.current = { onReady, onChange, onHistory, onView };
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -44,7 +47,8 @@ export default function DrawioEditor({
           iframe.current!.contentWindow!,
           initialDocument,
           (document) => callbacks.current.onChange(document),
-          () => callbacks.current.onHistory()
+          () => callbacks.current.onHistory(),
+          (view) => callbacks.current.onView(view)
         );
         setReady(true);
         setError(null);

@@ -8,6 +8,7 @@ import {
 
 export type StableAgentEvent =
   | { type: 'text'; content: string }
+  | { type: 'progress'; stage: 'building' | 'preparing' }
   | {
       type: 'tool-call';
       toolCallId: string;
@@ -27,6 +28,7 @@ export interface MastraStreamMapper {
 interface MastraStreamMapperOptions {
   onDiagnostic?: (event: FlowchartDiagnosticEvent) => void;
   recoverToolErrors?: boolean;
+  nativeProgress?: boolean;
 }
 
 function errorMessage(error: unknown): string {
@@ -45,6 +47,16 @@ export function createMastraStreamMapper(
   return {
     map(chunk: any): StableAgentEvent | null {
       if (terminated) return null;
+
+      if (
+        options.nativeProgress &&
+        chunk.payload?.toolName === 'generate_flowchart'
+      ) {
+        if (chunk.type === 'tool-call-input-streaming-start')
+          return { type: 'progress', stage: 'building' };
+        if (chunk.type === 'tool-call')
+          return { type: 'progress', stage: 'preparing' };
+      }
 
       if (
         chunk?.type === 'text-delta' &&

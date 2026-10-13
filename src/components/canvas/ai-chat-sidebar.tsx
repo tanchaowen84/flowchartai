@@ -58,6 +58,11 @@ import {
   serializePendingAuthAttachment,
 } from '@/lib/mastra/pending-auth-attachment';
 import { createSseEventDecoder } from '@/lib/mastra/sse-client';
+import {
+  type AssistantPhase,
+  type DiagramTaskStatus,
+  taskStatusLabel,
+} from '@/lib/mastra/task-status';
 import { createCanvasUsageGate } from '@/lib/mastra/usage-gate';
 import {
   extractExistingMermaidCode,
@@ -73,7 +78,13 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 interface MessageContent {
   type: 'text' | 'image_url';
@@ -119,6 +130,10 @@ interface AiChatSidebarProps {
   flowchartAiMetadata: FlowchartAiMetadata;
   onFlowchartAiMetadataChange: (metadata: FlowchartAiMetadata) => void;
   onReady?: () => void;
+  embedded?: boolean;
+  onTaskStatusChange?: (status: DiagramTaskStatus) => void;
+  onCancelAvailable?: (cancel: () => void) => void;
+  onFocusChanges?: () => void;
 }
 
 function getUserFacingErrorMessage(
@@ -141,7 +156,7 @@ const ASSISTANT_THINKING_STATUS = 'Thinking...';
 const FLOWCHART_EDITING_STATUS = 'Editing...';
 const FLOWCHART_RENDERING_STATUS = 'Rendering...';
 
-type AssistantResponsePhase = 'idle' | 'thinking' | 'editing' | 'rendering';
+type AssistantResponsePhase = AssistantPhase;
 
 function markFlowchartPerformance(name: string): void {
   if (typeof performance !== 'undefined') {
@@ -178,7 +193,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   flowchartAiMetadata,
   onFlowchartAiMetadataChange,
   onReady,
+  embedded = false,
+  onTaskStatusChange,
+  onCancelAvailable,
+  onFocusChanges,
 }) => {
+  const [taskStartedAt, setTaskStartedAt] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [taskOutcome, setTaskOutcome] =
+    useState<DiagramTaskStatus['outcome']>('ready');
+  const [lastChange, setLastChange] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -202,6 +226,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const hasAutoSentRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestCommittedRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamingMessageIdRef = useRef<string | null>(null);
@@ -217,6 +242,38 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const { handleLimitReached: handleGuestLimitReached } = useGuestAIUsage();
 
   const activeSendStatus = sendStatus;
+  const taskStatus: DiagramTaskStatus = {
+    active: isLoading,
+    phase: assistantResponsePhase,
+    startedAt: taskStartedAt,
+    outcome: taskOutcome,
+  };
+  const taskLabel = taskStatusLabel(taskStatus);
+  useEffect(() => {
+    if (!isLoading) return;
+    const startedAt = Date.now();
+    setTaskStartedAt(startedAt);
+    setElapsedSeconds(0);
+    const timer = window.setInterval(
+      () => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)),
+      1000
+    );
+    return () => window.clearInterval(timer);
+  }, [isLoading]);
+  useEffect(() => {
+    onTaskStatusChange?.({
+      active: isLoading,
+      phase: assistantResponsePhase,
+      startedAt: taskStartedAt,
+      outcome: taskOutcome,
+    });
+  }, [
+    isLoading,
+    assistantResponsePhase,
+    taskStartedAt,
+    taskOutcome,
+    onTaskStatusChange,
+  ]);
 
   useEffect(() => {
     if (!hasReportedReadyRef.current) {
@@ -247,7 +304,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       // Reset height to auto to get the correct scrollHeight
       textarea.style.height = 'auto';
       // Calculate new height based on content
-      const minHeight = 80;
+      const minHeight = embedded ? 72 : 80;
       const maxHeight = 200;
       const scrollHeight = textarea.scrollHeight;
       const newHeight = Math.min(Math.max(scrollHeight, minHeight), maxHeight);
@@ -458,6 +515,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
+    setTaskOutcome('ready');
+    requestCommittedRef.current = false;
+    setLastChange('');
+    abortControllerRef.current = new AbortController();
     setSendStatus(null);
 
     // Create user message with the provided text
@@ -540,8 +601,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return false;
       }
 
-      // Create new abort controller for this request
-      abortControllerRef.current = new AbortController();
+      if (abortControllerRef.current?.signal.aborted)
+        throw new DOMException('Request aborted', 'AbortError');
 
       await processAIConversation([
         // Send complete conversation history for context
@@ -587,6 +648,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }
       }
 
+      setTaskOutcome('failed');
       const userFacingMessage = getUserFacingErrorMessage(
         error,
         'Sorry, I encountered an error while processing your request. Please try again.'
@@ -948,6 +1010,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         throw error;
       }
       markFlowchartPerformance('canvasCommitted');
+      requestCommittedRef.current = true;
+      setAssistantResponsePhase('complete');
+      setTaskOutcome('done');
+      setLastChange(command.description);
       const response = await fetch('/api/ai/usage/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -966,7 +1032,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }).catch(() => null);
       if (!response?.ok)
         console.warn('Diagram committed; usage acknowledgement needs retry');
-      toast({ title: 'Diagram updated', description: command.description });
+      if (!embedded)
+        toast({ title: 'Diagram updated', description: command.description });
       return;
     }
     if (!excalidrawAPI) {
@@ -1089,6 +1156,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
+    setTaskOutcome('ready');
+    requestCommittedRef.current = false;
+    setLastChange('');
+    abortControllerRef.current = new AbortController();
     setSendStatus(null);
     setIsStreamingResponse(true);
     setAssistantResponsePhase('thinking');
@@ -1111,7 +1182,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }
 
       setMessages(retryMessages);
-      abortControllerRef.current = new AbortController();
+      if (abortControllerRef.current?.signal.aborted)
+        throw new DOMException('Request aborted', 'AbortError');
       await processAIConversation(
         retryMessages.map((message) => ({
           role: message.role,
@@ -1127,6 +1199,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return;
       }
 
+      setTaskOutcome('failed');
       const userFacingMessage = getUserFacingErrorMessage(
         error,
         'The request failed. Please try it again.'
@@ -1174,6 +1247,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
 
     setIsLoading(true);
+    setTaskOutcome('ready');
+    requestCommittedRef.current = false;
+    setLastChange('');
+    abortControllerRef.current = new AbortController();
     setSendStatus(null);
 
     // Prepare message content
@@ -1318,8 +1395,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         return;
       }
 
-      // Create new abort controller for this request
-      abortControllerRef.current = new AbortController();
+      if (abortControllerRef.current?.signal.aborted)
+        throw new DOMException('Request aborted', 'AbortError');
 
       const conversationPayload: any[] = [
         ...messages.map((msg) => ({
@@ -1369,6 +1446,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }
       }
 
+      setTaskOutcome('failed');
       const userFacingMessage = getUserFacingErrorMessage(
         error,
         'Sorry, I encountered an error while processing your request. Please try again.'
@@ -1616,9 +1694,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       const data = event as Record<string, any>;
       if (data.type === 'text') {
-        setAssistantResponsePhase('idle');
+        setAssistantResponsePhase('responding');
         setSendStatus(null);
         appendStreamingContent(data.content ?? '');
+        return;
+      }
+      if (
+        data.type === 'progress' &&
+        ['building', 'preparing'].includes(data.stage)
+      ) {
+        setAssistantResponsePhase(data.stage);
         return;
       }
       if (data.type === 'tool-call') {
@@ -1788,16 +1873,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }
   };
 
-  const handleStopGeneration = () => {
-    if (abortControllerRef.current) {
+  const handleStopGeneration = useCallback(() => {
+    if (abortControllerRef.current && !requestCommittedRef.current) {
       abortControllerRef.current.abort();
-      setIsLoading(false);
-      setSendStatus(null);
-      setAssistantResponsePhase('idle');
-      setIsStreamingResponse(false);
-      streamingMessageIdRef.current = null;
+      setTaskOutcome('cancelled');
+      setAssistantResponsePhase('cancelling');
     }
-  };
+  }, []);
+  useEffect(() => {
+    onCancelAvailable?.(handleStopGeneration);
+  }, [handleStopGeneration, onCancelAvailable]);
 
   const handleNewConversation = () => {
     // 如果正在加载中，先停止当前对话
@@ -1807,6 +1892,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
     // 清空对话历史
     setMessages([]);
+    setLastChange('');
+    setTaskOutcome('ready');
     setInput('');
     setSendStatus(null);
     setAssistantResponsePhase('idle');
@@ -1890,44 +1977,50 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   return (
     <div
-      className={`fixed top-0 right-0 z-40 h-full w-screen max-w-full bg-white shadow-lg transition-transform duration-300 ease-in-out md:w-[var(--sidebar-width)] ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
+      className={
+        embedded
+          ? `relative h-full w-full min-h-0 bg-muted text-foreground ${isOpen ? '' : 'hidden'} ${className || ''}`
+          : `fixed top-0 right-0 z-40 h-full w-screen max-w-full bg-white shadow-lg transition-transform duration-300 ease-in-out md:w-[var(--sidebar-width)] ${
+              isOpen ? 'translate-x-0' : 'translate-x-full'
+            }`
+      }
+      data-embedded-assistant={embedded || undefined}
       style={{ '--sidebar-width': `${width}px` } as CSSProperties}
     >
       <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-medium text-gray-900">
-              AI Assistant
-            </h2>
+        {!embedded && (
+          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-medium text-gray-900">
+                AI Assistant
+              </h2>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                onClick={handleNewConversation}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                disabled={isLoading}
+                aria-label="New conversation"
+                title="New conversation"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={onToggle}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Close AI assistant"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              onClick={handleNewConversation}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-              disabled={isLoading}
-              aria-label="New conversation"
-              title="New conversation"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={onToggle}
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-              aria-label="Close AI assistant"
-              title="Close"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
+        )}
         {/* Guest Usage Indicator */}
         {!currentUser && (
           <div className="px-4 pb-4">
@@ -1935,6 +2028,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           </div>
         )}
 
+        {embedded && (
+          <div className="flex justify-end px-3 py-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={handleNewConversation}
+              disabled={isLoading}
+            >
+              <Plus className="h-3 w-3" />
+              New conversation
+            </Button>
+          </div>
+        )}
         {/* Messages */}
         <div className="flex-1 overflow-hidden relative">
           <ScrollArea ref={scrollAreaRef} className="h-full w-full">
@@ -1955,13 +2062,34 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`${message.role === 'user' ? 'flex justify-end' : ''}`}
+                  className={
+                    !embedded && message.role === 'user'
+                      ? 'flex justify-end'
+                      : ''
+                  }
                 >
                   {message.role === 'user' ? (
-                    <Card className="max-w-[280px] p-3 bg-gray-100 text-gray-900 border-gray-100">
+                    <Card
+                      className={
+                        embedded
+                          ? 'border-0 border-b rounded-none shadow-none bg-transparent p-0 pb-3 text-foreground'
+                          : 'max-w-[280px] p-3 bg-gray-100 text-gray-900 border-gray-100'
+                      }
+                    >
                       <div className="text-sm leading-relaxed space-y-2">
                         {typeof message.content === 'string' ? (
-                          <p>{message.content}</p>
+                          embedded && message.content.length > 240 ? (
+                            <details>
+                              <summary className="text-xs text-muted-foreground">
+                                <span className="line-clamp-2">
+                                  {message.content.slice(0, 60)}…
+                                </span>
+                              </summary>
+                              <p className="mt-2">{message.content}</p>
+                            </details>
+                          ) : (
+                            <p>{message.content}</p>
+                          )
                         ) : (
                           message.content.map((content, index) => (
                             <div key={index}>
@@ -1987,14 +2115,28 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   ) : (
                     <div className="max-w-full">
                       <div className="flex-1">
-                        {renderMessageContent(message)}
+                        {embedded &&
+                        typeof message.content === 'string' &&
+                        message.content.length > 400 &&
+                        (message.isFlowchart ||
+                          streamingMessageIdRef.current === message.id) ? (
+                          <details>
+                            <summary className="text-xs text-muted-foreground">
+                              Structure notes
+                            </summary>
+                            {renderMessageContent(message)}
+                          </details>
+                        ) : (
+                          renderMessageContent(message)
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
               ))}
 
-              {isStreamingResponse &&
+              {!embedded &&
+                isStreamingResponse &&
                 assistantResponsePhase === 'thinking' &&
                 !streamingMessageIdRef.current && (
                   <div className="max-w-full">
@@ -2008,7 +2150,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   </div>
                 )}
 
-              {isStreamingResponse &&
+              {!embedded &&
+                isStreamingResponse &&
                 (assistantResponsePhase === 'editing' ||
                   assistantResponsePhase === 'rendering') && (
                   <div className="max-w-full">
@@ -2029,6 +2172,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           </ScrollArea>
         </div>
 
+        {embedded && lastChange && !isLoading && (
+          <div className="border-t px-3 py-2 text-xs" aria-live="polite">
+            <p>{lastChange}</p>
+            <div className="mt-1 flex gap-3">
+              <button
+                type="button"
+                className="text-primary underline-offset-2 hover:underline"
+                onClick={onFocusChanges}
+              >
+                View changes
+              </button>
+            </div>
+          </div>
+        )}
         {/* Input */}
         <div className="border-t border-gray-200">
           {/* Image previews */}
@@ -2138,6 +2295,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                     size="sm"
                     className="h-8 shrink-0 px-2 text-gray-600 hover:bg-gray-100"
                     onClick={handleStopGeneration}
+                    disabled={
+                      assistantResponsePhase === 'complete' ||
+                      assistantResponsePhase === 'cancelling'
+                    }
                   >
                     Cancel
                   </Button>
@@ -2159,14 +2320,16 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
             <p
               className="mt-2 flex min-h-4 items-center gap-1.5 px-1 text-xs text-gray-400"
-              aria-live="polite"
+              aria-live="off"
             >
-              {activeSendStatus && (
+              {(activeSendStatus || isLoading) && (
                 <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
               )}
               <span>
-                {activeSendStatus ??
-                  'Enter to send · Shift+Enter for a new line'}
+                {isLoading
+                  ? `${activeSendStatus || taskLabel} · ${elapsedSeconds}s`
+                  : (activeSendStatus ??
+                    'Enter to send · Shift+Enter for a new line')}
               </span>
             </p>
           </div>
