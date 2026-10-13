@@ -31,7 +31,7 @@ The risk edit redirects the entry before the existing parallel fork: low risk en
 
 Static draw.io v32.0.2 is SHA-pinned and downloaded during dev/build into ignored `public/drawio` (about 111 MB). Its Java/backend files are excluded. Keep the editor and bridge version aligned; an incompatible cached editor/download failure fails bootstrap. ELK runs as a JavaScript library in the existing server runtime. PNG rasterization runs in the browser. Existing auth, payments, data storage and usage rules are reused.
 
-Native tools now use the installed AI SDK 7 end to end; legacy Mermaid/Excalidraw invocation remains on Mastra. Existing SSE events are preserved through the native stream adapter. Text defaults to `deepseek/deepseek-v4-pro` with `FLOWCHART_NATIVE_TEXT_MODEL` as an optional override; the existing OpenRouter key is reused. Long thinking was too slow in real trials and is disabled by default. The original semantic-review call was removed in the subsequent simplification. OpenRouter rejected an OpenAI-model trial with 403 Terms of Service; no bypass was used and that model is not the default.
+Both native and legacy execution now use Mastra Agent/createTool. Native passes the installed modern OpenRouter model instance directly into Mastra; actual Mastra chunks go through the existing SSE mapper. The SDK-only wrapper and stream adapter are removed. Text defaults to `deepseek/deepseek-v4-pro` with `FLOWCHART_NATIVE_TEXT_MODEL` as an optional override; the existing OpenRouter key is reused. Long thinking was too slow in real trials and is disabled by default. The original semantic-review call was removed in the subsequent simplification. OpenRouter rejected an OpenAI-model trial with 403 Terms of Service; no bypass was used and that model is not the default.
 
 No independent server, Docker/Java runtime, database migration or new API credential is required. Production deployment was not requested and was not performed. Code review was Main self-review; independent subagent review was not authorized. Other diagram families have native object/style/connection contracts, but this acceptance covers complex flowcharts, not every family or device.
 
@@ -77,3 +77,24 @@ Current editable outputs:
 - [After risk insertion](simplified-after-risk.drawio)
 
 Production merge/deployment was not requested and was not performed. The same draft PR #17 is updated.
+
+
+## Mastra + bundled knowledge — current acceptance, 2026-10-13
+
+Both paths now use Mastra 1.51. Native attaches an in-memory Skill with seven curated guides and preloads three relevant references per request. Other references are readable via Mastra skill tools. There is no workspace/embedding/vector database or new server. See [knowledge and sources](../../drawio-agent-knowledge.md).
+
+| Task | Fresh observation |
+| --- | --- |
+| Complex generation | 35 vertices: 29 flow nodes + 5 departments + 1 nested retry group; 34 edges; independent supervisor/finance result decisions → labelled AND join; supplement/correction/retry loops and exceptions; 17.6s |
+| Bounded retries | One atomic local patch combines the existing shortcut and a requested subgroup geometry change; initialization before first refund, limit before eligible retry, increment once, return without reset; exhaustion/non-retryable → manual, success unchanged; 10.7s |
+| Risk before parallel phase | Reconnect old entrance; low risk and approved manual review resume at the original fork, rejection ends. Original branch/AND-join and bounded retry objects retained; 10.5s |
+
+The two edits used the previously accepted complex native document with manual finance styling and position. Finance node and finance-group XML snapshots matched exactly after both edits; risk insertion retained the pre-existing retry cells and parallel/success connections. These are real Mastra/model/document-engine observations, not a new HTTP entitlement or browser Undo/Save/reopen run. One earlier generation used an ambiguous join label; the example was clarified and final generation rerun. No automatic business veto was added. All-family visual quality remains outside this small acceptance.
+
+Transport regression tests run the actual Mastra Agent with a mocked provider transport, proving modern-model compatibility, immediate stop after success, stale-patch correction, actual skill activation/reference reading, and exactly one stable canvas event after knowledge lookups. Current checks: 42 files / 195 tests passed; typecheck, scoped Biome and normal production build passed with 41 static pages. No independent review, production merge or deployment.
+
+Current editable outputs:
+
+- [Mastra generated complex refund](mastra-generated-complex-refund.drawio)
+- [Mastra bounded retry](mastra-after-retry.drawio)
+- [Mastra risk insertion](mastra-after-risk.drawio)

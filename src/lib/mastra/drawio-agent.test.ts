@@ -6,6 +6,7 @@ import * as layout from '../drawio/layout-new-diagram';
 import { readNativeCells } from '../drawio/native-document';
 import { buildNativeCommand, createDrawioAgent } from './drawio-agent';
 import { createNativeModel } from './native-model';
+import { createMastraStreamMapper } from './stream-protocol';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -128,15 +129,21 @@ it('still rejects stale or broken patches before optional layout', async () => {
   ).rejects.toThrow(/reference/);
 });
 
-it.each([false, true])(
-  'stops after a valid tool result, repairing a format error only when needed (%s)',
-  async (firstIsStale) => {
+it.each([
+  { firstIsStale: false, readSkill: false },
+  { firstIsStale: true, readSkill: false },
+  { firstIsStale: false, readSkill: true },
+])(
+  'streams one canvas command after optional repair or skill lookup (%j)',
+  async ({ firstIsStale, readSkill }) => {
     const document = complexRefundFixture();
     let requests = 0;
+    const requestBodies: string[] = [];
     const model = createNativeModel('text_to_flowchart', {
       apiKey: 'test-only',
-      fetch: async () => {
+      fetch: async (_url, init) => {
         requests++;
+        requestBodies.push(String(init?.body));
         const input = {
           action: 'patch',
           diagramType: 'flowchart',
@@ -162,6 +169,18 @@ it.each([false, true])(
             choices,
           }) +
           '\n\n';
+        const toolName =
+          readSkill && requests < 3
+            ? requests === 1
+              ? 'skill'
+              : 'skill_read'
+            : 'generate_flowchart';
+        const toolInput =
+          toolName === 'skill'
+            ? { name: 'drawio-native' }
+            : toolName === 'skill_read'
+              ? { skillName: 'drawio-native', path: 'references/styles.md' }
+              : input;
         return new Response(
           event([
             {
@@ -173,8 +192,8 @@ it.each([false, true])(
                     id: 'call-' + requests,
                     type: 'function',
                     function: {
-                      name: 'generate_flowchart',
-                      arguments: JSON.stringify(input),
+                      name: toolName,
+                      arguments: JSON.stringify(toolInput),
                     },
                   },
                 ],
@@ -188,19 +207,35 @@ it.each([false, true])(
         );
       },
     });
-    const output = await createDrawioAgent(document, ['payment']).stream(
-      '改成主管复核',
-      { model }
-    );
+    const output = await createDrawioAgent(
+      document,
+      ['payment'],
+      '主管复核'
+    ).stream('改成主管复核', { model });
     const chunks = [];
     for await (const chunk of output.fullStream) chunks.push(chunk);
-    const results = chunks.filter((chunk) => chunk.type === 'tool-result');
+    const results = chunks.flatMap((chunk) =>
+      chunk.type === 'tool-result' &&
+      chunk.payload.toolName === 'generate_flowchart'
+        ? [chunk]
+        : []
+    );
     expect(results).toHaveLength(1);
     expect(
       drawioCommandSchema.safeParse(results[0].payload.result).success
     ).toBe(true);
     expect(chunks.at(-1)?.type).toBe('finish');
-    expect(requests).toBe(firstIsStale ? 2 : 1);
+    expect(requests).toBe(readSkill ? 3 : firstIsStale ? 2 : 1);
+    expect(requestBodies[0]).toContain('REFERENCE references/complex-flow.md');
+    const mapper = createMastraStreamMapper({ recoverToolErrors: true });
+    const events = chunks.map((chunk) => mapper.map(chunk)).filter(Boolean);
+    expect(events.filter((event) => event?.type === 'tool-call')).toHaveLength(
+      1
+    );
+    expect(events.at(-1)).toEqual({ type: 'finish', toolCallsCompleted: true });
+    if (readSkill) {
+      expect(requestBodies[2]).toContain('Patch style changes are a map');
+    }
   }
 );
 

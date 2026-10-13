@@ -22,7 +22,7 @@ async function main(): Promise<void> {
     JSON.parse(readFileSync(documentFile, 'utf8'))
   );
   const prompt = readFileSync(promptFile, 'utf8');
-  const agent = createDrawioAgent(document, []);
+  const agent = createDrawioAgent(document, [], prompt);
   const counts: Record<string, number> = {};
   let command: unknown;
   const trace: unknown[] = [];
@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   let finish: unknown;
   const start = Date.now();
   const output = await agent.stream(prompt, {
-    maxSteps: 2,
+    maxSteps: 5,
     toolChoice: 'auto',
     modelSettings: nativeModelSettings(
       getNativeModelForMode('text_to_flowchart')
@@ -39,7 +39,10 @@ async function main(): Promise<void> {
   });
   for await (const chunk of output.fullStream as AsyncIterable<any>) {
     counts[chunk.type] = (counts[chunk.type] || 0) + 1;
-    if (chunk.type === 'tool-call')
+    if (
+      chunk.type === 'tool-call' &&
+      chunk.payload.toolName === 'generate_flowchart'
+    )
       writeFileSync(
         `${prefix}-input.json`,
         JSON.stringify(chunk.payload.args, null, 2)

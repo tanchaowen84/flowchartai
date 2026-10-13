@@ -294,7 +294,11 @@ export async function POST(request: Request): Promise<Response> {
               )
             : [];
           const agent = nativeDocument
-            ? createDrawioAgent(nativeDocument, nativeSelection)
+            ? createDrawioAgent(
+                nativeDocument,
+                nativeSelection,
+                latestUserPrompt
+              )
             : flowchartAgent;
           const agentMessages = buildMastraRequestMessages({
             mode: requestedMode,
@@ -316,9 +320,13 @@ export async function POST(request: Request): Promise<Response> {
           return agent.stream(agentMessages as any, {
             model,
             instructions: nativeDocument
-              ? nativeAgentInstructions(nativeDocument, nativeSelection)
+              ? nativeAgentInstructions(
+                  nativeDocument,
+                  nativeSelection,
+                  latestUserPrompt
+                )
               : buildAgentInstructions(requestedMode, body.aiContext),
-            maxSteps: 2,
+            maxSteps: nativeDocument ? 5 : 2,
             toolChoice: 'auto',
             abortSignal: request.signal,
             modelSettings: {

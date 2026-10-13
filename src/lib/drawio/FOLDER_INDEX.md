@@ -13,7 +13,7 @@
 | retry-policy.ts | Optional patch shortcut for a compatible existing bounded retry loop; generic patches remain available. |
 | model-settings.ts | Native reasoning and output budget. |
 
-Upstream: the existing chat API, actual browser document and selection. Native Agent invocation lives beside the legacy Agent in `src/lib/mastra`; native tools use the installed AI SDK 7 runtime and normalize its events to the existing SSE contract. Downstream: native canvas workspace and existing authenticated save/usage endpoints. No database migration or independent service.
+Upstream: the existing chat API, actual browser document and selection. Native Agent invocation lives beside the legacy Agent in `src/lib/mastra`; both paths use Mastra Agent/createTool and the existing Mastra SSE mapper. Native execution uses the existing modern OpenRouter model instance and attaches the bundled drawio-native Skill. Relevant references are preloaded; other references can be read on demand without a filesystem workspace or extra service. Downstream: native canvas workspace and existing authenticated save/usage endpoints. No database migration or independent service.
 
 Native XML is stored as a versioned JSON document in the existing content field. New/empty canvases use native editing. Nonempty Excalidraw files and meaningful legacy metadata retain their editor. Invalid saved content is gated and never autosaved as an empty scene.
 
