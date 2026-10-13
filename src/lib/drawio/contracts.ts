@@ -79,6 +79,7 @@ export const drawioCommandSchema = z.object({
   xml: z.string().optional(),
   patch: drawioPatchSchema.optional(),
   description: z.string(),
+  title: z.string().optional(),
 });
 
 export type DrawioDocument = z.infer<typeof drawioDocumentSchema>;

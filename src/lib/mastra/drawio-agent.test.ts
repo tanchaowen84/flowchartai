@@ -148,6 +148,7 @@ it.each([
           action: 'patch',
           diagramType: 'flowchart',
           description: '主管复核',
+          title: '退款审批流程图',
           patch: {
             baseRevision: firstIsStale && requests === 1 ? 3 : 4,
             operations: [
@@ -224,6 +225,9 @@ it.each([
     expect(
       drawioCommandSchema.safeParse(results[0].payload.result).success
     ).toBe(true);
+    expect(drawioCommandSchema.parse(results[0].payload.result).title).toBe(
+      '退款审批流程图'
+    );
     expect(chunks.at(-1)?.type).toBe('finish');
     expect(requests).toBe(readSkill ? 3 : firstIsStale ? 2 : 1);
     expect(requestBodies[0]).toContain('REFERENCE references/complex-flow.md');
@@ -235,6 +239,9 @@ it.each([
     expect(events.filter((event) => event?.type === 'tool-call')).toHaveLength(
       1
     );
+    expect(events.find((event) => event?.type === 'tool-call')).toMatchObject({
+      args: { title: '退款审批流程图' },
+    });
     expect(events.at(-1)).toEqual({ type: 'finish', toolCallsCompleted: true });
     if (readSkill) {
       expect(requestBodies[2]).toContain('Patch style changes are a map');

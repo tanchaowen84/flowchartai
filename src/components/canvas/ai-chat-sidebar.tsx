@@ -35,7 +35,10 @@ import {
 } from '@/lib/diagram/contracts';
 import { deriveFlowchartAiMetadataFromElements } from '@/lib/diagram/metadata';
 import { resolveDiagramTarget } from '@/lib/diagram/target-resolver';
-import type { NativeEditorController } from '@/lib/drawio/contracts';
+import type {
+  DrawioCommand,
+  NativeEditorController,
+} from '@/lib/drawio/contracts';
 import { readNativeCells } from '@/lib/drawio/native-document';
 import {
   buildRetryConversation,
@@ -132,7 +135,10 @@ interface AiChatSidebarProps {
   onReady?: () => void;
   embedded?: boolean;
   onTaskStatusChange?: (status: DiagramTaskStatus) => void;
-  onCancelAvailable?: (cancel: () => void) => void;
+  onDiagramTitle?: (
+    title: string,
+    operation: DrawioCommand['operation']
+  ) => void;
   onFocusChanges?: () => void;
 }
 
@@ -195,7 +201,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   onReady,
   embedded = false,
   onTaskStatusChange,
-  onCancelAvailable,
+  onDiagramTitle,
   onFocusChanges,
 }) => {
   const [taskStartedAt, setTaskStartedAt] = useState<number | null>(null);
@@ -314,7 +320,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading, isOpen]);
 
   // Initialize textarea height on mount and when input changes
   useEffect(() => {
@@ -1014,6 +1020,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       setAssistantResponsePhase('complete');
       setTaskOutcome('done');
       setLastChange(command.description);
+      if (command.title) onDiagramTitle?.(command.title, command.operation);
       const response = await fetch('/api/ai/usage/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1880,9 +1887,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       setAssistantResponsePhase('cancelling');
     }
   }, []);
-  useEffect(() => {
-    onCancelAvailable?.(handleStopGeneration);
-  }, [handleStopGeneration, onCancelAvailable]);
 
   const handleNewConversation = () => {
     // 如果正在加载中，先停止当前对话
@@ -2135,6 +2139,51 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                 </div>
               ))}
 
+              {embedded && isLoading && (
+                <div
+                  className="flex items-start gap-2 py-1 text-sm"
+                  data-ai-task-progress
+                >
+                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p aria-live="polite">{activeSendStatus || taskLabel}</p>
+                    <span
+                      className="text-xs text-muted-foreground"
+                      aria-live="off"
+                    >
+                      {elapsedSeconds}s
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={handleStopGeneration}
+                    disabled={
+                      assistantResponsePhase === 'complete' ||
+                      assistantResponsePhase === 'cancelling'
+                    }
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {embedded && !isLoading && taskOutcome === 'cancelled' && (
+                <output className="block text-xs text-muted-foreground">
+                  {taskLabel}
+                </output>
+              )}
+              {embedded && lastChange && !isLoading && (
+                <div className="text-xs" aria-live="polite">
+                  <p>{lastChange}</p>
+                  <button
+                    type="button"
+                    className="mt-1 text-primary underline-offset-2 hover:underline"
+                    onClick={onFocusChanges}
+                  >
+                    View changes
+                  </button>
+                </div>
+              )}
               {!embedded &&
                 isStreamingResponse &&
                 assistantResponsePhase === 'thinking' &&
@@ -2172,20 +2221,6 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           </ScrollArea>
         </div>
 
-        {embedded && lastChange && !isLoading && (
-          <div className="border-t px-3 py-2 text-xs" aria-live="polite">
-            <p>{lastChange}</p>
-            <div className="mt-1 flex gap-3">
-              <button
-                type="button"
-                className="text-primary underline-offset-2 hover:underline"
-                onClick={onFocusChanges}
-              >
-                View changes
-              </button>
-            </div>
-          </div>
-        )}
         {/* Input */}
         <div className="border-t border-gray-200">
           {/* Image previews */}
@@ -2288,7 +2323,17 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
                 <div className="min-w-0 flex-1" />
 
-                {isLoading ? (
+                {isLoading && embedded ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    disabled
+                    aria-label="AI is working"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </Button>
+                ) : isLoading ? (
                   <Button
                     type="button"
                     variant="ghost"

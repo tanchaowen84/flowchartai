@@ -20,10 +20,15 @@ import {
 } from '@/lib/ai-modes';
 import { emptyFlowchartAiMetadata } from '@/lib/diagram/metadata';
 import {
+  type DrawioCommand,
   type DrawioDocument,
   EMPTY_DRAWIO_XML,
   drawioDocumentSchema,
 } from '@/lib/drawio/contracts';
+import {
+  automaticDiagramTitle,
+  isUnnamedDiagram,
+} from '@/lib/drawio/diagram-title';
 import type {
   DrawioBridge,
   NativeEditorView,
@@ -119,6 +124,9 @@ export default function NativeDiagramWorkspace({
   const router = useRouter();
   const [fileId, setFileId] = useState(flowchartId);
   const [title, setTitle] = useState(initialFlowchart?.title || 'Untitled');
+  const currentTitle = useRef(title);
+  currentTitle.current = title;
+  const userNamedTitle = useRef(!isUnnamedDiagram(title));
   const [bridge, setBridge] = useState<DrawioBridge | null>(null);
   const [open, setOpen] = useState(true);
   const [width, setWidth] = useState(320);
@@ -135,17 +143,6 @@ export default function NativeDiagramWorkspace({
     startedAt: null,
     outcome: 'ready',
   });
-  const [now, setNow] = useState(Date.now());
-  const cancelTask = useRef<(() => void) | null>(null);
-  const bindCancel = useCallback((cancel: () => void) => {
-    cancelTask.current = cancel;
-  }, []);
-  useEffect(() => {
-    if (!task.active) return;
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [task.active]);
   const [, setHistory] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -188,6 +185,21 @@ export default function NativeDiagramWorkspace({
     if (currentUser.current) changeHandler.current();
   }, []);
   const onHistory = useCallback(() => setHistory((n) => n + 1), []);
+  const onDiagramTitle = useCallback(
+    (suggested: string, operation: DrawioCommand['operation']): void => {
+      const next = automaticDiagramTitle(
+        currentTitle.current,
+        suggested,
+        operation,
+        userNamedTitle.current
+      );
+      if (!next) return;
+      currentTitle.current = next;
+      setTitle(next);
+      if (currentUser.current) changeHandler.current();
+    },
+    []
+  );
   useEffect(() => {
     const input = localStorage.getItem('flowchart_auto_input') || '';
     const mode =
@@ -230,7 +242,9 @@ export default function NativeDiagramWorkspace({
         );
       }
     } catch (error) {
-      setExportError(error instanceof Error ? error.message : 'Export failed');
+      setExportError(
+        error instanceof Error ? error.message : 'Download failed'
+      );
     } finally {
       setExporting(false);
     }
@@ -260,6 +274,12 @@ export default function NativeDiagramWorkspace({
         }}
       >
         AI
+        {task.active && (
+          <Loader2
+            className="ml-1 inline h-3 w-3 animate-spin"
+            aria-hidden="true"
+          />
+        )}
       </button>
       <button
         type="button"
@@ -298,6 +318,8 @@ export default function NativeDiagramWorkspace({
           aria-label="Diagram title"
           value={title}
           onChange={(event) => {
+            userNamedTitle.current = true;
+            currentTitle.current = event.target.value;
             setTitle(event.target.value);
             if (
               user &&
@@ -345,8 +367,8 @@ export default function NativeDiagramWorkspace({
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" disabled={!bridge || exporting}>
                 <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Export</span>
-                <span className="sr-only sm:hidden">Export</span>
+                <span className="hidden sm:inline">Download</span>
+                <span className="sr-only sm:hidden">Download</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -366,9 +388,17 @@ export default function NativeDiagramWorkspace({
             variant="ghost"
             className="h-8 w-8"
             aria-label={open ? 'Hide editing panel' : 'Show editing panel'}
-            onClick={() => setOpen(!open)}
+            title={task.active ? taskStatusLabel(task) : 'Editing panel'}
+            onClick={() => {
+              if (!open && task.active) setPanelTab('ai');
+              setOpen(!open);
+            }}
           >
-            <PanelRight className="h-4 w-4" />
+            {task.active ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <PanelRight className="h-4 w-4" />
+            )}
           </Button>
           {user ? (
             <UserButton user={user} />
@@ -558,7 +588,7 @@ export default function NativeDiagramWorkspace({
                 );
               }}
               onTaskStatusChange={setTask}
-              onCancelAvailable={bindCancel}
+              onDiagramTitle={onDiagramTitle}
               onFocusChanges={() => bridge?.focusChanges()}
             />
           </div>
@@ -573,29 +603,7 @@ export default function NativeDiagramWorkspace({
         </aside>
       </div>
       <footer className="flex min-h-9 shrink-0 items-center gap-1 border-t px-2 text-xs text-muted-foreground">
-        <div className="mr-auto flex min-w-0 items-center gap-2">
-          {task.active && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
-          {(task.active || task.outcome === 'failed') && (
-            <span className="truncate" aria-live="polite">
-              {taskStatusLabel(task)}
-            </span>
-          )}
-          {task.active && task.startedAt && (
-            <span className="shrink-0" aria-live="off">
-              {Math.max(0, Math.floor((now - task.startedAt) / 1000))}s
-            </span>
-          )}
-          {task.active && task.phase !== 'complete' && (
-            <button
-              type="button"
-              className="text-foreground underline-offset-2 hover:underline"
-              disabled={task.phase === 'cancelling'}
-              onClick={() => cancelTask.current?.()}
-            >
-              Cancel
-            </button>
-          )}
-        </div>
+        <div className="mr-auto" />
         <Button
           variant="ghost"
           size="icon"

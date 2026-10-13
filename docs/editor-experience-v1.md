@@ -8,13 +8,15 @@ The native canvas, document tools and AI/Style inspector share one workspace. Th
 
 Selection updates both inspector modes. The Style panel edits labels, font size, text/fill/line color through native model operations and the existing undo/save path. Multi-selection style changes apply to all selected objects; a label edit binds to its original cell ID. Image input, AI modes, conversations, auth, quota, exports and legacy files retain their existing paths.
 
-One compact footer holds zoom out/in, percentage and fit diagram. Task status appears there while active; an error stays visible after failure. Idle Ready/native-format labels and permanent shortcut instructions are omitted. Single-page diagrams hide native page tabs and reclaim their canvas space; multi-page diagrams retain them. Add page, overview, focus selection and View changes are available in More drawing tools. Selecting an object adds context to the inspector; Whole diagram does not occupy an empty context row. Focusing uses actual rendered bounds converted into graph coordinates, including nested containers. Pan mode works over cells as well as the background. Ordinary AI patches preserve the existing viewport. View changes brings a changed leaf to at least 100% and selects it.
+One compact footer holds only zoom out/in, percentage and fit diagram. Idle Ready/native-format labels and permanent shortcut instructions are omitted. Single-page diagrams hide native page tabs and reclaim their canvas space; multi-page diagrams retain them. Add page, overview, focus selection and View changes are available in More drawing tools. Selecting an object adds context to the inspector; Whole diagram does not occupy an empty context row. Focusing uses actual rendered bounds converted into graph coordinates, including nested containers. Pan mode works over cells as well as the background. Ordinary AI patches preserve the existing viewport. View changes brings a changed leaf to at least 100% and selects it.
 
 ## Processing contract
 
 An active request remains visibly active after the first text delta. Native Mastra tool-input start and tool-call events expose building/preparation phases without exposing incomplete arguments. Text output, command preparation and canvas application are separate phases. Elapsed time is displayed, without invented completion percentages.
 
-The footer remains visible when the inspector is closed or Style is active. Cancellation aborts the existing request and waits for cleanup before permitting another request. After a native command commits, cancellation cannot claim that the old diagram was kept. The canvas still receives only a complete validated command after the terminal stream event; no partial graph is applied. Successful native changes show an inline description and View changes. Long drawing requests and generated inventories can be expanded from compact conversation entries. The Agent is instructed to use one or two introductory sentences.
+Stage, elapsed time and cancellation appear immediately below the current request/response inside the AI conversation. They persist after text output until the request finishes. Completion/change focus and cancellation outcomes stay in that conversation. The AI tab and panel toggle show a small working indicator when Style is active or the panel is closed; opening the closed panel during work returns to AI progress. Cancellation aborts the existing request and waits for cleanup before permitting another request. After a native command commits, cancellation cannot claim that the old diagram was kept. The canvas still receives only a complete validated command after the terminal stream event; no partial graph is applied. Long drawing requests and generated inventories can be expanded from compact conversation entries. The Agent is instructed to use one or two introductory sentences.
+
+The native download control is labelled Download. The same Agent drawing tool returns an optional descriptive `title` alongside its existing atomic command, without a separate naming call. Only successful canvas commits can apply the suggested file name. An unnamed file can be named on generation or editing; ordinary edits keep an existing name. A full rebuild can refresh an automatically assigned name in the current workspace. User-entered names always win, and loaded named files are treated as user-owned. Names use the existing autosave endpoint and native download file name; the saved native document format is unchanged.
 
 No business-rule veto, extra reviewer/model, vector database, server, auth/payment changes, migrations or package upgrades were added.
 
@@ -45,6 +47,22 @@ Affected draw.io/Mastra tests: 21 files / 81 tests passed. Typecheck, scoped Bio
 - View changes focused the changed node. One Undo restored all 64 cells exactly; autosave and reload preserved the restoration. Successful usage recording increased the owner's monthly count by one. API readback remained Professional and usable, with 9,997 requests left in the current monthly allowance. This verifies the manual-grant entitlement path, not a provider purchase or webhook.
 
 The current [simplified workspace capture](qa/editor-experience-v1/simplified-workspace.png) shows the expanded palette and one bottom bar. The avatar was hidden only during capture. The tested graph is restored to its original content; grant and browser trace receipts are ignored locally.
+
+## Conversation progress and naming follow-up — 2026-10-13
+
+User requested progress directly in AI interaction, Download wording and automatic diagram titles. The current target and processing contracts above describe this follow-up. The preceding footer-based checks and screenshots remain dated evidence of prior iterations. Main implements and self-reviews; no subagent or production deployment.
+
+Affected checks passed: 22 draw.io/Mastra files / 84 tests, including preservation of user names and title propagation through the actual SDK loop and SSE mapper. Typecheck, scoped Biome, diff check and the production build (41 static pages) passed. One concurrent test replay hit two default 5-second deadlines while compilers were running; final replay used `--maxWorkers=1 --testTimeout=30000`. No committed test timeout or product limit changed.
+
+Fresh Ego Lite checks used the production bundle and real authenticated HTTP calls, in one new test document:
+
+- Generation created 9 editable nodes and 9 connectors and named the file 客户退款审批流程. The same request supplied the drawing and title.
+- 85 progress samples remained inside the AI conversation; no sample put progress or cancellation in the host footer. The active row was visible directly below the request. [Active progress capture](qa/editor-experience-v1/conversation-progress.png).
+- Actual Download produced `客户退款审批流程.drawio`; its [editable downloaded artifact](qa/editor-experience-v1/autotitled-refund.drawio) is retained. Autosave/reload preserved the generated title.
+- After manually naming the file 售后退款测试稿, a real AI label edit kept that name and changed only one cell's value. Undo restored all 20 cells exactly. The test file's original generated name was restored; save/reload retained both the name and original diagram.
+- [Completed workspace capture](qa/editor-experience-v1/automatic-title-workspace.png) shows the generated name, Download and one zoom footer. Avatars were hidden only during capture. Private browser traces remain ignored. The original complex document was not edited in this test.
+
+These two real tasks verify the UI/name/save/download path; they are not an all-family quality or latency benchmark. No additional naming request/model, server, migration or entitlement-rule change was introduced.
 
 ## Ownership
 

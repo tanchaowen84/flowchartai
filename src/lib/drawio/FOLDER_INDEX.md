@@ -3,6 +3,7 @@
 | Module | Responsibility |
 | --- | --- |
 | contracts.ts | Native document/page identity, revision and explicit field-level operations. |
+| diagram-title.ts | Apply generated file names after a successful command while preserving user names and ordinary-edit titles. |
 | native-document.ts | Strict uncompressed XML, stable IDs/references, style merging and saved-format dispatch. |
 | command.ts | Prepare a candidate against the current document/page/revision before browser commit. |
 | graph-compiler.ts | Compile structured graph plans into canonical editable native XML. |
