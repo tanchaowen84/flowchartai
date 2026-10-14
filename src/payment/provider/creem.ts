@@ -1,5 +1,9 @@
-import { createHmac, timingSafeEqual } from 'crypto';
-import { desc, eq } from 'drizzle-orm';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
+import { openCheckoutContext } from '@/analytics/checkout-context';
+import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
+import { getConfirmedCheckout } from '@/analytics/payment-conversion';
+import { sendServerEvent } from '@/analytics/plausible-server';
+import { desc, eq, sql } from 'drizzle-orm';
 import { getDb } from '../../db';
 import { payment, user } from '../../db/schema';
 import {
@@ -79,6 +83,9 @@ export class CreemProvider implements PaymentProvider {
           user_id: creemParams.userId,
           product_type: creemParams.productType,
           credits: creemParams.credits_amount || 0,
+          ...(params.metadata?.plausible_context
+            ? { plausible_context: params.metadata.plausible_context }
+            : {}),
         },
         ...urls,
       };
@@ -332,6 +339,7 @@ export class CreemProvider implements PaymentProvider {
 
       // 3. Event processing with transaction safety
       await this.processEventWithTransaction(event);
+      await this.observeCheckoutPayment(event);
 
       // 4. Performance monitoring
       const processingTime = Date.now() - startTime;
@@ -353,6 +361,42 @@ export class CreemProvider implements PaymentProvider {
 
       // Re-throw for upstream error handling
       throw error;
+    }
+  }
+
+  private async observeCheckoutPayment(
+    event: CreemWebhookEvent
+  ): Promise<void> {
+    // This runs only after signature verification and successful DB commit.
+    // Existing business rows/credits are not modified by analytics failures.
+    try {
+      if (!isProductionAnalytics() || this.apiUrl !== 'https://api.creem.io')
+        return;
+      const evidence = getConfirmedCheckout(event);
+      if (!evidence) return;
+      const visitor = openCheckoutContext(evidence.context);
+      if (!visitor) return;
+      const db = await getDb();
+      const orderKey = createHash('sha256')
+        .update(evidence.orderId)
+        .digest('hex');
+      // An atomic claim survives webhook replay, across processes/deployments.
+      // Store only a hashed order marker; no raw browser headers or new schema.
+      const claimed = await db.execute(sql`
+        UPDATE "user"
+        SET metadata = jsonb_set(
+          COALESCE(metadata, '{}'::jsonb), '{plausiblePaymentOrders}',
+          COALESCE(metadata->'plausiblePaymentOrders', '{}'::jsonb)
+            || jsonb_build_object(${orderKey}::text, true)
+        )
+        WHERE id = ${evidence.userId}
+          AND NOT (COALESCE(metadata->'plausiblePaymentOrders', '{}'::jsonb) ? ${orderKey}::text)
+        RETURNING id
+      `);
+      if (claimed.length > 0)
+        await sendServerEvent(EVENTS.paymentConfirmed, {}, visitor);
+    } catch {
+      // Best-effort telemetry must not roll back or retry a successful payment.
     }
   }
 

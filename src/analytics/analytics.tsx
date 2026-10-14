@@ -33,7 +33,11 @@ export function Analytics() {
       <UmamiAnalytics />
 
       {/* plausible analytics */}
-      <PlausibleAnalytics />
+      <PlausibleAnalytics
+        enabled={
+          !process.env.VERCEL_ENV || process.env.VERCEL_ENV === 'production'
+        }
+      />
 
       {/* microsoft clarity analytics */}
       <ClarityAnalytics />

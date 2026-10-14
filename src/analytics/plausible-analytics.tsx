@@ -12,8 +12,8 @@ import Script from 'next/script';
  * https://plausible.io
  * https://mksaas.com/docs/analytics#plausible
  */
-export function PlausibleAnalytics() {
-  if (process.env.NODE_ENV !== 'production') {
+export function PlausibleAnalytics({ enabled = true }: { enabled?: boolean }) {
+  if (process.env.NODE_ENV !== 'production' || !enabled) {
     return null;
   }
 
@@ -28,6 +28,19 @@ export function PlausibleAnalytics() {
   }
 
   return (
-    <Script defer type="text/javascript" data-domain={domain} src={script} />
+    <>
+      <Script id="plausible-event-queue" strategy="afterInteractive">
+        {
+          'window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(Array.from(arguments))}'
+        }
+      </Script>
+      <Script
+        id="plausible-analytics"
+        defer
+        type="text/javascript"
+        data-domain={domain}
+        src={script}
+      />
+    </>
   );
 }

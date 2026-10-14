@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
+import { sendServerEvent } from '@/analytics/plausible-server';
 import { getFlowchartModelForMode } from '@/lib/ai-models';
 import type { AiAssistantMode } from '@/lib/ai-modes';
 import { canUserUseAI } from '@/lib/ai-usage';
@@ -34,6 +36,7 @@ import {
 import { runGuardedFlowchartAgent } from '@/lib/mastra/route-guard';
 import { createMastraStreamMapper } from '@/lib/mastra/stream-protocol';
 import { headers } from 'next/headers';
+import { after } from 'next/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -355,6 +358,27 @@ export async function POST(request: Request): Promise<Response> {
       });
       return jsonResponse(guarded.body, guarded.status, requestId);
     }
+
+    // Count accepted requests after auth, quota, moderation and agent startup.
+    // Delivery runs after the response and does not delay the first AI token.
+    try {
+      if (isProductionAnalytics()) {
+        const visitor = new Headers(request.headers);
+        after(async () => {
+          await sendServerEvent(
+            EVENTS.processingStarted,
+            {
+              mode: requestedMode,
+              editor:
+                body.aiContext?.editorKind === 'drawio'
+                  ? 'drawio'
+                  : 'excalidraw',
+            },
+            visitor
+          );
+        });
+      }
+    } catch {}
 
     return createAgentStreamResponse(
       guarded.value,
