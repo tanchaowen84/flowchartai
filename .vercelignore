@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+.env*
+.vercel
+coverage
+docs/billing/research
+docs/billing/screenshots
+docs/qa

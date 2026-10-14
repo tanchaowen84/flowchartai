@@ -1,0 +1,8 @@
+{
+  "capturedAt": "2026-10-14T09:53:23.535Z",
+  "users": 55663,
+  "payments": 113,
+  "ledger": 2,
+  "sha256": "51f144af7cd29bd905635a6428547c5fb3947d00bc0e148c9e3e094700032e60",
+  "privateBackup": ".env.production-billing-baseline.json"
+}

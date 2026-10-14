@@ -1,0 +1,17 @@
+{
+  "storeId": "STO_5I2J4YK9UUolwABxwPIhYa",
+  "environment": "prod",
+  "products": {
+    "starter_month": "PROD_4IwIRC8sr90Dl0VZ6T4Gcq",
+    "starter_year": "PROD_6x1un7qqsc3QFHAT399Dcp",
+    "pro_month": "PROD_2n8QycAV4a62uuLwOonDqY",
+    "pro_year": "PROD_3ZsD9g6dSTxOvTJinxYZmM",
+    "pack_small": "PROD_6QcQCznmmKNYiJfaQ1Ylve",
+    "pack_large": "PROD_4dX0vXJutzrnJT42763fJs"
+  },
+  "publishedAt": "2026-10-14T10:06:40.755Z",
+  "groupId": "a636474c-9c1f-4fb7-a093-f918cf6494b7",
+  "webhookId": "9d8512aa-edf0-4ac3-b0a5-1b619b122468",
+  "webhookUrl": "https://flowchartai.org/api/webhooks/waffo",
+  "verifiedAt": "2026-10-14T10:09:33.670Z"
+}
