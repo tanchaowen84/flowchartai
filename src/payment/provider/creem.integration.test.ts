@@ -27,6 +27,8 @@ describe.skipIf(!process.env.BILLING_TEST_DATABASE_URL)(
       process.env.CREEM_API_KEY = 'creem_test_fixture';
       process.env.CREEM_API_URL = 'https://test-api.creem.io';
       process.env.CREEM_WEBHOOK_SECRET = secret;
+      process.env.NEXT_PUBLIC_CREEM_PRODUCT_ID_HOBBY_YEARLY =
+        'prod_created_hobby_fixture';
       db = await getDb();
       provider = new CreemProvider();
     });
@@ -183,6 +185,39 @@ describe.skipIf(!process.env.BILLING_TEST_DATABASE_URL)(
       });
       expect((await walletSummary(f.id)).legacy).toBeNull();
       await expectPreserved(f);
+    });
+    it('protects the initial subscription insert from the next delayed event', async () => {
+      const f = await fixture();
+      await db.delete(payment).where(eq(payment.id, f.id));
+      const current = f.subscription('active');
+      current.product.id = 'prod_created_hobby_fixture';
+      await send('subscription.paid', current);
+      const [inserted] = await db
+        .select()
+        .from(payment)
+        .where(eq(payment.subscriptionId, current.id));
+      expect(inserted.metadata).toMatchObject({
+        creem_updated_at: current.updated_at,
+      });
+      expect(inserted.legacyPlan).toBe('hobby');
+      await send('subscription.past_due', {
+        ...current,
+        status: 'past_due',
+        updated_at: '2026-10-13T12:00:00.000Z',
+        current_period_end_date: new Date(
+          f.periodEnd.getTime() - 86400000
+        ).toISOString(),
+      });
+      const [after] = await db
+        .select()
+        .from(payment)
+        .where(eq(payment.id, inserted.id));
+      expect(after).toMatchObject({
+        status: 'active',
+        legacyPlan: 'hobby',
+        periodEnd: f.periodEnd,
+      });
+      expect((await walletSummary(f.id)).balance).toBe(777);
     });
     it('keeps the newest state when renewal and an older retry arrive concurrently', async () => {
       const f = await fixture();

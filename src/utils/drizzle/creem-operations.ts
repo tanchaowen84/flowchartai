@@ -445,25 +445,13 @@ export async function createOrUpdatePaymentFromCreemSubscription(
     } else {
       // Create new payment - ensure all required fields are present
       const insertData = {
+        ...paymentData,
         id: `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         priceId: productInfo.id,
         type: paymentType,
-        interval: interval,
         userId: userId,
         customerId: customerId,
-        subscriptionId: creemSubscription.id,
         status: mappedStatus,
-        periodStart: periodStart,
-        periodEnd: periodEnd,
-        cancelAtPeriodEnd: cancelAtPeriodEnd,
-        trialStart: null,
-        trialEnd: null,
-        canceledAt: canceledAt,
-        metadata: {
-          ...creemSubscription.metadata,
-          creem_mode: creemSubscription.mode,
-          product_metadata: productInfo.metadata
-        },
         createdAt: new Date(),
         updatedAt: new Date(),
       };
