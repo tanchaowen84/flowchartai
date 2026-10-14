@@ -3,7 +3,15 @@ import { getDb } from '@/db';
 import { billingEvents, creditsHistory, payment, user } from '@/db/schema';
 import { walletSummary } from '@/lib/billing/wallet';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { CreemProvider } from './creem';
 
 describe.skipIf(!process.env.BILLING_TEST_DATABASE_URL)(
@@ -37,6 +45,7 @@ describe.skipIf(!process.env.BILLING_TEST_DATABASE_URL)(
       for (const id of events)
         await db.delete(billingEvents).where(eq(billingEvents.id, id));
     });
+    afterEach(() => vi.restoreAllMocks());
     async function fixture() {
       const id = `creem-preservation-${randomUUID()}`;
       owners.push(id);
@@ -184,6 +193,49 @@ describe.skipIf(!process.env.BILLING_TEST_DATABASE_URL)(
         cancelAtPeriodEnd: false,
       });
       expect((await walletSummary(f.id)).legacy).toBeNull();
+      await expectPreserved(f);
+    });
+    it('uses current Creem state when an old expiration omits its update timestamp', async () => {
+      const f = await fixture();
+      const current = f.subscription('active');
+      await send('subscription.paid', current);
+      const { updated_at: omitted, ...old } = f.subscription('expired');
+      const lookup = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(
+          new Response(JSON.stringify(current), { status: 200 })
+        );
+      await send('subscription.expired', old);
+      expect(lookup).toHaveBeenCalledOnce();
+      expect((await record(f.id)).status).toBe('active');
+      await expectPreserved(f);
+    });
+    it('keeps the original entitlement when canonical Creem lookup fails', async () => {
+      const f = await fixture();
+      const { updated_at: omitted, ...old } = f.subscription('expired');
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('{}', { status: 503 })
+      );
+      await expect(send('subscription.expired', old)).rejects.toThrow(
+        'Canonical Creem subscription lookup failed'
+      );
+      expect((await record(f.id)).status).toBe('active');
+      await expectPreserved(f);
+    });
+    it('acknowledges a committed undated event without depending on Creem again', async () => {
+      const f = await fixture();
+      const current = f.subscription('active');
+      const { updated_at: omitted, ...undated } = current;
+      const lookup = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(
+          new Response(JSON.stringify(current), { status: 200 })
+        );
+      const event = await send('subscription.paid', undated);
+      lookup.mockClear().mockResolvedValue(new Response('{}', { status: 503 }));
+      await provider.handleWebhookEvent(event.payload, event.signature);
+      expect(lookup).not.toHaveBeenCalled();
+      expect((await record(f.id)).status).toBe('active');
       await expectPreserved(f);
     });
     it('protects the initial subscription insert from the next delayed event', async () => {
