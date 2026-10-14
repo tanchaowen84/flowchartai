@@ -35,7 +35,7 @@ New Waffo first purchases: request within 7 days, all purchase-source credits un
 1. Backup and compare old paid contracts, prices, periods, balances and ledger counts; review unknown IDs with the read-only audit. No bulk contract migration.
 2. Apply additive Drizzle migrations with both flags OFF; freeze reviewed legacy IDs; verify no history/balance changes. RLS blocks browser Data API access to the new financial tables.
 3. Configure the FlowchartAI sandbox store/products and finish real hosted subscription+pack settlement. Re-deliver callbacks and check single grants; verify old Creem portal and signed renewal.
-4. Confirm the final new pricing/refund copy and approved merchant/store/production catalog. Merchant application submission requires the owner's final-version approval if it is needed.
+4. The owner approved the final merchant submission and fee schedule; the store application is now Under Review. Wait for actual Approved, then confirm the final new pricing/refund copy and production catalog before enabling new checkout.
 5. Enable both flags in one Vercel deployment; inspect old member+new member balance and core diagram workflow. Keep Creem renewal and management enabled.
 6. Rollback by keeping the additive tables and historical records, closing new checkout and reverting the UI/Agent flags together. Do not erase paid Waffo contracts: continue provider fulfillment and resolve their access before any rollback; a blanket billing-off rollback is unsafe after new subscribers exist.
 
@@ -43,7 +43,7 @@ New Waffo first purchases: request within 7 days, all purchase-source credits un
 
 Read-only legacy audit found 20 effective entitlement records (15 Hobby, 5 Professional), including manual memberships; this is not a count of paying customers. No unresolved product IDs. No production balance, ledger or contract was written. See `legacy-entitlement-audit.json`.
 
-A dedicated Waffo test store, six sandbox products and test webhook were created with owner authorization. Hosted Pro monthly and permanent 1500-credit pack payments both succeeded; signed callbacks produced 6200 then 7700 credits in the isolated local database. No production catalog was published, no real card charge occurred, and no production merchant application was submitted. See `verification.md` for the exact distinction between real sandbox and fixture checks.
+A dedicated Waffo test store, six sandbox products and test webhook were created with owner authorization. Hosted Pro monthly and permanent 1500-credit pack payments both succeeded; signed callbacks produced 6200 then 7700 credits in the isolated local database. No production catalog was published and no real card charge occurred. The owner subsequently approved the exact final merchant package and fee schedule; application `TKT_1HztXEGuGjxLvmaOODdC0W` was submitted and read back after reload as Under Review (`pending`). See `waffo-review.md` for the submission record and `verification.md` for the exact distinction between real sandbox and fixture checks.
 
 Sold offer keys must retain their original price and credit allowance. Future pricing changes use new offer keys while preserving old mappings, including paid yearly contracts. Administrative credit gifts use unique `grantBucket` sources rather than editing the materialized balance directly.
 

@@ -1,6 +1,6 @@
 # FlowchartAI 计费 V1
 
-当前状态：本地实现和 Waffo sandbox 验收；未部署、未写线上用户余额、未迁移旧合同。
+当前状态：本地实现和 Waffo sandbox 验收完成；商户审核已提交，Under Review。未部署、未写线上用户余额、未迁移旧合同。
 
 | 方案 | 月付 | 年付 | 额度 |
 | --- | --- | --- | --- |
@@ -29,6 +29,6 @@ flowchart LR
 
 真实 sandbox 完成了 $19 Pro 月付和 $10 积分包两笔测试支付；本地余额由 200 → 6,200 → 7,700。自动化检查与真实支付分开记录在 [验收记录](verification.md)。
 
-[锁定范围](SPEC.md) · [正式切换说明](rollout.md) · [旧权益只读审计](legacy-entitlement-audit.json)
+[锁定范围](SPEC.md) · [正式切换说明](rollout.md) · [审核记录](waffo-review.md) · [旧权益只读审计](legacy-entitlement-audit.json)
 
-复用现有 Next.js、Mastra 与 Postgres，不增加生产服务器或定时服务。正式 Waffo 店铺/商品/凭据、线上迁移和切换尚未执行。
+复用现有 Next.js、Mastra 与 Postgres，不增加生产服务器或定时服务。Waffo 店铺审核中；生产商品/凭据、线上迁移和切换尚未执行。
