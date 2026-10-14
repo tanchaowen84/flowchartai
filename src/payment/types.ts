@@ -192,9 +192,12 @@ export type CreemEventType =
   | "subscription.active"
   | "subscription.trialing"
   | "subscription.canceled"
+  | "subscription.scheduled_cancel"
   | "subscription.paid"
   | "subscription.expired"
   | "subscription.unpaid"
+  | "subscription.past_due"
+  | "subscription.paused"
   | "subscription.update";
 
 export interface CreemCustomer {
@@ -236,7 +239,7 @@ export interface CreemSubscription {
   product: string | CreemProduct;
   customer: string | CreemCustomer;
   collection_method: "charge_automatically";
-  status: "active" | "canceled" | "expired";
+  status: "active" | "canceled" | "expired" | "trialing" | "scheduled_cancel" | "past_due" | "unpaid" | "paused";
   canceled_at: string | null;
   current_period_start_date?: string;
   current_period_end_date?: string;

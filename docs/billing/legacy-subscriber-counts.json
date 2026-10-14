@@ -1,20 +1,21 @@
 {
-  "verifiedAt": "2026-10-14T11:18:53.098Z",
-  "source": "Read-only production payment table; effective Creem contracts, distinct from payment receipts",
-  "effectiveCreemSubscriptions": 17,
+  "verifiedAt": "2026-10-14T14:34:41.386Z",
+  "source": "Production payment table reconciled with live Creem subscription and invoice API",
+  "effectiveCreemSubscriptions": 16,
   "creemByPlan": {
-    "hobby": 15,
+    "hobby": 14,
     "professional": 2
   },
   "creemByStatus": {
-    "active": 15,
+    "active": 14,
     "canceled": 2
   },
-  "renewingCreemSubscriptions": 15,
+  "renewingCreemSubscriptions": 14,
   "canceledButEffectiveCreemSubscriptions": 2,
   "manualMemberships": 2,
   "syntheticTestMemberships": 1,
-  "totalEffectiveEntitlements": 20,
-  "distinctEffectiveAccounts": 20,
-  "productionFinancialRecordsChanged": false
+  "totalEffectiveEntitlements": 19,
+  "distinctEffectiveAccounts": 19,
+  "reconciledExpiredUnpaidSubscriptions": 1,
+  "contractPricesPeriodsBalancesOrLedgerChanged": false
 }

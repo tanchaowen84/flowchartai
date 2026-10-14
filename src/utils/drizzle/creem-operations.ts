@@ -70,13 +70,17 @@ export class InsufficientCreditsError extends CreemOperationError {
 
 /**
  * Status mapping from Creem to MkSaaS PaymentStatus
- * Note: CreemSubscription.status only has "active" | "canceled" | "expired"
- * Other statuses like "trialing", "paid", "unpaid" are event types, not subscription statuses
+ * Preserve paid-through access for scheduled cancellation and payment retries.
  */
 const CREEM_STATUS_MAPPING: Record<string, PaymentStatus> = {
   'active': 'active',
   'canceled': 'canceled',
-  'expired': 'canceled'  // Map expired to canceled in our system
+  'expired': 'canceled',
+  'scheduled_cancel': 'canceled',
+  'trialing': 'trialing',
+  'past_due': 'past_due',
+  'unpaid': 'past_due',
+  'paused': 'paused',
 } as const;
 
 /**
@@ -96,10 +100,14 @@ function mapCreemStatusToPaymentStatus(
       case 'subscription.trialing':
         return 'trialing';
       case 'subscription.canceled':
+      case 'subscription.scheduled_cancel':
       case 'subscription.expired':
         return 'canceled';
       case 'subscription.unpaid':
+      case 'subscription.past_due':
         return 'past_due';
+      case 'subscription.paused':
+        return 'paused';
     }
   }
 
@@ -334,11 +342,12 @@ export async function createOrUpdatePaymentFromCreemSubscription(
     const periodEnd = parseISODate(creemSubscription.current_period_end_date);
     const canceledAt = parseISODate(creemSubscription.canceled_at);
 
-    // Determine cancelAtPeriodEnd based on status and canceled_at
-    const cancelAtPeriodEnd = creemSubscription.status === 'canceled' && 
-                              canceledAt && 
-                              periodEnd && 
-                              canceledAt <= periodEnd;
+    const scheduledCancel = creemSubscription.status === 'scheduled_cancel' ||
+                            eventType === 'subscription.scheduled_cancel';
+    const cancelAtPeriodEnd = Boolean(periodEnd && (
+      (scheduledCancel && periodEnd > new Date()) ||
+      (creemSubscription.status === 'canceled' && canceledAt && canceledAt <= periodEnd)
+    ));
 
     // Extract customer ID
     const customerId = typeof creemSubscription.customer === 'string' 
@@ -349,19 +358,38 @@ export async function createOrUpdatePaymentFromCreemSubscription(
     const existingPayment = await tx
       .select({
         id: payment.id,
+        metadata: payment.metadata,
         ...(billingEnabled()
           ? { legacyPlan: payment.legacyPlan, priceId: payment.priceId, userId: payment.userId }
           : {}),
       })
       .from(payment)
       .where(eq(payment.subscriptionId, creemSubscription.id))
-      .limit(1);
+      .limit(1)
+      .for('update');
 
     const mappedLegacyPlan = legacyPlanForPayment({ priceId: productInfo.id });
     if (billingEnabled() && !mappedLegacyPlan && !existingPayment.length)
       throw new CreemOperationError('Unrecognized legacy subscription product', 'legacy_product_mapping');
     if (billingEnabled() && existingPayment[0]?.userId && existingPayment[0].userId !== userId)
       throw new CreemOperationError('Legacy subscription owner mismatch', 'legacy_subscription_owner');
+    const storedMetadata = existingPayment[0]?.metadata;
+    let historicalMetadata: Record<string, unknown> = {};
+    if (typeof storedMetadata === 'string') {
+      try {
+        const parsed = JSON.parse(storedMetadata);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) historicalMetadata = parsed;
+      } catch { /* Older invalid metadata is not a state timestamp. */ }
+    } else if (storedMetadata && typeof storedMetadata === 'object') {
+      historicalMetadata = storedMetadata as Record<string, unknown>;
+    }
+    const incomingUpdatedAt = parseISODate(creemSubscription.updated_at);
+    const lastProviderUpdate = typeof historicalMetadata.creem_updated_at === 'string'
+      ? parseISODate(historicalMetadata.creem_updated_at)
+      : null;
+    // A delayed retry/cancellation must not roll back a newer renewal.
+    if (existingPayment.length && incomingUpdatedAt && lastProviderUpdate && incomingUpdatedAt < lastProviderUpdate)
+      return existingPayment[0].id;
     const paymentData: Partial<PaymentRecord> = {
       ...(billingEnabled()
         ? {
@@ -386,7 +414,9 @@ export async function createOrUpdatePaymentFromCreemSubscription(
       trialStart: null,
       trialEnd: null,
       metadata: {
+        ...historicalMetadata,
         ...creemSubscription.metadata,
+        ...(incomingUpdatedAt ? { creem_updated_at: incomingUpdatedAt.toISOString() } : {}),
         creem_mode: creemSubscription.mode,
         product_metadata: productInfo.metadata
       },
