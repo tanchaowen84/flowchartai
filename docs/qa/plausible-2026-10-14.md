@@ -33,4 +33,6 @@ Scope is authorized by the user: evaluate and complete Plausible instrumentation
 
 ## Release evidence
 
-Pending final local checks, PR/deployment and browser/collector/dashboard readback.
+PR #18: https://github.com/tanchaowen84/flowchartai/pull/18. Initial Preview `dpl_6vq5R3Dx2u3VeE8UYMnktDfBDvTE` failed in the pre-existing Google Fonts downloader (font URL extension parsing). The same production font bytes and all 55 font-face declarations were pinned in-repo; font provenance/license files included, all 26 SHA-256 hashes verified.
+
+Pending updated Preview, final local bundle and production/browser/collector/dashboard readback.
