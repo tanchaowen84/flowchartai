@@ -488,6 +488,15 @@ export class CreemProvider implements PaymentProvider {
       Number.isFinite(Date.parse(subscription.updated_at))
     )
       return false;
+    if (billingEnabled()) {
+      const db = await getDb();
+      const [receipt] = await db
+        .select({ id: billingEvents.id })
+        .from(billingEvents)
+        .where(eq(billingEvents.id, `creem:${event.eventType}:${event.id}`))
+        .limit(1);
+      if (receipt) return false;
+    }
     const url = new URL('/v1/subscriptions', this.apiUrl);
     url.searchParams.set('subscription_id', subscription.id);
     const response = await fetch(url, {

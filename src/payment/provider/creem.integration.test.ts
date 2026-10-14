@@ -222,6 +222,22 @@ describe.skipIf(!process.env.BILLING_TEST_DATABASE_URL)(
       expect((await record(f.id)).status).toBe('active');
       await expectPreserved(f);
     });
+    it('acknowledges a committed undated event without depending on Creem again', async () => {
+      const f = await fixture();
+      const current = f.subscription('active');
+      const { updated_at: omitted, ...undated } = current;
+      const lookup = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(
+          new Response(JSON.stringify(current), { status: 200 })
+        );
+      const event = await send('subscription.paid', undated);
+      lookup.mockClear().mockResolvedValue(new Response('{}', { status: 503 }));
+      await provider.handleWebhookEvent(event.payload, event.signature);
+      expect(lookup).not.toHaveBeenCalled();
+      expect((await record(f.id)).status).toBe('active');
+      await expectPreserved(f);
+    });
     it('protects the initial subscription insert from the next delayed event', async () => {
       const f = await fixture();
       await db.delete(payment).where(eq(payment.id, f.id));
