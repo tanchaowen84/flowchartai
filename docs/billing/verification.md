@@ -1,6 +1,23 @@
 # Billing V1 验收记录 · 2026-10-14
 
-范围：独立 worktree `codex/billing-waffo-credits`，基于生产已合并的 native editor。未改动原工作区的并行改动，未部署。
+当前结果：**新计费已部署到 https://flowchartai.org**。正式商户为 Approved；6 个正式商品和 live webhook 已读回核对。生产回执见 [production-release-receipt.json](production-release-receipt.json)。以下早期记录均标明环境，不以 sandbox 付款冒充真实收款。
+
+## 正式发布验证
+
+- 已合并当前 main 的六个 Plausible 漏斗目标及空画布修复；Waffo 仅在正式、正金额、首付款成功且财务提交后记录 PaymentConfirmed，并按订单去重。
+- 最终代码 232 项单元测试通过；另行启用独立本地 Postgres，17 项真实数据库测试全部通过。合计 249 项。TypeScript、受影响源码 Biome、本地构建及 Vercel 正式构建通过；主路径浏览器用 Ego Lite。
+- 待发布版本的定价、条款、隐私和 draw.io 资源 HTTP 200；未登录钱包、未签名支付回调 HTTP 401。校验使用实际 `/terms` 路由；一次检查脚本误用 `/terms-of-service` 后改为真实路由检查，不涉及产品路由修改。
+- 当前正式账号保留 Professional 原权益、1,000 历史积分和原 Creem 管理入口；新开第二订阅返回 409。积分包正式收银台显示 FlowchartAI、$10、1,500 永久积分及 7 天未使用首次购买退款条件，没有提交真实付款。
+- 两次真实 DeepSeek V4 Pro 任务（双泳道生成、保留原图并插入核验及失败处理分支）均为 committed、legacy=true、charged=0。余额前后均 1,000、无残留预留；原月度次数已用 10 → 12。
+- 修改后的原生图自动保存、刷新恢复，并实际下载可解析的 `.drawio`：18 个顶点、19 条边、2 个泳道，所有边端点均存在，修改的三个节点名称正确。
+- 生产追加迁移和旧权益快照比较确认 55,663 个原余额、113 条原支付记录和 2 条原流水未变；冻结 20 条有效旧权益、未知商品为 0。只比较迁移阶段原记录，不把上线后的正常使用记账当作数据损坏。
+- 本地上传的一次 Vercel 构建停滞后已取消；同一受测代码改用 Git 提交构建通过，验收后才 promote 正式域名。
+
+没有真实扣款验收；年付实际续费、实际换档与退款周期仍是数据库 fixture 验证。没有独立 subagent 审查；本轮为本人复核和真实浏览器验收。未新增生产服务器或 cron。
+
+## 上线前的实现与 sandbox 历史记录
+
+以下记录来自独立 worktree `codex/billing-waffo-credits` 的上线前阶段；当时尚未部署。原工作区的并行改动未改动。
 
 ## 真实 Waffo sandbox
 
