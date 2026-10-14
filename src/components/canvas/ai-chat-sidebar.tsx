@@ -1,5 +1,7 @@
 'use client';
 
+import { EVENTS } from '@/analytics/core-goals';
+import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { LoginDialogContent } from '@/components/auth/login-dialog-content';
 import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
 import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
@@ -1826,6 +1828,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       diagnostic.stage = 'prepare_canvas';
       diagnostic.code = 'prepare_canvas_failed';
       await applyCanvasCommand(completedCommand);
+      trackFlowchartEvent(EVENTS.exportReady, {
+        mode: aiMode,
+        editor:
+          completedCommand.kind === 'drawio-command' ? 'drawio' : 'excalidraw',
+      });
       logFlowchartDiagnostic({
         requestId: diagnostic.requestId,
         stage: 'prepare_canvas',

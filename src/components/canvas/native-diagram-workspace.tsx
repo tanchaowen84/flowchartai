@@ -1,5 +1,7 @@
 'use client';
 
+import { EVENTS } from '@/analytics/core-goals';
+import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { UserButton } from '@/components/layout/user-button';
 import { Button } from '@/components/ui/button';
@@ -224,6 +226,12 @@ export default function NativeDiagramWorkspace({
     format: 'drawio' | 'svg' | 'png'
   ): Promise<void> => {
     if (!bridge) return;
+    if (
+      readNativeCells(bridge.getDocument()).some(
+        (cell) => cell.parent && cell.parent !== '0'
+      )
+    )
+      trackFlowchartEvent(EVENTS.downloadClicked, { editor: 'drawio', format });
     setExporting(true);
     setExportError(null);
     try {
