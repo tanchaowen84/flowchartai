@@ -1,6 +1,7 @@
 .git
 .next
 node_modules
+public/drawio
 .env*
 .vercel
 coverage
