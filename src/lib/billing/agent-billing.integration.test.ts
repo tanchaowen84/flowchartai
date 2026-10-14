@@ -53,8 +53,16 @@ vi.mock('@/lib/mastra/native-model', () => ({
 import { POST as chat } from '@/app/api/ai/chat/flowchart/route';
 import { POST as taskPost } from '@/app/api/billing/task/route';
 import { getDb } from '@/db';
-import { billingTasks, creditsHistory, user } from '@/db/schema';
-import { walletSummary } from './wallet';
+import {
+  aiUsage,
+  billingTasks,
+  creditsHistory,
+  payment,
+  user,
+} from '@/db/schema';
+import { canUserUseAI } from '@/lib/ai-usage';
+import { estimateTaskBudget } from './usage-collector';
+import { legacyRequestsRemaining, reserveTask, walletSummary } from './wallet';
 const enabled = Boolean(process.env.BILLING_TEST_DATABASE_URL);
 describe.skipIf(!enabled)('Agent HTTP stream to real Postgres billing', () => {
   const ids: string[] = [];
@@ -205,5 +213,110 @@ describe.skipIf(!enabled)('Agent HTTP stream to real Postgres billing', () => {
         body: JSON.stringify({ taskId: id, action: 'cancel' }),
       })
     );
+  });
+  it('starts a task above 64 credits without confirmation and settles its actual usage once', async () => {
+    const id = randomUUID();
+    const body = JSON.parse(await request(id).text());
+    body.messages[0].content = 'step '.repeat(6000);
+    const estimate = estimateTaskBudget({
+      messages: body.messages,
+      aiContext: body.aiContext,
+    });
+    expect(estimate).toBeGreaterThan(64);
+    const response = await chat(
+      new Request('http://fixture/api/ai/chat/flowchart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    );
+    expect(response.status).toBe(200);
+    await response.text();
+    const db = await getDb();
+    const [task] = await db
+      .select()
+      .from(billingTasks)
+      .where(eq(billingTasks.id, id));
+    expect(task.budget).toBe(estimate);
+    expect(task.state).toBe('ready');
+    expect((await (await commit(id, task.resultHash!)).json()).charged).toBe(4);
+    expect((await (await commit(id, task.resultHash!)).json()).charged).toBe(4);
+    expect((await walletSummary(state.userId)).balance).toBe(96);
+    expect(state.requests).toBe(1);
+  });
+  it('counts analysis and drawing as the same legacy AI request entitlement before falling back to credits', async () => {
+    const db = await getDb();
+    await db.insert(payment).values({
+      id: randomUUID(),
+      userId: state.userId,
+      priceId: 'fixture-hobby',
+      provider: 'creem',
+      legacyPlan: 'hobby',
+      type: 'subscription',
+      customerId: 'fixture',
+      subscriptionId: randomUUID(),
+      status: 'active',
+      periodEnd: new Date(Date.now() + 30 * 86400000),
+    });
+    await db.insert(aiUsage).values(
+      Array.from({ length: 99 }, () => ({
+        id: randomUUID(),
+        userId: state.userId,
+        type: 'canvas_analysis',
+        success: true,
+      }))
+    );
+    expect(await canUserUseAI(state.userId)).toMatchObject({
+      canUse: true,
+      remainingUsage: 1,
+      billingMode: 'legacy',
+    });
+    expect(
+      await db.transaction((tx) =>
+        legacyRequestsRemaining(tx, state.userId, 100)
+      )
+    ).toBe(1);
+    const id = randomUUID();
+    const response = await chat(request(id));
+    expect(response.status).toBe(200);
+    await response.text();
+    const [task] = await db
+      .select()
+      .from(billingTasks)
+      .where(eq(billingTasks.id, id));
+    expect(task.legacy).toBe(true);
+    expect((await (await commit(id, task.resultHash!)).json()).charged).toBe(0);
+    expect((await (await commit(id, task.resultHash!)).json()).charged).toBe(0);
+    expect((await walletSummary(state.userId)).balance).toBe(100);
+    expect(await canUserUseAI(state.userId)).toMatchObject({
+      canUse: true,
+      remainingUsage: 100,
+      billingMode: 'credits',
+    });
+    expect(
+      await db.transaction((tx) =>
+        legacyRequestsRemaining(tx, state.userId, 100)
+      )
+    ).toBe(0);
+    const next = {
+      id: randomUUID(),
+      userId: state.userId,
+      requestHash: 'next',
+      budget: 32,
+    };
+    expect((await reserveTask(next)).legacy).toBe(false);
+    await taskPost(
+      new Request('http://fixture/api/billing/task', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: next.id, action: 'cancel' }),
+      })
+    );
+    await db.update(user).set({ credits: 0 }).where(eq(user.id, state.userId));
+    expect(await canUserUseAI(state.userId)).toMatchObject({
+      canUse: false,
+      billingMode: 'credits',
+    });
+    expect((await chat(request(randomUUID()))).status).toBe(429);
   });
 });

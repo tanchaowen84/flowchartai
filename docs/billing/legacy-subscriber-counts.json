@@ -1,0 +1,20 @@
+{
+  "verifiedAt": "2026-10-14T11:18:53.098Z",
+  "source": "Read-only production payment table; effective Creem contracts, distinct from payment receipts",
+  "effectiveCreemSubscriptions": 17,
+  "creemByPlan": {
+    "hobby": 15,
+    "professional": 2
+  },
+  "creemByStatus": {
+    "active": 15,
+    "canceled": 2
+  },
+  "renewingCreemSubscriptions": 15,
+  "canceledButEffectiveCreemSubscriptions": 2,
+  "manualMemberships": 2,
+  "syntheticTestMemberships": 1,
+  "totalEffectiveEntitlements": 20,
+  "distinctEffectiveAccounts": 20,
+  "productionFinancialRecordsChanged": false
+}
