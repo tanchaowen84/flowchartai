@@ -1,6 +1,10 @@
 'use client';
 
 import { EVENTS } from '@/analytics/core-goals';
+import {
+  hasLiveSceneContent,
+  hasNativeExportContent,
+} from '@/analytics/export-content';
 import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { LoginDialogContent } from '@/components/auth/login-dialog-content';
 import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
@@ -1828,11 +1832,17 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       diagnostic.stage = 'prepare_canvas';
       diagnostic.code = 'prepare_canvas_failed';
       await applyCanvasCommand(completedCommand);
-      trackFlowchartEvent(EVENTS.exportReady, {
-        mode: aiMode,
-        editor:
-          completedCommand.kind === 'drawio-command' ? 'drawio' : 'excalidraw',
-      });
+      try {
+        const nativeResult = completedCommand.kind === 'drawio-command';
+        const exportable = nativeResult
+          ? hasNativeExportContent(nativeEditorRef.current?.getDocument())
+          : hasLiveSceneContent(excalidrawAPI?.getSceneElements());
+        if (exportable)
+          trackFlowchartEvent(EVENTS.exportReady, {
+            mode: aiMode,
+            editor: nativeResult ? 'drawio' : 'excalidraw',
+          });
+      } catch {}
       logFlowchartDiagnostic({
         requestId: diagnostic.requestId,
         stage: 'prepare_canvas',
