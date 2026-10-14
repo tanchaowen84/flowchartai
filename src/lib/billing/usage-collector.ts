@@ -74,7 +74,8 @@ export function createUsageCollector(
   };
 }
 export function estimateTaskBudget(body: unknown): number {
-  // Conservative heuristic; actual final charge uses provider receipts, capped at the approved reservation.
+  // Automatic reservation estimate; actual final charge uses provider receipts,
+  // capped at this reservation. No interactive confirmation is required.
   let images = 0;
   const context = JSON.stringify(body, (key, value) => {
     if (key === 'image_url' && value && typeof value.url === 'string') {

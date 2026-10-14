@@ -250,7 +250,6 @@ export async function legacyRequestsRemaining(
     .where(
       and(
         eq(aiUsage.userId, userId),
-        eq(aiUsage.type, 'flowchart_generation'),
         eq(aiUsage.success, true),
         gte(aiUsage.createdAt, month)
       )

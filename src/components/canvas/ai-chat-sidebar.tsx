@@ -1693,29 +1693,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         flowchartAi: currentMetadata,
       },
     };
-    const sendRequest = (approvedBudget?: number) =>
-      fetch('/api/ai/chat/flowchart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...requestBody, approvedBudget }),
-        signal: abortControllerRef.current?.signal,
-      });
-    let response = await sendRequest();
-    if (creditBilling && response.status === 402) {
-      const error = await response
-        .clone()
-        .json()
-        .catch(() => ({}));
-      if (
-        error.error === 'budget_confirmation' &&
-        window.confirm(
-          `This request may use up to ${error.estimatedBudget} credits. Continue?`
-        )
-      )
-        response = await sendRequest(error.estimatedBudget);
-    }
+    const response = await fetch('/api/ai/chat/flowchart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+      signal: abortControllerRef.current?.signal,
+    });
     diagnostic.requestId =
       response.headers.get('x-flowchart-request-id') || 'missing-request-id';
 

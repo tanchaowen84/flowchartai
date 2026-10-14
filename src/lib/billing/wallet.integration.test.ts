@@ -204,7 +204,7 @@ describe.skipIf(!enabled)('real local Postgres billing transactions', () => {
     expect((await walletSummary(id)).balance).toBe(12);
     expect(
       await db.transaction((tx) => legacyRequestsRemaining(tx, id, 9999))
-    ).toBe(9999);
+    ).toBe(9998);
     const drawing = task(id);
     await reserveTask(drawing);
     await readyTask(
@@ -224,7 +224,7 @@ describe.skipIf(!enabled)('real local Postgres billing transactions', () => {
     await finalizeTask(id, drawing.id, 'drawing-receipt');
     expect(
       await db.transaction((tx) => legacyRequestsRemaining(tx, id, 9999))
-    ).toBe(9998);
+    ).toBe(9997);
     expect((await walletSummary(id)).balance).toBe(12);
   });
   async function checkout(id: string, key = 'pack_small') {

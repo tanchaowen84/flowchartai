@@ -62,7 +62,6 @@ interface AgentRequestBody {
   messages: any[];
   aiContext?: Record<string, any>;
   billingTaskId?: string;
-  approvedBudget?: number;
 }
 
 function jsonResponse(
@@ -365,12 +364,6 @@ export async function POST(request: Request): Promise<Response> {
     messages: body.messages,
     aiContext: body.aiContext,
   });
-  const approvedBudget =
-    estimatedBudget > 64
-      ? typeof body.approvedBudget === 'number'
-        ? body.approvedBudget
-        : 64
-      : estimatedBudget;
 
   try {
     const guarded = await runGuardedFlowchartAgent(
@@ -416,18 +409,6 @@ export async function POST(request: Request): Promise<Response> {
             ? getNativeModelForMode(requestedMode)
             : getFlowchartModelForMode(requestedMode);
           if (v1) {
-            if (
-              !legacyAllowance &&
-              estimatedBudget > 64 &&
-              (!Number.isSafeInteger(body.approvedBudget) ||
-                approvedBudget < estimatedBudget)
-            )
-              throw new BillingError(
-                'budget_confirmation',
-                'This request needs a larger AI budget.',
-                402,
-                { estimatedBudget }
-              );
             const hash = createHash('sha256')
               .update(
                 JSON.stringify({
@@ -440,7 +421,7 @@ export async function POST(request: Request): Promise<Response> {
               id: taskId,
               userId,
               requestHash: hash,
-              budget: approvedBudget,
+              budget: estimatedBudget,
             });
             if (['ready', 'committed'].includes(task.state) && task.result) {
               replay = task;

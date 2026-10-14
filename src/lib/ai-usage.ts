@@ -1,7 +1,7 @@
 import { getDb } from '@/db';
 import { aiUsage, payment } from '@/db/schema';
 import { billingEnabled, legacyPlanForPayment } from '@/lib/billing/policy';
-import { walletSummary } from '@/lib/billing/wallet';
+import { legacyRequestsRemaining, walletSummary } from '@/lib/billing/wallet';
 import { and, eq, gte, sql } from 'drizzle-orm';
 
 // AI使用量限制配置
@@ -150,14 +150,33 @@ export async function canUserUseAI(userId: string): Promise<{
 }> {
   const wallet = billingEnabled() ? await walletSummary(userId) : null;
   if (wallet) {
-    if (!wallet.legacy)
-      return {
-        canUse: wallet.balance > 0,
-        remainingUsage: wallet.balance,
-        limit: wallet.balance,
-        reason: wallet.balance > 0 ? undefined : 'Buy credits to continue',
-        billingMode: 'credits',
-      } as any;
+    const legacy = wallet.legacy;
+    if (legacy) {
+      const db = await getDb();
+      const remaining = await db.transaction((tx) =>
+        legacyRequestsRemaining(tx, userId, legacy.limit)
+      );
+      if (remaining > 0) {
+        const nextResetTime = new Date();
+        nextResetTime.setMonth(nextResetTime.getMonth() + 1, 1);
+        nextResetTime.setHours(0, 0, 0, 0);
+        return {
+          canUse: true,
+          remainingUsage: remaining,
+          limit: legacy.limit,
+          billingMode: 'legacy',
+          timeFrame: 'monthly',
+          nextResetTime,
+        };
+      }
+    }
+    return {
+      canUse: wallet.balance > 0,
+      remainingUsage: wallet.balance,
+      limit: wallet.balance,
+      reason: wallet.balance > 0 ? undefined : 'Buy credits to continue',
+      billingMode: 'credits',
+    };
   }
   const db = await getDb();
 
@@ -230,14 +249,6 @@ export async function canUserUseAI(userId: string): Promise<{
   const currentUsage = Number(usageCount[0]?.count || 0);
   const remainingUsage = Math.max(0, limit - currentUsage);
 
-  if (wallet && currentUsage >= limit)
-    return {
-      canUse: wallet.balance > 0,
-      remainingUsage: wallet.balance,
-      limit: wallet.balance,
-      billingMode: 'credits',
-      reason: wallet.balance > 0 ? undefined : 'Buy credits to continue',
-    };
   if (currentUsage >= limit) {
     const timeFrameText = timeFrameType === 'daily' ? 'today' : 'this month';
     const resetText = timeFrameType === 'daily' ? 'tomorrow' : 'next month';
@@ -253,7 +264,6 @@ export async function canUserUseAI(userId: string): Promise<{
   }
 
   return {
-    billingMode: wallet?.legacy ? 'legacy' : undefined,
     canUse: true,
     remainingUsage,
     limit,
