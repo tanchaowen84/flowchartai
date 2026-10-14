@@ -1,5 +1,8 @@
 'use client';
 
+import { EVENTS } from '@/analytics/core-goals';
+import { hasLiveSceneContent } from '@/analytics/export-content';
+import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
@@ -329,6 +332,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         return;
       }
 
+      if (hasLiveSceneContent(elements))
+        trackFlowchartEvent(EVENTS.downloadClicked, {
+          editor: 'excalidraw',
+          format: 'png',
+        });
       const { exportToBlob } = await import('@excalidraw/excalidraw');
       const blob = await exportToBlob({
         elements,
@@ -370,6 +378,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
         return;
       }
 
+      if (hasLiveSceneContent(elements))
+        trackFlowchartEvent(EVENTS.downloadClicked, {
+          editor: 'excalidraw',
+          format: 'svg',
+        });
       const { exportToSvg } = await import('@excalidraw/excalidraw');
       const svg = await exportToSvg({
         elements,
@@ -412,6 +425,11 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       }
 
       // Filter out runtime properties that shouldn't be saved
+      if (hasLiveSceneContent(elements))
+        trackFlowchartEvent(EVENTS.downloadClicked, {
+          editor: 'excalidraw',
+          format: 'excalidraw',
+        });
       const { collaborators, ...cleanAppState } = appState;
 
       const exportData = {

@@ -1,3 +1,5 @@
+import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
+import { sendServerEvent } from '@/analytics/plausible-server';
 import { websiteConfig } from '@/config/website';
 import { getDb } from '@/db/index';
 import { defaultMessages } from '@/i18n/messages';
@@ -11,6 +13,8 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin, emailOTP, oneTap } from 'better-auth/plugins';
 import { parse as parseCookies } from 'cookie';
 import type { Locale } from 'next-intl';
+import { headers } from 'next/headers';
+import { after } from 'next/server';
 import { getBaseUrl, getUrlWithLocaleInCallbackUrl } from './urls/urls';
 
 const EMAIL_OTP_EXPIRES_IN_SECONDS = 5 * 60;
@@ -127,6 +131,20 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           if (billingEnabled()) await grantRegistration(user.id);
+          // Only the new-user hook runs here, including Google and email OTP.
+          // Capture headers before scheduling; analytics cannot fail sign-up.
+          try {
+            if (isProductionAnalytics()) {
+              const visitor = new Headers(await headers());
+              after(async () => {
+                await sendServerEvent(
+                  EVENTS.registrationCompleted,
+                  {},
+                  visitor
+                );
+              });
+            }
+          } catch {}
           // Auto subscribe user to newsletter after sign up if enabled in website config
           if (user.email && websiteConfig.newsletter.autoSubscribeAfterSignUp) {
             try {

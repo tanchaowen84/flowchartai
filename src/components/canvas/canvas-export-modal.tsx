@@ -1,5 +1,8 @@
 'use client';
 
+import { EVENTS } from '@/analytics/core-goals';
+import { hasLiveSceneContent } from '@/analytics/export-content';
+import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { FlowchartAiMetadata } from '@/lib/diagram/contracts';
@@ -72,6 +75,11 @@ export default function CanvasExportModal({
         );
       }
 
+      if (hasLiveSceneContent(elements))
+        trackFlowchartEvent(EVENTS.downloadClicked, {
+          editor: 'excalidraw',
+          format: selectedFormat === 'json' ? 'excalidraw' : selectedFormat,
+        });
       let blob: Blob;
       let filename: string;
       if (selectedFormat === 'png') {

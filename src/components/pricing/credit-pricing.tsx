@@ -1,4 +1,6 @@
 'use client';
+import { EVENTS } from '@/analytics/core-goals';
+import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LocaleLink } from '@/i18n/navigation';
@@ -36,7 +38,10 @@ export function CreditPricing({
         );
       }
       setCheckoutUrl(result.url);
-      if (popup) popup.location.replace(result.url);
+      if (popup) {
+        trackFlowchartEvent(EVENTS.checkoutHandoff);
+        popup.location.replace(result.url);
+      }
     } catch (error) {
       popup?.close();
       setError(

@@ -1,3 +1,5 @@
+import { sealCheckoutContext } from '@/analytics/checkout-context';
+import { isProductionAnalytics } from '@/analytics/core-goals';
 import { billingError, billingSession } from '@/lib/billing/http';
 import { isOfferKey } from '@/lib/billing/policy';
 import { createWaffoCheckout } from '@/payment/provider/waffo';
@@ -12,7 +14,14 @@ export async function POST(request: Request): Promise<Response> {
       process.env.NEXT_PUBLIC_BASE_URL || request.url
     ).toString();
     return Response.json(
-      await createWaffoCheckout(owner.id, owner.email, body.offerKey, returnUrl)
+      await createWaffoCheckout(
+        owner.id,
+        owner.email,
+        body.offerKey,
+        returnUrl,
+        undefined,
+        isProductionAnalytics() ? sealCheckoutContext(request.headers) : null
+      )
     );
   } catch (error) {
     return billingError(error);

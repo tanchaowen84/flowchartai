@@ -1,5 +1,7 @@
 'use server';
 
+import { sealCheckoutContext } from '@/analytics/checkout-context';
+import { isProductionAnalytics } from '@/analytics/core-goals';
 import { billingEnabled } from '@/lib/billing/policy';
 import { findPlanByPlanId, findPriceInPlan } from '@/lib/price-plan';
 import { getSession } from '@/lib/server';
@@ -9,6 +11,7 @@ import type { CreateCheckoutParams } from '@/payment/types';
 import { Routes } from '@/routes';
 import { getLocale } from 'next-intl/server';
 import { createSafeActionClient } from 'next-safe-action';
+import { headers } from 'next/headers';
 import { z } from 'zod';
 
 // Create a safe action client
@@ -78,6 +81,10 @@ export const createCheckoutAction = actionClient
         ...metadata,
         userId: session.user.id,
         userName: session.user.name,
+        // Overwrite client input with a server-authenticated encrypted token.
+        plausible_context: isProductionAnalytics()
+          ? (sealCheckoutContext(new Headers(await headers())) ?? '')
+          : '',
       };
 
       // Create the checkout session with localized URLs

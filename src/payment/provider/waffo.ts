@@ -1,5 +1,9 @@
 /** Waffo new-sale adapter; legacy Creem routing stays independent. */
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { openCheckoutContext } from '@/analytics/checkout-context';
+import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
+import { getWaffoConfirmedCheckout } from '@/analytics/payment-conversion';
+import { sendServerEvent } from '@/analytics/plausible-server';
 import { getDb } from '@/db';
 import {
   billingCheckouts,
@@ -69,7 +73,8 @@ export async function createWaffoCheckout(
   email: string,
   key: OfferKey,
   returnUrl: string,
-  client = waffoClient()
+  client = waffoClient(),
+  plausibleContext: string | null = null
 ): Promise<{ url: string; id: string }> {
   if (!billingEnabled())
     throw new BillingError(
@@ -162,6 +167,7 @@ export async function createWaffoCheckout(
       offerKey: key,
       userId,
       checkoutId: id,
+      ...(plausibleContext ? { plausible_context: plausibleContext } : {}),
       ...(subscription ? { originOrderId: subscription.id } : {}),
     },
     withTrial: false,
@@ -545,4 +551,33 @@ export async function processWaffoEvent(event: WebhookEvent): Promise<void> {
         .where(eq(billingCheckouts.id, checkout.id));
     await refreshWallet(tx, checkout.userId);
   });
+  await observeWaffoCheckoutPayment(event);
+}
+
+async function observeWaffoCheckoutPayment(event: WebhookEvent): Promise<void> {
+  // Financial fulfillment has committed. Analytics cannot fail a payment.
+  try {
+    if (!isProductionAnalytics()) return;
+    const evidence = getWaffoConfirmedCheckout(event);
+    if (!evidence) return;
+    const visitor = openCheckoutContext(evidence.context);
+    if (!visitor) return;
+    const orderKey = createHash('sha256')
+      .update(`waffo:${evidence.orderId}`)
+      .digest('hex');
+    const db = await getDb();
+    const claimed = await db.execute(sql`
+      UPDATE "user"
+      SET metadata = jsonb_set(
+        COALESCE(metadata, '{}'::jsonb), '{plausiblePaymentOrders}',
+        COALESCE(metadata->'plausiblePaymentOrders', '{}'::jsonb)
+          || jsonb_build_object(${orderKey}::text, true)
+      )
+      WHERE id = ${evidence.userId}
+        AND NOT (COALESCE(metadata->'plausiblePaymentOrders', '{}'::jsonb) ? ${orderKey}::text)
+      RETURNING id
+    `);
+    if (claimed.length > 0)
+      await sendServerEvent(EVENTS.paymentConfirmed, {}, visitor);
+  } catch {}
 }
