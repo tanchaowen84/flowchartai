@@ -1,6 +1,6 @@
 # FlowchartAI 计费 V1
 
-当前状态：本地实现和 Waffo sandbox 验收完成；商户审核已提交，Under Review。未部署、未写线上用户余额、未迁移旧合同。
+当前状态（2026-10-14）：Waffo 审核已通过，正式商品、凭据和 webhook 已配置；追加数据库迁移和旧权益快照已完成，待发布版本正在构建。正式域名切换及运行验收另行记录。
 
 | 方案 | 月付 | 年付 | 额度 |
 | --- | --- | --- | --- |
@@ -31,4 +31,4 @@ flowchart LR
 
 [锁定范围](SPEC.md) · [正式切换说明](rollout.md) · [审核记录](waffo-review.md) · [旧权益只读审计](legacy-entitlement-audit.json)
 
-复用现有 Next.js、Mastra 与 Postgres，不增加生产服务器或定时服务。Waffo 店铺审核中；生产商品/凭据、线上迁移和切换尚未执行。
+复用现有 Next.js、Mastra 与 Postgres，不增加生产服务器或定时服务。生产准备已核对 55,663 个原账号余额、113 条原支付/订阅记录和 2 条原积分流水，均无变化；20 条有效旧权益已冻结保留。详见 production-*-receipt.json 和 [正式商品记录](production-catalog.json)。

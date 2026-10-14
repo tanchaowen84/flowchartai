@@ -12,7 +12,7 @@ Status: local implementation; production remains unchanged. Independent review h
 
 ## Settings (server and browser must be enabled together)
 
-`BILLING_V1_ENABLED=true`, `NEXT_PUBLIC_BILLING_V1_ENABLED=true` enable the new version. Both are absent/off in the current production environment. Set `BILLING_V1_START_AT` to the actual cutover UTC timestamp, so a registration-grant retry cannot award every historical account a new trial.
+`BILLING_V1_ENABLED=true`, `NEXT_PUBLIC_BILLING_V1_ENABLED=true` enable the new version. Both were set for the staged production deployment on 2026-10-14; the prior immutable deployment remains unchanged until domain promotion. `BILLING_V1_START_AT=2026-10-14T10:11:41.669Z` is the configured registration cutoff, so a registration-grant retry cannot award every historical account a new trial. Record the actual domain promotion time separately.
 
 `WAFFO_ENVIRONMENT=test|prod`, `WAFFO_MERCHANT_ID`, `WAFFO_PRIVATE_KEY`, `WAFFO_STORE_ID`. Server-only product mappings: `WAFFO_TEST_PRODUCT_STARTER_MONTH`, `STARTER_YEAR`, `PRO_MONTH`, `PRO_YEAR`, `PACK_SMALL`, `PACK_LARGE` with the same prefix. Production uses `WAFFO_PROD_PRODUCT_*`. The webhook checks SDK signature, environment, store, internal checkout, identity, local offer, price snapshot, and period. Configure product prices from the approved local catalog, trial off, and a subscription product group. Portal plan changes must use next-period timing, or disable portal plan-change controls and use the app's explicit next-period checkout links.
 
@@ -30,16 +30,16 @@ Pending checkout links are reused for their session lifetime. Buying in a new wi
 
 New Waffo first purchases: request within 7 days, all purchase-source credits unused, no in-flight reservation; keep legacy 14-day promises. Refund original payment through Waffo; separately cancel renewal when requested. Revoke only that payment's correlated credit source after a signed successful refund, and retain old ledger entries/results. Partial refunds require manual source-specific reconciliation; do not revoke the full wallet. The initial UI directs refund requests to support rather than promising an unimplemented automatic refund button.
 
-## Release order (not executed this turn)
+## Release procedure
 
 1. Backup and compare old paid contracts, prices, periods, balances and ledger counts; review unknown IDs with the read-only audit. No bulk contract migration.
 2. Apply additive Drizzle migrations with both flags OFF; freeze reviewed legacy IDs; verify no history/balance changes. RLS blocks browser Data API access to the new financial tables.
 3. Configure the FlowchartAI sandbox store/products and finish real hosted subscription+pack settlement. Re-deliver callbacks and check single grants; verify old Creem portal and signed renewal.
-4. The owner approved the final merchant submission and fee schedule; the store application is now Under Review. Wait for actual Approved, then confirm the final new pricing/refund copy and production catalog before enabling new checkout.
+4. The owner approved the final merchant submission and fee schedule. Read back actual Approved, then verify the approved pricing/refund copy and production catalog before enabling new checkout. This approval and catalog verification completed on 2026-10-14.
 5. Enable both flags in one Vercel deployment; inspect old member+new member balance and core diagram workflow. Keep Creem renewal and management enabled.
 6. Rollback by keeping the additive tables and historical records, closing new checkout and reverting the UI/Agent flags together. Do not erase paid Waffo contracts: continue provider fulfillment and resolve their access before any rollback; a blanket billing-off rollback is unsafe after new subscribers exist.
 
-## Current evidence
+## Sandbox evidence recorded before production preparation
 
 Read-only legacy audit found 20 effective entitlement records (15 Hobby, 5 Professional), including manual memberships; this is not a count of paying customers. No unresolved product IDs. No production balance, ledger or contract was written. See `legacy-entitlement-audit.json`.
 
@@ -48,3 +48,11 @@ A dedicated Waffo test store, six sandbox products and test webhook were created
 Sold offer keys must retain their original price and credit allowance. Future pricing changes use new offer keys while preserving old mappings, including paid yearly contracts. Administrative credit gifts use unique `grantBucket` sources rather than editing the materialized balance directly.
 
 Sandbox yearly renewal/plan-change/refund cycles have fixture coverage; they were not executed as hosted payments this turn. Verify those provider lifecycle payloads before formally offering the corresponding operations.
+
+## Production preparation · 2026-10-14
+
+Merchant application `TKT_1HztXEGuGjxLvmaOODdC0W` was read back as `approved`, reviewed at `2026-10-14T09:28:13.811Z`. Store `STO_5I2J4YK9UUolwABxwPIhYa` is active with `prodEnabled=true`. Six live products match the approved prices and allowances. The live webhook targets `https://flowchartai.org/api/webhooks/waffo` with the 14 events above. Portal plan-change controls are disabled; the application requests next-period changes explicitly.
+
+Only additive migrations 0007–0009 were applied; older schema migrations were not rerun against the already existing tables. New financial tables have RLS and no browser-role grants. A private backup and post-migration comparison confirm no changes to 55,663 original balances, 113 original contracts or 2 original ledger rows. Twenty reviewed effective legacy records were frozen; unknown IDs: zero. See `production-baseline-receipt.json`, `production-migration-receipt.json` and `production-preservation-receipt.json`.
+
+Production configuration preserves the original authentication, database, AI provider and Creem secrets. Domain promotion and production user-path evidence are pending. No real card payment was made during preparation.

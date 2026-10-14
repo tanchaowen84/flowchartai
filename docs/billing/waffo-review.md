@@ -1,6 +1,6 @@
 # Waffo 审核记录 · 2026-10-14
 
-状态：**已提交，Under Review（审核中）**。用户明确确认最终稿及费表后提交一次；获批后再切换新购买。
+当前状态：**Approved（审核通过）**。2026-10-14 读回 `reviewStatus=approved`、`reviewedAt=2026-10-14T09:28:13.811Z`，正式店铺 `prodEnabled=true`、`status=active`。用户随后授权部署切换。以下保留提交时的历史证据。
 
 - 用户确认原文：`确认最终稿和费表，提交审核`。
 - 审核申请：`TKT_1HztXEGuGjxLvmaOODdC0W`。
@@ -23,4 +23,4 @@
 
 完整经营者资料和最终稿只存放在本地忽略文件 `.env.waffo-review-package.md`、`.env.waffo-review-draft.json`；状态回执存放在 `.env.waffo-review-submission.json`，均不提交 Git。最终稿 SHA-256：`dcf57de0e686d9e1a1410e812edd275042a2df03a4c395b8d808678a8da14dc0`。
 
-本轮已提交商户审核；没有部署产品、修改生产用户余额、迁移旧合同或启用正式收款。Under Review 不等于 Approved；只有实际 Approved 后才执行计费切换。
+提交审核阶段没有部署产品、修改生产用户余额、迁移旧合同或启用正式收款。审核通过后的正式商品、迁移和部署进度见 [正式切换说明](rollout.md)；审核通过本身不代表已完成域名切换或实际收款。
