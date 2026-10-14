@@ -458,9 +458,12 @@ export class CreemProvider implements PaymentProvider {
       'subscription.active',
       'subscription.trialing',
       'subscription.canceled',
+      'subscription.scheduled_cancel',
       'subscription.paid',
       'subscription.expired',
       'subscription.unpaid',
+      'subscription.past_due',
+      'subscription.paused',
       'subscription.update',
     ];
 
@@ -523,6 +526,9 @@ export class CreemProvider implements PaymentProvider {
             break;
 
           case 'subscription.update':
+          case 'subscription.scheduled_cancel':
+          case 'subscription.past_due':
+          case 'subscription.paused':
             await this.handleSubscriptionUpdate(tx, event);
             break;
 
