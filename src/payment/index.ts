@@ -1,4 +1,8 @@
 import { websiteConfig } from '@/config/website';
+import { getDb } from '@/db';
+import { payment } from '@/db/schema';
+import { billingEnabled } from '@/lib/billing/policy';
+import { desc, eq } from 'drizzle-orm';
 import { CreemProvider } from './provider/creem';
 import { StripeProvider } from './provider/stripe';
 import type {
@@ -21,7 +25,11 @@ let paymentProvider: PaymentProvider | null = null;
  * @returns current payment provider instance
  * @throws Error if provider is not initialized
  */
-export const getPaymentProvider = (): PaymentProvider => {
+export const getPaymentProvider = (
+  name?: 'creem' | 'stripe'
+): PaymentProvider => {
+  if (name === 'creem') return new CreemProvider();
+  if (name === 'stripe') return new StripeProvider();
   if (!paymentProvider) {
     return initializePaymentProvider();
   }
@@ -92,6 +100,28 @@ export const handleWebhookEvent = async (
 export const getSubscriptions = async (
   params: getSubscriptionsParams
 ): Promise<Subscription[]> => {
+  if (billingEnabled()) {
+    const db = await getDb();
+    const rows = await db
+      .select()
+      .from(payment)
+      .where(eq(payment.userId, params.userId))
+      .orderBy(desc(payment.createdAt));
+    return rows
+      .filter((p) => p.type === 'subscription')
+      .map((p) => ({
+        id: p.subscriptionId || p.id,
+        customerId: p.customerId,
+        priceId: p.priceId,
+        status: p.status as Subscription['status'],
+        type: p.type as Subscription['type'],
+        interval: p.interval as Subscription['interval'],
+        currentPeriodStart: p.periodStart || undefined,
+        currentPeriodEnd: p.periodEnd || undefined,
+        cancelAtPeriodEnd: p.cancelAtPeriodEnd || false,
+        createdAt: p.createdAt,
+      }));
+  }
   const provider = getPaymentProvider();
   return provider.getSubscriptions(params);
 };

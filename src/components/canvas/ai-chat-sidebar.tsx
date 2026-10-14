@@ -232,6 +232,18 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const hasAutoSentRef = useRef(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const billingTaskRef = useRef<string | null>(null);
+  const billingReceiptRef = useRef<{
+    taskId: string;
+    resultHash: string;
+  } | null>(null);
+  const [lastCreditCharge, setLastCreditCharge] = useState<number | null>(null);
+  const [recoverableTask, setRecoverableTask] = useState<string | null>(null);
+  const creditBilling = process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true';
+  useEffect(() => {
+    if (creditBilling)
+      setRecoverableTask(sessionStorage.getItem('flowchartai:billing-task'));
+  }, [creditBilling]);
   const requestCommittedRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -246,6 +258,46 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const currentPath = useLocalePathname();
   const { usageData, checkUsageLimit, refreshUsageData } = useAIUsageLimit();
   const { handleLimitReached: handleGuestLimitReached } = useGuestAIUsage();
+
+  const acknowledgeBillingResult = async () => {
+    if (!creditBilling) return;
+    let receipt = billingReceiptRef.current;
+    if (!receipt) {
+      try {
+        receipt = JSON.parse(
+          sessionStorage.getItem('flowchartai:billing-commit') || 'null'
+        );
+      } catch {}
+    }
+    if (!receipt) return;
+    sessionStorage.setItem(
+      'flowchartai:billing-commit',
+      JSON.stringify(receipt)
+    );
+    const response = await fetch('/api/billing/task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...receipt, action: 'commit' }),
+    }).catch(() => null);
+    if (response?.ok) {
+      const result = await response.json();
+      setLastCreditCharge(result.charged);
+      billingReceiptRef.current = null;
+      sessionStorage.removeItem('flowchartai:billing-commit');
+      sessionStorage.removeItem('flowchartai:billing-task');
+      setRecoverableTask(null);
+      refreshUsageData();
+    }
+  };
+  useEffect(() => {
+    if (!creditBilling) return;
+    const retry = () => {
+      void acknowledgeBillingResult();
+    };
+    retry();
+    window.addEventListener('focus', retry);
+    return () => window.removeEventListener('focus', retry);
+  }, [creditBilling, currentUser?.id]);
 
   const activeSendStatus = sendStatus;
   const taskStatus: DiagramTaskStatus = {
@@ -591,7 +643,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         setIsStreamingResponse(false);
         setAssistantResponsePhase('idle');
         // Check if it's a daily limit for free users
-        if (usageData?.timeFrame === 'daily') {
+        if (creditBilling) {
+          setShowPricingModal(true);
+        } else if (usageData?.timeFrame === 'daily') {
           console.log(
             '🎯 Daily limit detected - showing PricingModal directly'
           );
@@ -788,6 +842,12 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+        if (creditBilling && billingTaskRef.current)
+          void fetch('/api/billing/task', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId: billingTaskRef.current }),
+          });
       }
       // Clean up image preview URLs
       imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -845,6 +905,52 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       sessionStorage.removeItem(pendingAuthAttachmentStorageKey);
     } catch {
       // The in-memory attachment was still removed.
+    }
+  };
+
+  const recoverBillingResult = async () => {
+    if (!recoverableTask) return;
+    const response = await fetch(
+      `/api/billing/task?id=${encodeURIComponent(recoverableTask)}`
+    );
+    const task = await response.json();
+    if (response.ok && ['ready', 'committed'].includes(task.state)) {
+      billingReceiptRef.current = {
+        taskId: task.id,
+        resultHash: task.resultHash,
+      };
+      const commandEvent = task.result?.events?.find(
+        (e: any) => e.type === 'tool-call'
+      );
+      if (commandEvent) await applyCanvasCommand(commandEvent.args);
+      const text = task.result?.events
+        ?.filter((e: any) => e.type === 'text')
+        .map((e: any) => e.content || '')
+        .join('');
+      if (text) {
+        const id = `recovered:${task.id}`;
+        setMessages((prev) =>
+          prev.some((message) => message.id === id)
+            ? prev
+            : [
+                ...prev,
+                { id, role: 'assistant', content: text, timestamp: new Date() },
+              ]
+        );
+      }
+      await acknowledgeBillingResult();
+      setLastCreditCharge(task.charged);
+      sessionStorage.removeItem('flowchartai:billing-task');
+      setRecoverableTask(null);
+      refreshUsageData();
+    } else {
+      toast({
+        title: 'AI request',
+        description:
+          task.state === 'running'
+            ? 'Still working. Try restoring again in a moment.'
+            : 'No completed result is available. Your original diagram is kept.',
+      });
     }
   };
 
@@ -1017,6 +1123,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }
       markFlowchartPerformance('canvasCommitted');
       requestCommittedRef.current = true;
+
       setAssistantResponsePhase('complete');
       setTaskOutcome('done');
       setLastChange(command.description);
@@ -1176,7 +1283,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       const canUseAI = await checkUsageLimit();
       if (!canUseAI) {
-        if (usageData?.timeFrame === 'daily') {
+        if (creditBilling) {
+          setShowPricingModal(true);
+        } else if (usageData?.timeFrame === 'daily') {
           setDailyLimitUsageInfo({
             timeFrame: 'daily',
             nextResetTime: usageData.nextResetTime,
@@ -1386,7 +1495,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         setIsStreamingResponse(false);
         setAssistantResponsePhase('idle');
         // Check if it's a daily limit for free users
-        if (usageData?.timeFrame === 'daily') {
+        if (creditBilling) {
+          setShowPricingModal(true);
+        } else if (usageData?.timeFrame === 'daily') {
           console.log(
             '🎯 Daily limit detected - showing PricingModal directly'
           );
@@ -1548,35 +1659,57 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setAssistantResponsePhase('thinking');
     markFlowchartPerformance('agentRequestStarted');
 
-    const response = await fetch('/api/ai/chat/flowchart', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const billingTaskId = creditBilling ? crypto.randomUUID() : undefined;
+    billingTaskRef.current = billingTaskId || null;
+    billingReceiptRef.current = null;
+    if (billingTaskId)
+      sessionStorage.setItem('flowchartai:billing-task', billingTaskId);
+    const requestBody = {
+      billingTaskId,
+      messages: conversationMessages,
+      aiContext: {
+        ...(nativeSnapshot
+          ? {
+              editorKind: 'drawio',
+              nativeDocument: nativeSnapshot,
+              nativeSelection,
+            }
+          : {}),
+        canvasSnapshot,
+        lastMermaid: canvasContextRef.current.lastMermaid,
+        requestedMode: inferredMode,
+        mode: aiMode,
+        selectedDiagramId:
+          targetResolution.status === 'resolved'
+            ? targetResolution.diagramId
+            : undefined,
+        targetResolution,
+        flowchartAi: currentMetadata,
       },
-      body: JSON.stringify({
-        messages: conversationMessages,
-        aiContext: {
-          ...(nativeSnapshot
-            ? {
-                editorKind: 'drawio',
-                nativeDocument: nativeSnapshot,
-                nativeSelection,
-              }
-            : {}),
-          canvasSnapshot,
-          lastMermaid: canvasContextRef.current.lastMermaid,
-          requestedMode: inferredMode,
-          mode: aiMode,
-          selectedDiagramId:
-            targetResolution.status === 'resolved'
-              ? targetResolution.diagramId
-              : undefined,
-          targetResolution,
-          flowchartAi: currentMetadata,
+    };
+    const sendRequest = (approvedBudget?: number) =>
+      fetch('/api/ai/chat/flowchart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }),
-      signal: abortControllerRef.current?.signal,
-    });
+        body: JSON.stringify({ ...requestBody, approvedBudget }),
+        signal: abortControllerRef.current?.signal,
+      });
+    let response = await sendRequest();
+    if (creditBilling && response.status === 402) {
+      const error = await response
+        .clone()
+        .json()
+        .catch(() => ({}));
+      if (
+        error.error === 'budget_confirmation' &&
+        window.confirm(
+          `This request may use up to ${error.estimatedBudget} credits. Continue?`
+        )
+      )
+        response = await sendRequest(error.estimatedBudget);
+    }
     diagnostic.requestId =
       response.headers.get('x-flowchart-request-id') || 'missing-request-id';
 
@@ -1700,6 +1833,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       }
 
       const data = event as Record<string, any>;
+      if (data.type === 'billing') {
+        billingReceiptRef.current = {
+          taskId: data.taskId,
+          resultHash: data.resultHash,
+        };
+        if (data.state === 'committed') setLastCreditCharge(data.charged);
+        return;
+      }
       if (data.type === 'text') {
         setAssistantResponsePhase('responding');
         setSendStatus(null);
@@ -1825,7 +1966,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (completedCommand) {
       diagnostic.stage = 'prepare_canvas';
       diagnostic.code = 'prepare_canvas_failed';
-      await applyCanvasCommand(completedCommand);
+      try {
+        await applyCanvasCommand(completedCommand);
+      } catch (error) {
+        if (creditBilling && billingTaskRef.current)
+          await fetch('/api/billing/task', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              taskId: billingTaskRef.current,
+              action: 'cancel',
+            }),
+          }).catch(() => null);
+        throw error;
+      }
       logFlowchartDiagnostic({
         requestId: diagnostic.requestId,
         stage: 'prepare_canvas',
@@ -1843,6 +1997,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         elapsedMs: Date.now() - diagnostic.startedAt,
       });
     }
+    await acknowledgeBillingResult();
   };
 
   const processAIConversation = async (conversationMessages: any[]) => {
@@ -2262,6 +2417,45 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
           <div className="p-3">
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+              {creditBilling && (
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 pb-1 text-xs text-muted-foreground">
+                  <span>
+                    {usageData?.balance !== undefined
+                      ? `${usageData.balance.toLocaleString()} credits`
+                      : 'Original plan · no credit charge'}
+                    {lastCreditCharge !== null
+                      ? ` · Last request ${lastCreditCharge} credits`
+                      : usageData?.balance !== undefined
+                        ? ' · Estimate ~9–35 credits; longer requests use more'
+                        : ''}
+                  </span>
+                  <a
+                    href="/settings/billing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    Buy credits
+                  </a>
+                  {recoverableTask && (
+                    <button
+                      type="button"
+                      className="underline"
+                      onClick={() =>
+                        void recoverBillingResult().catch(() =>
+                          toast({
+                            title: 'Unable to restore',
+                            description:
+                              'The diagram may have changed. Your result remains in your account.',
+                          })
+                        )
+                      }
+                    >
+                      Restore AI result
+                    </button>
+                  )}
+                </div>
+              )}
               <Textarea
                 ref={textareaRef}
                 placeholder="Describe what to create or change..."

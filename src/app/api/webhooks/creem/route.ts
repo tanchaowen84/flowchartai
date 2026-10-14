@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     }
 
     // 3. 委托给Provider处理
-    const provider = getPaymentProvider() as CreemProvider;
+    const provider = getPaymentProvider('creem') as CreemProvider;
     await provider.handleWebhookEvent(body, signature);
 
     return NextResponse.json({ received: true });

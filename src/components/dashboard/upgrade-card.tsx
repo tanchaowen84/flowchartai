@@ -41,13 +41,23 @@ export function UpgradeCard() {
       <CardHeader className="gap-2">
         <CardTitle className="flex items-center gap-2">
           <SparklesIcon className="size-4" />
-          {t('title')}
+          {process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true'
+            ? 'More credits'
+            : t('title')}
         </CardTitle>
-        <CardDescription>{t('description')}</CardDescription>
+        <CardDescription>
+          {process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true'
+            ? 'Add credits when you need them.'
+            : t('description')}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Button className="cursor-pointer w-full shadow-none" size="sm">
-          <LocaleLink href={Routes.SettingsBilling}>{t('button')}</LocaleLink>
+          <LocaleLink href={Routes.SettingsBilling}>
+            {process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true'
+              ? 'Buy credits'
+              : t('button')}
+          </LocaleLink>
         </Button>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+import { billingEnabled } from '@/lib/billing/policy';
 import { getFlowchartModelForMode } from '@/lib/ai-models';
 import type { AiAssistantMode } from '@/lib/ai-modes';
 import { recordAIUsage } from '@/lib/ai-usage';
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (billingEnabled()) return NextResponse.json({success:true,serverAccounted:true});
     const body = await request.json();
     const validatedData = recordUsageSchema.parse(body);
 

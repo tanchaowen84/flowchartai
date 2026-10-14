@@ -57,7 +57,7 @@ export const createPortalAction = actionClient
 
     try {
       // Determine which customer ID field to use based on payment provider
-      const provider = getPaymentProvider();
+      const provider = getPaymentProvider('creem');
       const isCreemProvider = provider instanceof CreemProvider;
 
       // Get the user's customer ID from the database
@@ -115,7 +115,7 @@ export const createPortalAction = actionClient
         locale,
       };
 
-      const result = await createCustomerPortal(params);
+      const result = await provider.createCustomerPortal(params);
       // console.log('create customer portal result:', result);
       return {
         success: true,

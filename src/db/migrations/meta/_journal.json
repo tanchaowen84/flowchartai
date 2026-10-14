@@ -50,6 +50,27 @@
       "when": 1750524348423,
       "tag": "0006_dusty_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791947390682,
+      "tag": "0007_billing_v1",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791948608163,
+      "tag": "0008_billing_event_receipts",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791951025906,
+      "tag": "0009_checkout_recovery",
+      "breakpoints": true
     }
   ]
 }

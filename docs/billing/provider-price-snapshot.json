@@ -1,0 +1,319 @@
+{
+  "observedAt": "2026-10-14",
+  "source": "OpenRouter official /api/v1/models/{model}/endpoints",
+  "endpoints": {
+    "pro": [
+      {
+        "name": "Parasail",
+        "tag": "parasail/fp8",
+        "pricing": {
+          "prompt": "0.00000045",
+          "completion": "0.00000348",
+          "input_cache_read": "0.0000001",
+          "discount": 0
+        }
+      },
+      {
+        "name": "StreamLake",
+        "tag": "streamlake/fp8",
+        "pricing": {
+          "prompt": "0.00000095526",
+          "completion": "0.00000191052",
+          "input_cache_read": "0.000000079605",
+          "discount": 0.451
+        }
+      },
+      {
+        "name": "GMICloud",
+        "tag": "gmicloud/fp8",
+        "pricing": {
+          "prompt": "0.000000957",
+          "completion": "0.000001914",
+          "input_cache_read": "0.00000007975",
+          "discount": 0.45
+        }
+      },
+      {
+        "name": "DigitalOcean",
+        "tag": "digitalocean",
+        "pricing": {
+          "prompt": "0.000001044",
+          "completion": "0.000002088",
+          "input_cache_read": "0.0000002088",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Reka",
+        "tag": "reka",
+        "pricing": {
+          "prompt": "0.00000105",
+          "completion": "0.0000105",
+          "input_cache_read": "0.00000021",
+          "discount": 0.3
+        }
+      },
+      {
+        "name": "Cloudflare",
+        "tag": "cloudflare",
+        "pricing": {
+          "prompt": "0.00000115",
+          "completion": "0.00000255",
+          "input_cache_read": "0.0000002",
+          "discount": 0
+        }
+      },
+      {
+        "name": "DeepInfra",
+        "tag": "deepinfra/fp8",
+        "pricing": {
+          "prompt": "0.0000013",
+          "completion": "0.0000026",
+          "input_cache_read": "0.0000001",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Alibaba",
+        "tag": "alibaba/fp8",
+        "pricing": {
+          "prompt": "0.000001416",
+          "completion": "0.000002832",
+          "input_cache_read": "0.000000118",
+          "discount": 0
+        }
+      },
+      {
+        "name": "SiliconFlow",
+        "tag": "siliconflow/fp8",
+        "pricing": {
+          "prompt": "0.00000150162",
+          "completion": "0.000003135",
+          "input_cache_read": "0.000000135",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Alibaba",
+        "tag": "alibaba/fp8",
+        "pricing": {
+          "prompt": "0.00000156",
+          "completion": "0.00000312",
+          "input_cache_read": "0.00000013",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Novita",
+        "tag": "novita/fp8",
+        "pricing": {
+          "prompt": "0.0000016",
+          "completion": "0.0000032",
+          "input_cache_read": "0.000000135",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Venice",
+        "tag": "venice",
+        "pricing": {
+          "prompt": "0.00000165",
+          "completion": "0.000003301",
+          "input_cache_read": "0.00000033",
+          "discount": 0
+        }
+      },
+      {
+        "name": "AtlasCloud",
+        "tag": "atlas-cloud/fp4",
+        "pricing": {
+          "prompt": "0.00000168",
+          "completion": "0.00000338",
+          "input_cache_read": "0.00000013",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Baidu",
+        "tag": "baidu/fp8",
+        "pricing": {
+          "prompt": "0.00000169",
+          "completion": "0.00000338",
+          "input_cache_read": "0.00000014",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Azure",
+        "tag": "azure/us",
+        "pricing": {
+          "prompt": "0.00000191",
+          "completion": "0.00000383",
+          "input_cache_read": "0.00000016",
+          "discount": 0
+        }
+      }
+    ],
+    "flash": [
+      {
+        "name": "OpenInference",
+        "tag": "open-inference/fp4",
+        "pricing": {
+          "prompt": "0.00000004347",
+          "completion": "0.000001152",
+          "input_cache_read": "0.0000000117",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Relace",
+        "tag": "relace/fp4",
+        "pricing": {
+          "prompt": "0.00000005",
+          "completion": "0.00000128",
+          "input_cache_read": "0.00000005",
+          "discount": 0
+        }
+      },
+      {
+        "name": "StreamLake",
+        "tag": "streamlake/fp8",
+        "pricing": {
+          "prompt": "0.0000000826",
+          "completion": "0.0000001652",
+          "input_cache_read": "0.00000001652",
+          "discount": 0.41
+        }
+      },
+      {
+        "name": "DeepInfra",
+        "tag": "deepinfra/fp8",
+        "pricing": {
+          "prompt": "0.00000009",
+          "completion": "0.00000018",
+          "input_cache_read": "0.000000018",
+          "discount": 0
+        }
+      },
+      {
+        "name": "GMICloud",
+        "tag": "gmicloud/fp8",
+        "pricing": {
+          "prompt": "0.000000091",
+          "completion": "0.000000182",
+          "input_cache_read": "0.0000000182",
+          "discount": 0.35
+        }
+      },
+      {
+        "name": "Venice",
+        "tag": "venice",
+        "pricing": {
+          "prompt": "0.0000000966",
+          "completion": "0.0000001925",
+          "input_cache_read": "0.0000000196",
+          "discount": 0.3
+        }
+      },
+      {
+        "name": "DigitalOcean",
+        "tag": "digitalocean",
+        "pricing": {
+          "prompt": "0.000000098",
+          "completion": "0.000000196",
+          "input_cache_read": "0.0000000196",
+          "discount": 0
+        }
+      },
+      {
+        "name": "SiliconFlow",
+        "tag": "siliconflow/fp8",
+        "pricing": {
+          "prompt": "0.00000013",
+          "completion": "0.00000028",
+          "input_cache_read": "0.000000028",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Baidu",
+        "tag": "baidu/fp8",
+        "pricing": {
+          "prompt": "0.00000014",
+          "completion": "0.00000028",
+          "input_cache_read": "0.000000028",
+          "discount": 0
+        }
+      },
+      {
+        "name": "AtlasCloud",
+        "tag": "atlas-cloud/fp4",
+        "pricing": {
+          "prompt": "0.00000014",
+          "completion": "0.00000028",
+          "input_cache_read": "0.000000028",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Parasail",
+        "tag": "parasail/fp8",
+        "pricing": {
+          "prompt": "0.00000014",
+          "completion": "0.00000028",
+          "input_cache_read": "0.00000007",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Alibaba",
+        "tag": "alibaba/fp8",
+        "pricing": {
+          "prompt": "0.00000015",
+          "completion": "0.0000003",
+          "input_cache_read": "0.00000003",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Mancer 2",
+        "tag": "mancer/fp8",
+        "pricing": {
+          "prompt": "0.00000019",
+          "completion": "0.0000005",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Azure",
+        "tag": "azure/us",
+        "pricing": {
+          "prompt": "0.00000021",
+          "completion": "0.00000056",
+          "input_cache_read": "0.000000031",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Wafer",
+        "tag": "wafer",
+        "pricing": {
+          "prompt": "0.00000039",
+          "completion": "0.00000017",
+          "input_cache_read": "0.000000013",
+          "discount": 0
+        }
+      },
+      {
+        "name": "Cloudflare",
+        "tag": "cloudflare",
+        "pricing": {
+          "prompt": "0.00000044",
+          "completion": "0.00000132",
+          "input_cache_read": "0.000000014",
+          "discount": 0
+        }
+      }
+    ]
+  }
+}

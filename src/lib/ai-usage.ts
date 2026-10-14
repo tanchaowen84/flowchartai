@@ -1,5 +1,7 @@
 import { getDb } from '@/db';
 import { aiUsage, payment } from '@/db/schema';
+import { billingEnabled, legacyPlanForPayment } from '@/lib/billing/policy';
+import { walletSummary } from '@/lib/billing/wallet';
 import { and, eq, gte, sql } from 'drizzle-orm';
 
 // AI使用量限制配置
@@ -39,7 +41,9 @@ export async function getUserPlanLevel(
     return 'free';
   }
 
-  return getPlanLevelFromPriceId(subscription.priceId);
+  return (
+    subscription.legacyPlan || getPlanLevelFromPriceId(subscription.priceId)
+  );
 }
 
 // 获取用户的订阅状态
@@ -49,6 +53,13 @@ export async function getUserSubscriptionStatus(userId: string) {
   // 查询用户的订阅记录（不限制status，但要求在有效期内）
   const payments = await db
     .select({
+      ...(billingEnabled()
+        ? {
+            provider: payment.provider,
+            legacyPlan: payment.legacyPlan,
+            metadata: payment.metadata,
+          }
+        : {}),
       type: payment.type,
       interval: payment.interval,
       status: payment.status,
@@ -61,6 +72,7 @@ export async function getUserSubscriptionStatus(userId: string) {
     .where(
       and(
         eq(payment.userId, userId),
+        ...(billingEnabled() ? [eq(payment.provider, 'creem')] : []),
         // 检查订阅是否还在有效期内
         gte(payment.periodEnd, new Date())
       )
@@ -80,7 +92,11 @@ export async function getUserSubscriptionStatus(userId: string) {
   // 查找有效的订阅
   const validSubscription = payments.find((p) => {
     // 1. Active或trialing状态的订阅直接有效
-    if (p.status === 'active' || p.status === 'trialing') {
+    if (
+      p.status === 'active' ||
+      p.status === 'trialing' ||
+      (billingEnabled() && p.status === 'past_due')
+    ) {
       return true;
     }
 
@@ -113,6 +129,9 @@ export async function getUserSubscriptionStatus(userId: string) {
     interval: validSubscription.interval,
     status: validSubscription.status,
     priceId: validSubscription.priceId,
+    legacyPlan: billingEnabled()
+      ? legacyPlanForPayment(validSubscription) || 'professional'
+      : undefined,
     isInGracePeriod,
     willEndOn: validSubscription.periodEnd,
     canceledAt: validSubscription.canceledAt,
@@ -127,7 +146,19 @@ export async function canUserUseAI(userId: string): Promise<{
   limit?: number;
   timeFrame?: 'daily' | 'monthly';
   nextResetTime?: Date;
+  billingMode?: string;
 }> {
+  const wallet = billingEnabled() ? await walletSummary(userId) : null;
+  if (wallet) {
+    if (!wallet.legacy)
+      return {
+        canUse: wallet.balance > 0,
+        remainingUsage: wallet.balance,
+        limit: wallet.balance,
+        reason: wallet.balance > 0 ? undefined : 'Buy credits to continue',
+        billingMode: 'credits',
+      } as any;
+  }
   const db = await getDb();
 
   // 获取用户订阅状态
@@ -150,7 +181,8 @@ export async function canUserUseAI(userId: string): Promise<{
     nextResetTime.setDate(nextResetTime.getDate() + 1);
   } else {
     // 付费用户：根据产品ID确定计划等级
-    const planLevel = getPlanLevelFromPriceId(subscription.priceId);
+    const planLevel =
+      subscription.legacyPlan || getPlanLevelFromPriceId(subscription.priceId);
 
     if (planLevel === 'hobby') {
       limit = AI_USAGE_LIMITS.HOBBY_USER_MONTHLY;
@@ -198,6 +230,14 @@ export async function canUserUseAI(userId: string): Promise<{
   const currentUsage = Number(usageCount[0]?.count || 0);
   const remainingUsage = Math.max(0, limit - currentUsage);
 
+  if (wallet && currentUsage >= limit)
+    return {
+      canUse: wallet.balance > 0,
+      remainingUsage: wallet.balance,
+      limit: wallet.balance,
+      billingMode: 'credits',
+      reason: wallet.balance > 0 ? undefined : 'Buy credits to continue',
+    };
   if (currentUsage >= limit) {
     const timeFrameText = timeFrameType === 'daily' ? 'today' : 'this month';
     const resetText = timeFrameType === 'daily' ? 'tomorrow' : 'next month';
@@ -213,6 +253,7 @@ export async function canUserUseAI(userId: string): Promise<{
   }
 
   return {
+    billingMode: wallet?.legacy ? 'legacy' : undefined,
     canUse: true,
     remainingUsage,
     limit,

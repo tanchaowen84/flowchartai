@@ -1,3 +1,5 @@
+import { billingEnabled, legacyPlanForPayment } from '@/lib/billing/policy';
+import { grantBucket, lockWallet } from '@/lib/billing/wallet';
 /**
  * Creem Database Operations with Drizzle ORM
  * 
@@ -345,12 +347,30 @@ export async function createOrUpdatePaymentFromCreemSubscription(
 
     // Check if payment already exists
     const existingPayment = await tx
-      .select({ id: payment.id })
+      .select({
+        id: payment.id,
+        ...(billingEnabled()
+          ? { legacyPlan: payment.legacyPlan, priceId: payment.priceId, userId: payment.userId }
+          : {}),
+      })
       .from(payment)
       .where(eq(payment.subscriptionId, creemSubscription.id))
       .limit(1);
 
+    const mappedLegacyPlan = legacyPlanForPayment({ priceId: productInfo.id });
+    if (billingEnabled() && !mappedLegacyPlan && !existingPayment.length)
+      throw new CreemOperationError('Unrecognized legacy subscription product', 'legacy_product_mapping');
+    if (billingEnabled() && existingPayment[0]?.userId && existingPayment[0].userId !== userId)
+      throw new CreemOperationError('Legacy subscription owner mismatch', 'legacy_subscription_owner');
     const paymentData: Partial<PaymentRecord> = {
+      ...(billingEnabled()
+        ? {
+            provider: 'creem',
+            legacyPlan:
+              (existingPayment[0]?.priceId !== productInfo.id ? mappedLegacyPlan : null) ||
+              existingPayment[0]?.legacyPlan || mappedLegacyPlan,
+          }
+        : {}),
       priceId: productInfo.id, // Using product ID as price ID for Creem
       type: paymentType,
       interval: interval,
@@ -655,6 +675,12 @@ export async function addCreditsToUser(
       );
     }
 
+    if (billingEnabled()) {
+      await lockWallet(tx as any,userId);
+      await grantBucket(tx as any,{userId,amount:creditsAmount,source:'legacy-purchase',sourceKey:`creem:order:${creemOrderId}`,paymentId:creemOrderId});
+      const [owner]=await tx.select({credits:user.credits}).from(user).where(eq(user.id,userId));
+      return owner.credits || 0;
+    }
     // Get current user credits
     const userRecord = await tx
       .select({ 

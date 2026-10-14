@@ -1,6 +1,7 @@
 'use server';
 
-import { findPlanByPlanId } from '@/lib/price-plan';
+import { billingEnabled } from '@/lib/billing/policy';
+import { findPlanByPlanId, findPriceInPlan } from '@/lib/price-plan';
 import { getSession } from '@/lib/server';
 import { getUrlWithLocale } from '@/lib/urls/urls';
 import { createCheckout } from '@/payment';
@@ -59,12 +60,18 @@ export const createCheckoutAction = actionClient
 
       // Check if plan exists
       const plan = findPlanByPlanId(planId);
-      if (!plan) {
+      if (!plan || !findPriceInPlan(planId, priceId)) {
         return {
           success: false,
           error: 'Plan not found',
         };
       }
+
+      if (billingEnabled())
+        return {
+          success: false,
+          error: 'Use the new billing offers for new purchases.',
+        };
 
       // Add user id to metadata, so we can get it in the webhook event
       const customMetadata = {

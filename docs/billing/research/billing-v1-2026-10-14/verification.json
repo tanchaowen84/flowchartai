@@ -1,0 +1,228 @@
+{
+  "scope": "Native document structure and complete accounting; no browser or payment QA",
+  "fiveUserRequests": 5,
+  "userRequestModelCalls": 9,
+  "userRequestCostUsd": 0.02446514777,
+  "repairRequests": 1,
+  "repairModelCalls": 1,
+  "repairCostUsd": 0.00510099723,
+  "allAccountingComplete": true,
+  "finalOrphanBusinessNodes": [],
+  "allThreeEditsPatch": true,
+  "styleEditRetainedExistingEdgesAndRetrySummaries": true,
+  "repairChangedOnlyRedundantNode": true,
+  "finalStructure": {
+    "cells": 81,
+    "vertices": 41,
+    "groups": 7,
+    "flowNodes": 34,
+    "edges": 40,
+    "labels": [
+      {
+        "id": "start",
+        "label": "开始",
+        "parent": "swim_customer"
+      },
+      {
+        "id": "cust_apply",
+        "label": "客户申请退款\n并提交凭证",
+        "parent": "swim_customer"
+      },
+      {
+        "id": "cs_check",
+        "label": "客服校验订单",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "cs_valid",
+        "label": "订单有效？",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "cs_reject1",
+        "label": "拒绝退款",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "cs_deadline",
+        "label": "是否在退款期限内？",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "cs_reject2",
+        "label": "超期拒绝",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "cs_evidence",
+        "label": "凭证完整？",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "cs_notify_resubmit",
+        "label": "通知客户补交凭证",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "cust_resubmit",
+        "label": "客户补交凭证",
+        "parent": "swim_customer"
+      },
+      {
+        "id": "fork",
+        "label": "并行开始",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "sup_check",
+        "label": "主管检查退款理由",
+        "parent": "swim_supervisor"
+      },
+      {
+        "id": "sup_approve",
+        "label": "主管审批通过？",
+        "parent": "swim_supervisor"
+      },
+      {
+        "id": "sup_reject",
+        "label": "通知客户拒绝",
+        "parent": "swim_supervisor"
+      },
+      {
+        "id": "fin_check",
+        "label": "金额一致性校验",
+        "parent": "swim_finance"
+      },
+      {
+        "id": "fin_correct",
+        "label": "金额正确？",
+        "parent": "swim_finance"
+      },
+      {
+        "id": "fin_fix",
+        "label": "更正金额",
+        "parent": "swim_finance"
+      },
+      {
+        "id": "fin_approve",
+        "label": "财务审批通过？",
+        "parent": "swim_finance"
+      },
+      {
+        "id": "fin_reject",
+        "label": "通知客户拒绝",
+        "parent": "swim_finance"
+      },
+      {
+        "id": "join",
+        "label": "全部审批通过",
+        "parent": "swim_payment"
+      },
+      {
+        "id": "pay_exec",
+        "label": "支付执行退款",
+        "parent": "swim_payment"
+      },
+      {
+        "id": "pay_success",
+        "label": "退款成功？",
+        "parent": "swim_payment"
+      },
+      {
+        "id": "pay_retryable",
+        "label": "是否可重试？",
+        "parent": "swim_payment"
+      },
+      {
+        "id": "pay_retry_group",
+        "label": "重试子流程",
+        "parent": "swim_payment"
+      },
+      {
+        "id": "pay_retry",
+        "label": "等待60秒后重试退款",
+        "parent": "pay_retry_group"
+      },
+      {
+        "id": "pay_manual",
+        "label": "转人工处理",
+        "parent": "swim_payment"
+      },
+      {
+        "id": "cs_notify",
+        "label": "客服通知客户\n并归档",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "end",
+        "label": "结束",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "swim_customer",
+        "label": "客户",
+        "parent": "1"
+      },
+      {
+        "id": "swim_cs",
+        "label": "客服",
+        "parent": "1"
+      },
+      {
+        "id": "swim_supervisor",
+        "label": "主管",
+        "parent": "1"
+      },
+      {
+        "id": "swim_finance",
+        "label": "财务",
+        "parent": "1"
+      },
+      {
+        "id": "swim_payment",
+        "label": "支付",
+        "parent": "1"
+      },
+      {
+        "id": "bounded_pay_exec_init",
+        "label": "重试次数 = 0",
+        "parent": "swim_payment"
+      },
+      {
+        "id": "bounded_pay_exec_check",
+        "label": "重试次数 < 3？",
+        "parent": "pay_retry_group"
+      },
+      {
+        "id": "bounded_pay_exec_increment",
+        "label": "重试次数 + 1",
+        "parent": "pay_retry_group"
+      },
+      {
+        "id": "cs_risk_check",
+        "label": "风控检查： 是否高风险？",
+        "parent": "swim_cs"
+      },
+      {
+        "id": "sup_manual_review",
+        "label": "主管人工复核",
+        "parent": "sup_risk_group"
+      },
+      {
+        "id": "sup_review_approve",
+        "label": "复核通过？",
+        "parent": "sup_risk_group"
+      },
+      {
+        "id": "sup_review_reject",
+        "label": "通知客户拒绝",
+        "parent": "sup_risk_group"
+      },
+      {
+        "id": "sup_risk_group",
+        "label": "高风险人工复核",
+        "parent": "swim_supervisor"
+      }
+    ]
+  }
+}

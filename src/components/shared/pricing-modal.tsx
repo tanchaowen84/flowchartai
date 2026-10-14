@@ -2,6 +2,7 @@
 
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { CheckoutButton } from '@/components/pricing/create-checkout-button';
+import { CreditPricing } from '@/components/pricing/credit-pricing';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +24,8 @@ import {
   type PricePlan,
 } from '@/payment/types';
 import { Check } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import type React from 'react';
+import { useRef, useState } from 'react';
 
 interface LimitContext {
   type: 'daily' | 'monthly';
@@ -96,6 +98,8 @@ export function PricingModal({
   onClose,
   limitContext,
 }: PricingModalProps) {
+  if (process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true')
+    return <CreditPricingModal isOpen={isOpen} onClose={onClose} />;
   const [interval, setInterval] = useState<PlanInterval>(PlanIntervals.YEAR);
   const [selectedMobilePlanId, setSelectedMobilePlanId] =
     useState('professional');
@@ -334,6 +338,29 @@ export function PricingModal({
             })}
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CreditPricingModal({
+  isOpen,
+  onClose,
+}: { isOpen: boolean; onClose: () => void }): React.ReactElement {
+  const { currentPlan, subscription } = usePayment();
+  const legacy = Boolean(
+    subscription && ['hobby', 'professional'].includes(currentPlan?.id || '')
+  );
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Choose your credits</DialogTitle>
+          <DialogDescription>
+            Subscriptions provide monthly credits. One-time packs never expire.
+          </DialogDescription>
+        </DialogHeader>
+        <CreditPricing compact legacy={legacy} />
       </DialogContent>
     </Dialog>
   );

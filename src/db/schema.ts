@@ -73,6 +73,9 @@ export const payment = pgTable("payment", {
 	trialEnd: timestamp('trial_end'),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at').notNull().defaultNow(),
+	provider: text("provider").notNull().default("creem"),
+	offerKey: text("offer_key"),
+	legacyPlan: text("legacy_plan"),
 	// Creem specific fields
 	canceledAt: timestamp('canceled_at'),
 	metadata: jsonb('metadata').default('{}'),
@@ -131,4 +134,81 @@ export const guestUsage = pgTable("guest_usage", {
 	return {
 		ipHashDateIdx: index('guest_usage_ip_date_idx').on(table.ipHash, table.createdAt),
 	}
+});
+
+// Billing V1: additive tables; historical balances and ledger are preserved.
+export const creditBuckets = pgTable('credit_buckets', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  source: text('source').notNull(),
+  sourceKey: text('source_key').notNull().unique(),
+  granted: integer('granted').notNull(),
+  remaining: integer('remaining').notNull(),
+  reserved: integer('reserved').notNull().default(0),
+  expiresAt: timestamp('expires_at'),
+  paymentId: text('payment_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+export const billingTasks = pgTable(
+  'billing_tasks',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    requestHash: text('request_hash').notNull(),
+    state: text('state').notNull(),
+    budget: integer('budget').notNull(),
+    charged: integer('charged').notNull().default(0),
+    legacy: boolean('legacy').notNull().default(false),
+    rateVersion: text('rate_version').notNull(),
+    allocations: jsonb('allocations').notNull().default('[]'),
+    calls: jsonb('calls').notNull().default('[]'),
+    result: jsonb('result'),
+    resultHash: text('result_hash'),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    userState: index('billing_tasks_user_state_idx').on(t.userId, t.state),
+  })
+);
+export const billingSubscriptions = pgTable('billing_subscriptions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  offerKey: text('offer_key').notNull(),
+  status: text('status').notNull(),
+  anchor: timestamp('anchor').notNull(),
+  paidThrough: timestamp('paid_through').notNull(),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  eventAt: timestamp('event_at').notNull(),
+});
+export const billingCheckouts = pgTable('billing_checkouts', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  offerKey: text('offer_key').notNull(),
+  environment: text('environment').notNull(),
+  state: text('state').notNull().default('pending'),
+  orderId: text('order_id').unique(),
+  sessionId: text('session_id'),
+  checkoutUrl: text('checkout_url'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+export const billingEvents = pgTable('billing_events', {
+  id: text('id').primaryKey(),
+  provider: text('provider').notNull(),
+  eventType: text('event_type').notNull(),
+  metadata: jsonb('metadata').notNull().default('{}'),
+  orderId: text('order_id'),
+  paymentId: text('payment_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });

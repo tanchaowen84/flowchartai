@@ -1,3 +1,4 @@
+import { billingProviderRoute } from '@/lib/billing/provider-routes';
 /**
  * [INPUT] Native configured model, existing key and optional test transport.
  * [OUTPUT] AI SDK 7-compatible OpenRouter model for native tool execution.
@@ -20,12 +21,23 @@ export function getNativeModelForMode(mode: AiAssistantMode): string {
 
 export function createNativeModel(
   mode: AiAssistantMode,
-  options?: Pick<OpenRouterProviderSettings, 'apiKey' | 'fetch'>
+  options?: Pick<OpenRouterProviderSettings, 'apiKey' | 'fetch'> & {
+    model?: string;
+    billing?: boolean;
+  }
 ): ReturnType<ReturnType<typeof createOpenRouter>['chat']> {
-  const model = getNativeModelForMode(mode).replace(/^openrouter\//, '');
+  const model = (options?.model || getNativeModelForMode(mode)).replace(
+    /^openrouter\//,
+    ''
+  );
   const provider = createOpenRouter({
     apiKey: options?.apiKey || process.env.OPENROUTER_API_KEY,
     fetch: options?.fetch,
   });
-  return provider.chat(model, { extraBody: nativeProviderBody(model) });
+  return provider.chat(model, {
+    extraBody: {
+      ...nativeProviderBody(model),
+      ...(options?.billing ? { provider: billingProviderRoute(model) } : {}),
+    },
+  });
 }
