@@ -1,14 +1,28 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
 import { sendServerEvent } from '@/analytics/plausible-server';
 import { getFlowchartModelForMode } from '@/lib/ai-models';
 import type { AiAssistantMode } from '@/lib/ai-modes';
 import { canUserUseAI } from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
+import { billingEnabled } from '@/lib/billing/policy';
+import {
+  type UsageCollector,
+  createUsageCollector,
+  estimateTaskBudget,
+} from '@/lib/billing/usage-collector';
+import {
+  BillingError,
+  finalizeTask,
+  readyTask,
+  recordTaskCalls,
+  reserveTask,
+} from '@/lib/billing/wallet';
 import {
   extractLatestUserPrompt,
   screenPromptWithCreem,
 } from '@/lib/creem-moderation';
+import { prepareDrawioCommand } from '@/lib/drawio/command';
 import { drawioDocumentSchema } from '@/lib/drawio/contracts';
 import { nativeModelSettings } from '@/lib/drawio/model-settings';
 import {
@@ -47,6 +61,8 @@ const IMAGE_MODE: AiAssistantMode = 'image_to_flowchart';
 interface AgentRequestBody {
   messages: any[];
   aiContext?: Record<string, any>;
+  billingTaskId?: string;
+  approvedBudget?: number;
 }
 
 function jsonResponse(
@@ -106,7 +122,13 @@ function createAgentStreamResponse(
   requestSignal: AbortSignal,
   requestId: string,
   startedAt: number,
-  native = false
+  native = false,
+  billing?: {
+    id: string;
+    userId: string;
+    collector: UsageCollector;
+    document: any;
+  }
 ): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -127,6 +149,9 @@ function createAgentStreamResponse(
         );
       };
 
+      const resultEvents: any[] = [];
+      let settled = false;
+      let platformRepair = false;
       try {
         const eventCounts: Record<string, number> = {};
         for await (const chunk of output.fullStream) {
@@ -148,8 +173,54 @@ function createAgentStreamResponse(
               });
             }
           }
+          if (chunk?.type === 'tool-error') platformRepair = true;
           const event = mapper.map(chunk);
-          if (event) emit(event);
+          if (event) {
+            if (billing && (event as any).type === 'finish') {
+              if (requestSignal.aborted)
+                throw new DOMException('Request aborted', 'AbortError');
+              const commandEvent = resultEvents.find(
+                (e) => e.type === 'tool-call'
+              );
+              if (commandEvent?.args.kind === 'drawio-command')
+                prepareDrawioCommand(billing.document, commandEvent.args);
+              const hasResult =
+                commandEvent ||
+                resultEvents.some(
+                  (e) => e.type === 'text' && e.content?.trim()
+                );
+              if (!hasResult)
+                throw new Error('AI task produced no usable result');
+              const calls = (await billing.collector.finish()).map((call) => ({
+                ...call,
+                platformFunded: platformRepair,
+              }));
+              const text = resultEvents
+                .filter((e) => e.type === 'text')
+                .map((e) => e.content || '')
+                .join('');
+              const result = {
+                events: [
+                  ...(text ? [{ type: 'text', content: text }] : []),
+                  ...(commandEvent ? [commandEvent] : []),
+                  event,
+                ],
+              };
+              const hash = createHash('sha256')
+                .update(JSON.stringify(result))
+                .digest('hex');
+              await readyTask(billing.id, billing.userId, result, hash, calls);
+              settled = true;
+              emit({
+                type: 'billing',
+                taskId: billing.id,
+                state: 'ready',
+                resultHash: hash,
+              });
+            }
+            resultEvents.push(event);
+            emit(event);
+          }
           if (mapper.isTerminated()) break;
         }
 
@@ -191,6 +262,15 @@ function createAgentStreamResponse(
           });
         }
       } finally {
+        if (billing && !settled) {
+          const calls = await billing.collector.receipts();
+          await recordTaskCalls(
+            billing.userId,
+            billing.id,
+            calls.map((call) => ({ ...call, platformFunded: true }))
+          ).catch(() => undefined);
+          await finalizeTask(billing.userId, billing.id).catch(() => undefined);
+        }
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       }
@@ -272,6 +352,25 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const latestUserPrompt = extractLatestUserPrompt(body.messages);
+  let billingContext:
+    | { id: string; userId: string; collector: UsageCollector; document: any }
+    | undefined;
+  let replay: any = null;
+  let legacyAllowance = false;
+  const v1 = billingEnabled();
+  const taskId = body.billingTaskId || randomUUID();
+  if (v1 && !/^[a-zA-Z0-9_-]{16,80}$/.test(taskId))
+    return jsonResponse({ error: 'invalid_task' }, 400, requestId);
+  const estimatedBudget = estimateTaskBudget({
+    messages: body.messages,
+    aiContext: body.aiContext,
+  });
+  const approvedBudget =
+    estimatedBudget > 64
+      ? typeof body.approvedBudget === 'number'
+        ? body.approvedBudget
+        : 64
+      : estimatedBudget;
 
   try {
     const guarded = await runGuardedFlowchartAgent(
@@ -279,13 +378,17 @@ export async function POST(request: Request): Promise<Response> {
       {
         getSession: async () =>
           auth.api.getSession({ headers: await headers() }),
-        checkUsage: canUserUseAI,
+        checkUsage: async (userId) => {
+          const usage = await canUserUseAI(userId);
+          legacyAllowance = v1 && usage.billingMode === 'legacy';
+          return usage;
+        },
         moderate: async (prompt, userId) =>
           screenPromptWithCreem({
             prompt,
             externalId: `user_${userId}_flowchart_${Date.now()}`,
           }),
-        invokeAgent: async () => {
+        invokeAgent: async (userId) => {
           const nativeDocument =
             body.aiContext?.editorKind === 'drawio'
               ? drawioDocumentSchema.parse(body.aiContext.nativeDocument)
@@ -309,9 +412,61 @@ export async function POST(request: Request): Promise<Response> {
             messages: body.messages,
             requestedMode: body.aiContext?.requestedMode,
           });
-          const model = nativeDocument
-            ? createNativeModel(requestedMode)
-            : buildGatewayModelId(getFlowchartModelForMode(requestedMode));
+          const modelId = nativeDocument
+            ? getNativeModelForMode(requestedMode)
+            : getFlowchartModelForMode(requestedMode);
+          if (v1) {
+            if (
+              !legacyAllowance &&
+              estimatedBudget > 64 &&
+              (!Number.isSafeInteger(body.approvedBudget) ||
+                approvedBudget < estimatedBudget)
+            )
+              throw new BillingError(
+                'budget_confirmation',
+                'This request needs a larger AI budget.',
+                402,
+                { estimatedBudget }
+              );
+            const hash = createHash('sha256')
+              .update(
+                JSON.stringify({
+                  messages: body.messages,
+                  aiContext: body.aiContext,
+                })
+              )
+              .digest('hex');
+            const task = await reserveTask({
+              id: taskId,
+              userId,
+              requestHash: hash,
+              budget: approvedBudget,
+            });
+            if (['ready', 'committed'].includes(task.state) && task.result) {
+              replay = task;
+              return { fullStream: (async function* () {})() };
+            }
+            if (task.state === 'released')
+              throw new BillingError(
+                'task_closed',
+                'Start a new request for this retry'
+              );
+            billingContext = {
+              id: taskId,
+              userId,
+              collector: createUsageCollector(modelId),
+              document: nativeDocument,
+            };
+          }
+          const model = v1
+            ? createNativeModel(requestedMode, {
+                model: modelId,
+                fetch: billingContext!.collector.fetch,
+                billing: !legacyAllowance,
+              })
+            : nativeDocument
+              ? createNativeModel(requestedMode)
+              : buildGatewayModelId(modelId);
 
           logFlowchartDiagnostic({
             requestId,
@@ -359,6 +514,28 @@ export async function POST(request: Request): Promise<Response> {
       return jsonResponse(guarded.body, guarded.status, requestId);
     }
 
+    if (replay) {
+      const events = [
+        ...(replay.result.events || []),
+        {
+          type: 'billing',
+          taskId: replay.id,
+          charged: replay.charged,
+          state: replay.state,
+          resultHash: replay.resultHash,
+        },
+      ];
+      return new Response(
+        events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join('') +
+          'data: [DONE]\n\n',
+        {
+          headers: {
+            'Content-Type': 'text/event-stream; charset=utf-8',
+            'X-Flowchart-Request-Id': requestId,
+          },
+        }
+      );
+    }
     // Count accepted requests after auth, quota, moderation and agent startup.
     // Delivery runs after the response and does not delay the first AI token.
     try {
@@ -385,9 +562,20 @@ export async function POST(request: Request): Promise<Response> {
       request.signal,
       requestId,
       startedAt,
-      body.aiContext?.editorKind === 'drawio'
+      body.aiContext?.editorKind === 'drawio',
+      billingContext
     );
   } catch (error) {
+    if (billingContext)
+      await finalizeTask(billingContext.userId, billingContext.id).catch(
+        () => undefined
+      );
+    if (error instanceof BillingError)
+      return jsonResponse(
+        { error: error.code, message: error.message },
+        error.status,
+        requestId
+      );
     logFlowchartDiagnostic({
       requestId,
       stage: 'agent',

@@ -1,0 +1,1 @@
+ALTER TABLE "billing_events" ADD COLUMN "metadata" jsonb DEFAULT '{}' NOT NULL;

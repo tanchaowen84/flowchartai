@@ -179,6 +179,9 @@ importers:
       '@vercel/speed-insights':
         specifier: ^1.2.0
         version: 1.2.0(next@15.2.6(@babel/core@7.24.5)(@opentelemetry/api@1.9.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)
+      '@waffo/pancake-ts':
+        specifier: 0.26.0
+        version: 0.26.0
       '@widgetbot/react-embed':
         specifier: ^1.9.0
         version: 1.9.0(react@19.0.0)
@@ -3833,6 +3836,10 @@ packages:
 
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
+
+  '@waffo/pancake-ts@0.26.0':
+    resolution: {integrity: sha512-3exK093SGBYmbhEF40jRF+BiCQZRLLThxsADZ3s3vJs/JPDqRSICAmUiIUhu0/gtDe1hB0VzrduLSYRS9YAMhg==}
+    engines: {node: '>=20.0.0'}
 
   '@widgetbot/embed-api@1.2.17':
     resolution: {integrity: sha512-qoiFLMak+mBG64pgKN5xFv3amPHcG2qcurPefAbof4DI/eip5OU59pbM+ak4d9d9OIkwA1QhoDzo9KWD/cOn0w==}
@@ -10885,6 +10892,8 @@ snapshots:
       '@vitest/pretty-format': 3.2.4
       loupe: 3.2.1
       tinyrainbow: 2.0.0
+
+  '@waffo/pancake-ts@0.26.0': {}
 
   '@widgetbot/embed-api@1.2.17':
     dependencies:

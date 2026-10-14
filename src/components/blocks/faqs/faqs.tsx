@@ -8,7 +8,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import type { IconName } from 'lucide-react/dynamic';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 type FAQItem = {
   id: string;
@@ -18,15 +18,17 @@ type FAQItem = {
 };
 
 export default function FaqSection() {
-  const locale = useLocale();
   const t = useTranslations('HomePage.faqs');
+  const creditBilling = process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true';
 
   const faqItems: FAQItem[] = [
     {
       id: 'item-1',
       icon: 'calendar-clock',
       question: t('items.item-1.question'),
-      answer: t('items.item-1.answer'),
+      answer: creditBilling
+        ? 'Yes. Registration includes 200 trial credits, valid for 30 days. Manual editing, saving and downloading are free. Every plan uses the same AI quality and editing tools.'
+        : t('items.item-1.answer'),
     },
     {
       id: 'item-2',
@@ -50,7 +52,9 @@ export default function FaqSection() {
       id: 'item-5',
       icon: 'mail',
       question: t('items.item-5.question'),
-      answer: t('items.item-5.answer'),
+      answer: creditBilling
+        ? 'Choose a plan or buy permanent credits in Billing. Plan changes begin next subscription period; canceling renewal preserves the paid period. Existing Creem subscriptions keep their original price and benefits, with their original management link.'
+        : t('items.item-5.answer'),
     },
     {
       id: 'item-6',

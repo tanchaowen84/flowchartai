@@ -1,0 +1,48 @@
+{
+  "appliedAt": "2026-10-14T09:55:56.107Z",
+  "migrations": [
+    "0007_billing_v1",
+    "0008_billing_event_receipts",
+    "0009_checkout_recovery"
+  ],
+  "history": [
+    {
+      "id": 1,
+      "hash": "5a4c329418a74ccba6cd4c47cdfba73c45c844efd67545113c1d10b592c6b405",
+      "created_at": "1791947390682"
+    },
+    {
+      "id": 2,
+      "hash": "a324cc6ca40dc7d5285ebf181b36b5d31f43d5261dd25e21c234dc09f2264953",
+      "created_at": "1791948608163"
+    },
+    {
+      "id": 3,
+      "hash": "ce247a0276a6158aaf92a4af57597ca95fc9ba2eddaec1ef71052446a2ddea5b",
+      "created_at": "1791951025906"
+    }
+  ],
+  "tables": [
+    {
+      "relname": "billing_checkouts",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "billing_events",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "billing_subscriptions",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "billing_tasks",
+      "relrowsecurity": true
+    },
+    {
+      "relname": "credit_buckets",
+      "relrowsecurity": true
+    }
+  ],
+  "billingEnabled": false
+}

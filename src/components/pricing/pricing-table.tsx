@@ -11,6 +11,7 @@ import {
 } from '@/payment/types';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { CreditPricing } from './credit-pricing';
 import { PricingCard } from './pricing-card';
 
 interface PricingTableProps {
@@ -32,6 +33,7 @@ export function PricingTable({
   currentPlan,
   className,
 }: PricingTableProps) {
+  if (process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true') return <CreditPricing />;
   const t = useTranslations('PricingPage');
   const [interval, setInterval] = useState<PlanInterval>(PlanIntervals.YEAR);
 

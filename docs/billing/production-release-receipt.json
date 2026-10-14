@@ -1,0 +1,118 @@
+{
+  "verifiedAt": "2026-10-14T10:48:55.025Z",
+  "domain": "https://flowchartai.org",
+  "deploymentId": "dpl_F8EwWaBDFT7MBV52hEtPQR4j7C1J",
+  "sourceCommit": "249ca357575698740d28b7b3fd235f0153adee2f",
+  "merchantStatus": "approved",
+  "environment": "prod",
+  "checks": [
+    {
+      "path": "/pricing",
+      "status": 200,
+      "expected": 200,
+      "missing": [],
+      "pass": true
+    },
+    {
+      "path": "/api/billing/wallet",
+      "status": 401,
+      "expected": 401,
+      "missing": [],
+      "pass": true
+    },
+    {
+      "path": "/api/webhooks/waffo",
+      "status": 401,
+      "expected": 401,
+      "missing": [],
+      "pass": true
+    },
+    {
+      "path": "/drawio/index.html",
+      "status": 200,
+      "expected": 200,
+      "missing": [],
+      "pass": true
+    },
+    {
+      "path": "/terms",
+      "status": 200,
+      "expected": 200,
+      "missing": [],
+      "pass": true
+    },
+    {
+      "path": "/privacy",
+      "status": 200,
+      "expected": 200,
+      "missing": [],
+      "pass": true
+    }
+  ],
+  "accountCheck": {
+    "existingPlan": "professional",
+    "previousBalance": 1000,
+    "finalBalance": 1000,
+    "reserved": 0,
+    "duplicateSubscriptionRejected": 409,
+    "originalCreemPortalOpened": true
+  },
+  "tasks": [
+    {
+      "state": "committed",
+      "budget": 64,
+      "charged": 0,
+      "legacy": true,
+      "modelCalls": 1,
+      "models": [
+        "deepseek/deepseek-v4-pro"
+      ],
+      "inputTokens": 6544,
+      "cachedTokens": 1024,
+      "outputTokens": 835
+    },
+    {
+      "state": "committed",
+      "budget": 42,
+      "charged": 0,
+      "legacy": true,
+      "modelCalls": 1,
+      "models": [
+        "deepseek/deepseek-v4-pro"
+      ],
+      "inputTokens": 3888,
+      "cachedTokens": 0,
+      "outputTokens": 985
+    }
+  ],
+  "output": {
+    "editableDownloaded": true,
+    "savedDiagramRestoredAfterReload": true,
+    "format": "mxfile",
+    "vertices": 18,
+    "edges": 19,
+    "swimlanes": 2,
+    "brokenEndpoints": 0,
+    "sha256": "385c9c66682a4a3742dfd9663850429ace147a9a8ac8503e654b107edf31fee0"
+  },
+  "cashier": {
+    "provider": "Waffo",
+    "store": "FlowchartAI",
+    "offer": "pack_small",
+    "amountUSD": 10,
+    "credits": 1500,
+    "refundPolicyVisible": true,
+    "realPaymentSubmitted": false
+  },
+  "automatedChecks": {
+    "unitPassed": 232,
+    "databasePassed": 17,
+    "typecheck": "passed",
+    "localBuild": "passed",
+    "remoteProductionBuild": "passed"
+  },
+  "notVerified": [
+    "Real-money charge",
+    "Hosted yearly renewal/plan-change/refund cycles"
+  ]
+}

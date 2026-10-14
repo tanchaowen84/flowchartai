@@ -1,5 +1,6 @@
 'use client';
 
+import { CreditBillingCard } from './credit-billing-card';
 import { CustomerPortalButton } from '@/components/pricing/customer-portal-button';
 import { AIUsageIndicator } from '@/components/shared/ai-usage-indicator';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,7 @@ import { RefreshCwIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export default function BillingCard() {
+  if (process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true') return <CreditBillingCard />;
   const t = useTranslations('Dashboard.settings.billing');
 
   const {

@@ -4,6 +4,8 @@ import { websiteConfig } from '@/config/website';
 import { getDb } from '@/db/index';
 import { defaultMessages } from '@/i18n/messages';
 import { LOCALE_COOKIE_NAME, routing } from '@/i18n/routing';
+import { billingEnabled } from '@/lib/billing/policy';
+import { grantRegistration } from '@/lib/billing/wallet';
 import { sendEmail } from '@/mail';
 import { subscribe } from '@/newsletter';
 import { betterAuth } from 'better-auth';
@@ -128,6 +130,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
+          if (billingEnabled()) await grantRegistration(user.id);
           // Only the new-user hook runs here, including Google and email OTP.
           // Capture headers before scheduling; analytics cannot fail sign-up.
           try {

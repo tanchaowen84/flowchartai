@@ -1,0 +1,54 @@
+{
+  "environment": "test",
+  "storeId": "STO_5I2J4YK9UUolwABxwPIhYa",
+  "database": "isolated local Postgres",
+  "realPaymentCharged": false,
+  "productionPublished": false,
+  "proMonthly": {
+    "orderId": "ORD_6Uv2MOMpE4O0V8DprkEIh5",
+    "amountUSD": 19,
+    "paymentId": "PAY_4GENpcKRWnkiSxbpJ3DbeD",
+    "balanceAfter": 6200,
+    "statusAfterCancel": "canceling",
+    "paidThroughUTC": "2026-11-14T00:00:00Z"
+  },
+  "pack": {
+    "orderId": "ORD_6LpokwvicRKG1eX46acGxX",
+    "amountUSD": 10,
+    "paymentId": "PAY_30cdwu3MVNPprlCUqWlhu7",
+    "balanceAfter": 7700,
+    "expiresAt": null,
+    "balanceAfterRedelivery": 7700,
+    "totalAddLedgerRows": 3
+  },
+  "deliveries": [
+    {
+      "id": "44d5415d-a4f3-4b28-a6bc-76542fe71e0c",
+      "eventType": "subscription.canceling",
+      "status": "success",
+      "httpStatus": 200,
+      "attemptCount": 1
+    },
+    {
+      "id": "c142b6a2-cc72-4c02-a7d6-51f2a8153aee",
+      "eventType": "order.completed",
+      "status": "success",
+      "httpStatus": 200,
+      "attemptCount": 2
+    },
+    {
+      "id": "f8d1d65e-c12f-463d-b941-8545646ccbff",
+      "eventType": "subscription.payment_succeeded",
+      "status": "success",
+      "httpStatus": 200,
+      "attemptCount": 1
+    },
+    {
+      "id": "bda6ac82-1723-4dea-b231-ac45d5173c14",
+      "eventType": "subscription.activated",
+      "status": "success",
+      "httpStatus": 200,
+      "attemptCount": 1
+    }
+  ]
+}

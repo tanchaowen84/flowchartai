@@ -1,5 +1,5 @@
 /**
- * [INPUT] Creem checkout payload after signature verification and DB commit.
+ * [INPUT] Creem/Waffo payment payload after signature verification and DB commit.
  * [OUTPUT] Positive live initial-purchase evidence; trials/renewals rejected.
  * [POS] Pure payment goal gate; money/entitlement behavior is unchanged.
  * [UPDATE] Sync provider hook and payment-conversion tests after changes.
@@ -42,6 +42,39 @@ export function getConfirmedCheckout(event: {
   return {
     orderId: order.id,
     userId: metadata.user_id,
+    context: metadata.plausible_context,
+  };
+}
+
+export function getWaffoConfirmedCheckout(event: {
+  eventType: string;
+  mode: string;
+  data: any;
+}): ConfirmedCheckout | null {
+  const data = event.data;
+  const metadata = data?.orderMetadata;
+  const initialPayment =
+    event.eventType === 'order.completed' ||
+    (event.eventType === 'subscription.payment_succeeded' &&
+      data?.periodNumber === 1);
+  if (
+    event.mode !== 'prod' ||
+    !initialPayment ||
+    data?.paymentStatus !== 'succeeded' ||
+    !Number.isFinite(Number(data?.chargedAmount)) ||
+    Number(data.chargedAmount) <= 0 ||
+    typeof data.orderId !== 'string' ||
+    !data.orderId ||
+    typeof metadata?.userId !== 'string' ||
+    !metadata.userId ||
+    typeof metadata?.plausible_context !== 'string' ||
+    !metadata.plausible_context ||
+    metadata.originOrderId
+  )
+    return null;
+  return {
+    orderId: data.orderId,
+    userId: metadata.userId,
     context: metadata.plausible_context,
   };
 }

@@ -3,6 +3,8 @@ import { openCheckoutContext } from '@/analytics/checkout-context';
 import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
 import { getConfirmedCheckout } from '@/analytics/payment-conversion';
 import { sendServerEvent } from '@/analytics/plausible-server';
+import { billingEvents } from '@/db/schema';
+import { billingEnabled } from '@/lib/billing/policy';
 import { desc, eq, sql } from 'drizzle-orm';
 import { getDb } from '../../db';
 import { payment, user } from '../../db/schema';
@@ -478,6 +480,18 @@ export class CreemProvider implements PaymentProvider {
     const db = await getDb();
 
     await db.transaction(async (tx) => {
+      if (billingEnabled()) {
+        const recorded = await tx
+          .insert(billingEvents)
+          .values({
+            id: `creem:${event.eventType}:${event.id}`,
+            provider: 'creem',
+            eventType: event.eventType,
+          })
+          .onConflictDoNothing()
+          .returning();
+        if (!recorded.length) return;
+      }
       try {
         switch (event.eventType) {
           case 'checkout.completed':
@@ -529,6 +543,20 @@ export class CreemProvider implements PaymentProvider {
   /**
    * Handle checkout completion events
    */
+  private getLegacyCredits(checkout: CreemCheckout): number {
+    const product = checkout.product;
+    const productId = typeof product === 'string' ? product : product.id;
+    const map = JSON.parse(
+      process.env.LEGACY_CREEM_CREDIT_PRODUCTS || '{}'
+    ) as Record<string, number>;
+    const amount = map[productId];
+    if (!Number.isSafeInteger(amount) || amount <= 0)
+      throw new Error(
+        'Legacy credit product requires a verified server mapping'
+      );
+    return amount;
+  }
+
   private async handleCheckoutCompleted(
     tx: any,
     event: CreemWebhookEvent
@@ -566,7 +594,9 @@ export class CreemProvider implements PaymentProvider {
         order.metadata?.product_type === 'credits' &&
         order.metadata?.credits
       ) {
-        const creditsAmount = Number(order.metadata.credits);
+        const creditsAmount = billingEnabled()
+          ? this.getLegacyCredits(checkout)
+          : Number(order.metadata.credits);
         if (creditsAmount > 0) {
           await addCreditsToUser(
             tx,
@@ -590,6 +620,7 @@ export class CreemProvider implements PaymentProvider {
     // Also handle checkout-level credits (fallback for old implementations)
     // Only process if we haven't already processed credits at order level
     if (
+      !billingEnabled() &&
       order.type !== 'one_time' && // Avoid double processing for one-time orders
       checkout.metadata?.product_type === 'credits' &&
       checkout.metadata?.credits

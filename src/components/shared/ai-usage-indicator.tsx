@@ -19,6 +19,7 @@ interface AIUsageStats {
 }
 
 interface UsageLimit {
+  billingMode?: string;
   canUse: boolean;
   reason?: string;
   remainingUsage?: number;
@@ -105,6 +106,25 @@ export function AIUsageIndicator({
     return null;
   }
 
+  if (limits.billingMode === 'credits')
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Credits</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-semibold">
+            {(limits.remainingUsage || 0).toLocaleString()}
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            AI uses credits based on your request and context.
+          </p>
+          <Button asChild variant="outline" className="mt-4">
+            <a href="/settings/billing">Buy credits</a>
+          </Button>
+        </CardContent>
+      </Card>
+    );
   const usagePercentage = limits.limit
     ? Math.round(
         ((limits.limit - (limits.remainingUsage || 0)) / limits.limit) * 100

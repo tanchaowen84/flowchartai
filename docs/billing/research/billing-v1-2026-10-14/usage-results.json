@@ -1,0 +1,3977 @@
+{
+  "testedAt": "2026-10-13T16:09:31.078Z",
+  "sourceCommit": "257662f9ac74c14ca4977c62562c370af771aae1",
+  "scope": "Real current-release Mastra + OpenRouter + native document engine; no production HTTP auth, database, credits, payment or browser writes",
+  "modelId": "deepseek/deepseek-v4-pro",
+  "tasks": [
+    {
+      "name": "simple-generation",
+      "prompt": "生成订单发货流程图：开始→收到订单→检查库存→库存充足？有货则打包发货→通知客户→结束；缺货则通知缺货并退款→结束。标清有货/缺货分支，使用合适的开始结束和判断形状。",
+      "startedAt": "2026-10-13T16:03:09.120Z",
+      "modelId": "deepseek/deepseek-v4-pro",
+      "historyMessages": 0,
+      "historyCharacters": 0,
+      "before": {
+        "cells": 0,
+        "vertices": 0,
+        "groups": 0,
+        "flowNodes": 0,
+        "edges": 0,
+        "labels": []
+      },
+      "calls": [
+        {
+          "index": 1,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 8858,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907390-gQAfc4ojXz2vM8k3CEqw",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 3866,
+            "completion_tokens": 535,
+            "total_tokens": 4401,
+            "cost": 0.00174945176,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00174945176,
+              "upstream_inference_prompt_cost": 0.00128110206,
+              "upstream_inference_completions_cost": 0.0004683497
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ],
+      "stepUsage": [
+        {
+          "inputTokens": 3866,
+          "outputTokens": 535,
+          "totalTokens": 4401,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 1024,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 3866,
+              "noCache": 2842,
+              "cacheRead": 1024,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 535,
+              "text": 535,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 3866,
+              "prompt_tokens_details": {
+                "cached_tokens": 1024,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 535,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 4401,
+              "cost": 0.00174945176,
+              "cost_details": {
+                "upstream_inference_cost": 0.00174945176,
+                "upstream_inference_prompt_cost": 0.00128110206,
+                "upstream_inference_completions_cost": 0.0004683497
+              },
+              "is_byok": false
+            }
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "generate_flowchart"
+        }
+      ],
+      "errors": [],
+      "sdkTotalUsage": {
+        "inputTokens": 3866,
+        "outputTokens": 535,
+        "totalTokens": 4401,
+        "reasoningTokens": 0,
+        "cachedInputTokens": 1024,
+        "cacheCreationInputTokens": 0,
+        "raw": {
+          "inputTokens": {
+            "total": 3866,
+            "noCache": 2842,
+            "cacheRead": 1024,
+            "cacheWrite": 0
+          },
+          "outputTokens": {
+            "total": 535,
+            "text": 535,
+            "reasoning": 0
+          },
+          "raw": {
+            "prompt_tokens": 3866,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 535,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 4401,
+            "cost": 0.00174945176,
+            "cost_details": {
+              "upstream_inference_cost": 0.00174945176,
+              "upstream_inference_prompt_cost": 0.00128110206,
+              "upstream_inference_completions_cost": 0.0004683497
+            },
+            "is_byok": false
+          }
+        }
+      },
+      "sdkSteps": [
+        {
+          "usage": {
+            "inputTokens": 3866,
+            "outputTokens": 535,
+            "totalTokens": 4401,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 1024,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 3866,
+                "noCache": 2842,
+                "cacheRead": 1024,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 535,
+                "text": 535,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 3866,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1024,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 535,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 4401,
+                "cost": 0.00174945176,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00174945176,
+                  "upstream_inference_prompt_cost": 0.00128110206,
+                  "upstream_inference_completions_cost": 0.0004683497
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 3866,
+                "promptTokensDetails": {
+                  "cachedTokens": 1024
+                },
+                "completionTokens": 535,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00174945176,
+                "totalTokens": 4401,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00174945176
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        }
+      ],
+      "success": true,
+      "operation": "create",
+      "after": {
+        "cells": 17,
+        "vertices": 9,
+        "groups": 0,
+        "flowNodes": 9,
+        "edges": 8,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "1"
+          },
+          {
+            "id": "receive",
+            "label": "收到订单",
+            "parent": "1"
+          },
+          {
+            "id": "check",
+            "label": "检查库存",
+            "parent": "1"
+          },
+          {
+            "id": "decision",
+            "label": "库存充足？",
+            "parent": "1"
+          },
+          {
+            "id": "pack",
+            "label": "打包发货",
+            "parent": "1"
+          },
+          {
+            "id": "notify",
+            "label": "通知客户",
+            "parent": "1"
+          },
+          {
+            "id": "end1",
+            "label": "结束",
+            "parent": "1"
+          },
+          {
+            "id": "outofstock",
+            "label": "通知缺货并退款",
+            "parent": "1"
+          },
+          {
+            "id": "end2",
+            "label": "结束",
+            "parent": "1"
+          }
+        ]
+      },
+      "assistantText": "我来生成一个订单发货流程图，包含库存判断分支和合适的起止/判断形状",
+      "commandTitle": "订单发货流程",
+      "changedExistingIds": [],
+      "addedIds": [
+        "start",
+        "receive",
+        "check",
+        "decision",
+        "pack",
+        "notify",
+        "end1",
+        "outofstock",
+        "end2",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7",
+        "e8"
+      ],
+      "removedIds": [],
+      "elapsedMs": 9173,
+      "accountingComplete": true,
+      "costUsd": 0.00174945176,
+      "inputTokens": 3866,
+      "outputTokens": 535,
+      "cachedInputTokens": 1024,
+      "reasoningTokens": 0
+    },
+    {
+      "name": "complex-generation",
+      "prompt": "生成电商退款审批泳道流程图，包含客户、客服、主管、财务、支付五个部门，以及支付部门内嵌的重试子流程。完整表达以下流程：\n客户申请退款并提交凭证；客服校验订单→订单有效？无效拒绝退款；有效→是否在退款期限内？超期拒绝；期限内→凭证完整？不完整通知客户补交，客户补交后回到凭证检查；完整进入并行审批。\n并行分支一：主管检查退款理由→主管审批通过？未通过通知客户拒绝，结束；通过进入汇合。\n并行分支二：财务校验金额→金额正确？不正确更正金额并重新校验；正确→财务审批通过？未通过通知客户拒绝，结束；通过进入汇合。\n两个分支全部通过后，AND 汇合→支付执行退款→退款成功？成功由客服通知客户并归档；失败→是否可重试？可重试进入支付部门内的重试子流程，然后返回执行退款；不可重试转人工处理→人工处理完成后由客服通知客户并归档。\n开始结束、并行分叉/汇合、每个判断的条件、补交和更正循环、支付失败循环均须画出。泳道及嵌套组可编辑，所有连线目标明确。",
+      "startedAt": "2026-10-13T16:03:18.303Z",
+      "modelId": "deepseek/deepseek-v4-pro",
+      "historyMessages": 0,
+      "historyCharacters": 0,
+      "before": {
+        "cells": 0,
+        "vertices": 0,
+        "groups": 0,
+        "flowNodes": 0,
+        "edges": 0,
+        "labels": []
+      },
+      "calls": [
+        {
+          "index": 1,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 9199,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907398-kbVhsBRd3nWDJVsgV4rb",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 4070,
+            "completion_tokens": 60,
+            "total_tokens": 4130,
+            "cost": 0.0014229201,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.0014229201,
+              "upstream_inference_prompt_cost": 0.0013703949,
+              "upstream_inference_completions_cost": 5.25252e-05
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "index": 2,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 10222,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907400-kjMcTFvWIo7KF5qVn7XL",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 4293,
+            "completion_tokens": 222,
+            "total_tokens": 4515,
+            "cost": 0.00084017787,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 3072,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00084017787,
+              "upstream_inference_prompt_cost": 0.00064583463,
+              "upstream_inference_completions_cost": 0.00019434324
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "index": 3,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 16959,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907406-e96rKsqU8vFrWh5BKKmN",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 5672,
+            "completion_tokens": 2131,
+            "total_tokens": 7803,
+            "cost": 0.00270387194,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 4096,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00270387194,
+              "upstream_inference_prompt_cost": 0.00083835192,
+              "upstream_inference_completions_cost": 0.00186552002
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ],
+      "stepUsage": [
+        {
+          "inputTokens": 4070,
+          "outputTokens": 60,
+          "totalTokens": 4130,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 1024,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 4070,
+              "noCache": 3046,
+              "cacheRead": 1024,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 60,
+              "text": 60,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 4070,
+              "prompt_tokens_details": {
+                "cached_tokens": 1024,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 60,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 4130,
+              "cost": 0.0014229201,
+              "cost_details": {
+                "upstream_inference_cost": 0.0014229201,
+                "upstream_inference_prompt_cost": 0.0013703949,
+                "upstream_inference_completions_cost": 5.25252e-05
+              },
+              "is_byok": false
+            }
+          }
+        },
+        {
+          "inputTokens": 4293,
+          "outputTokens": 222,
+          "totalTokens": 4515,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 3072,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 4293,
+              "noCache": 1221,
+              "cacheRead": 3072,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 222,
+              "text": 222,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 4293,
+              "prompt_tokens_details": {
+                "cached_tokens": 3072,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 222,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 4515,
+              "cost": 0.00084017787,
+              "cost_details": {
+                "upstream_inference_cost": 0.00084017787,
+                "upstream_inference_prompt_cost": 0.00064583463,
+                "upstream_inference_completions_cost": 0.00019434324
+              },
+              "is_byok": false
+            }
+          }
+        },
+        {
+          "inputTokens": 5672,
+          "outputTokens": 2131,
+          "totalTokens": 7803,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 4096,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 5672,
+              "noCache": 1576,
+              "cacheRead": 4096,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 2131,
+              "text": 2131,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 5672,
+              "prompt_tokens_details": {
+                "cached_tokens": 4096,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 2131,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 7803,
+              "cost": 0.00270387194,
+              "cost_details": {
+                "upstream_inference_cost": 0.00270387194,
+                "upstream_inference_prompt_cost": 0.00083835192,
+                "upstream_inference_completions_cost": 0.00186552002
+              },
+              "is_byok": false
+            }
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "skill"
+        },
+        {
+          "name": "skill_read"
+        },
+        {
+          "name": "skill_read"
+        },
+        {
+          "name": "skill_read"
+        },
+        {
+          "name": "skill_read"
+        },
+        {
+          "name": "generate_flowchart"
+        }
+      ],
+      "errors": [],
+      "sdkTotalUsage": {
+        "inputTokens": 14035,
+        "outputTokens": 2413,
+        "totalTokens": 16448,
+        "reasoningTokens": 0,
+        "cachedInputTokens": 8192,
+        "cacheCreationInputTokens": 0,
+        "raw": {
+          "inputTokens": {
+            "total": 5672,
+            "noCache": 1576,
+            "cacheRead": 4096,
+            "cacheWrite": 0
+          },
+          "outputTokens": {
+            "total": 2131,
+            "text": 2131,
+            "reasoning": 0
+          },
+          "raw": {
+            "prompt_tokens": 5672,
+            "prompt_tokens_details": {
+              "cached_tokens": 4096,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 2131,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 7803,
+            "cost": 0.00270387194,
+            "cost_details": {
+              "upstream_inference_cost": 0.00270387194,
+              "upstream_inference_prompt_cost": 0.00083835192,
+              "upstream_inference_completions_cost": 0.00186552002
+            },
+            "is_byok": false
+          }
+        }
+      },
+      "sdkSteps": [
+        {
+          "usage": {
+            "inputTokens": 4070,
+            "outputTokens": 60,
+            "totalTokens": 4130,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 1024,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 4070,
+                "noCache": 3046,
+                "cacheRead": 1024,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 60,
+                "text": 60,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 4070,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1024,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 60,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 4130,
+                "cost": 0.0014229201,
+                "cost_details": {
+                  "upstream_inference_cost": 0.0014229201,
+                  "upstream_inference_prompt_cost": 0.0013703949,
+                  "upstream_inference_completions_cost": 5.25252e-05
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 4070,
+                "promptTokensDetails": {
+                  "cachedTokens": 1024
+                },
+                "completionTokens": 60,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.0014229201,
+                "totalTokens": 4130,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.0014229201
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        },
+        {
+          "usage": {
+            "inputTokens": 4293,
+            "outputTokens": 222,
+            "totalTokens": 4515,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 3072,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 4293,
+                "noCache": 1221,
+                "cacheRead": 3072,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 222,
+                "text": 222,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 4293,
+                "prompt_tokens_details": {
+                  "cached_tokens": 3072,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 222,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 4515,
+                "cost": 0.00084017787,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00084017787,
+                  "upstream_inference_prompt_cost": 0.00064583463,
+                  "upstream_inference_completions_cost": 0.00019434324
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 4293,
+                "promptTokensDetails": {
+                  "cachedTokens": 3072
+                },
+                "completionTokens": 222,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00084017787,
+                "totalTokens": 4515,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00084017787
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null,
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "usage": {
+            "inputTokens": 5672,
+            "outputTokens": 2131,
+            "totalTokens": 7803,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 4096,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 5672,
+                "noCache": 1576,
+                "cacheRead": 4096,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 2131,
+                "text": 2131,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 5672,
+                "prompt_tokens_details": {
+                  "cached_tokens": 4096,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 2131,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 7803,
+                "cost": 0.00270387194,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00270387194,
+                  "upstream_inference_prompt_cost": 0.00083835192,
+                  "upstream_inference_completions_cost": 0.00186552002
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 5672,
+                "promptTokensDetails": {
+                  "cachedTokens": 4096
+                },
+                "completionTokens": 2131,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00270387194,
+                "totalTokens": 7803,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00270387194
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        }
+      ],
+      "success": true,
+      "operation": "create",
+      "after": {
+        "cells": 64,
+        "vertices": 33,
+        "groups": 6,
+        "flowNodes": 27,
+        "edges": 31,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "财务校验金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          }
+        ]
+      },
+      "assistantText": "我来生成这个电商退款审批泳道流程图。先加载绘图技能参考\n\n现在我已掌握所有参考信息。当前文档为空，需要创建完整的泳道流程图。这是一个复杂的流程图，包含5个泳道、并行审批、嵌套重试子流程、多个循环和判断。让我构建完整的图。\n\n",
+      "commandTitle": "电商退款审批流程",
+      "changedExistingIds": [],
+      "addedIds": [
+        "start",
+        "cust_apply",
+        "cs_check",
+        "cs_valid",
+        "cs_reject1",
+        "cs_deadline",
+        "cs_reject2",
+        "cs_evidence",
+        "cs_notify_resubmit",
+        "cust_resubmit",
+        "fork",
+        "sup_check",
+        "sup_approve",
+        "sup_reject",
+        "fin_check",
+        "fin_correct",
+        "fin_fix",
+        "fin_approve",
+        "fin_reject",
+        "join",
+        "pay_exec",
+        "pay_success",
+        "pay_retryable",
+        "pay_retry_group",
+        "pay_retry",
+        "pay_manual",
+        "cs_notify",
+        "end",
+        "swim_customer",
+        "swim_cs",
+        "swim_supervisor",
+        "swim_finance",
+        "swim_payment",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "e7",
+        "e8",
+        "e9",
+        "e10",
+        "e11",
+        "e12",
+        "e13",
+        "e14",
+        "e15",
+        "e16",
+        "e17",
+        "e18",
+        "e19",
+        "e20",
+        "e21",
+        "e22",
+        "e23",
+        "e24",
+        "e25",
+        "e26",
+        "e27",
+        "e28",
+        "e29",
+        "e30",
+        "e31"
+      ],
+      "removedIds": [],
+      "elapsedMs": 35466,
+      "accountingComplete": true,
+      "costUsd": 0.004966969910000001,
+      "inputTokens": 14035,
+      "outputTokens": 2413,
+      "cachedInputTokens": 8192,
+      "reasoningTokens": 0
+    },
+    {
+      "name": "complex-edit-1-retries",
+      "prompt": "调整支付部门的退款失败重试：最多重试3次。第一次执行退款前初始化重试次数；只有可重试且次数未满才进入重试，重试前等待60秒，重试后次数加1并回到执行退款；次数耗尽和不可重试都进入现有人工处理。保留成功路径、其他部门和现有手动样式，局部修改，不重建全图。",
+      "startedAt": "2026-10-13T16:03:53.770Z",
+      "modelId": "deepseek/deepseek-v4-pro",
+      "historyMessages": 2,
+      "historyCharacters": 531,
+      "before": {
+        "cells": 64,
+        "vertices": 33,
+        "groups": 6,
+        "flowNodes": 27,
+        "edges": 31,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "财务校验金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          }
+        ]
+      },
+      "calls": [
+        {
+          "index": 1,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 27488,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907434-ZekTga4HkHhDs0ddqq0s",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 9376,
+            "completion_tokens": 356,
+            "total_tokens": 9732,
+            "cost": 0.00400453368,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00400453368,
+              "upstream_inference_prompt_cost": 0.00369288416,
+              "upstream_inference_completions_cost": 0.00031164952
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "index": 2,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 29051,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907440-MZjFAn6LsjKxrUQkFQxW",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 9929,
+            "completion_tokens": 286,
+            "total_tokens": 10215,
+            "cost": 0.00089662951,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 9216,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00089662951,
+              "upstream_inference_prompt_cost": 0.00064625939,
+              "upstream_inference_completions_cost": 0.00025037012
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ],
+      "stepUsage": [
+        {
+          "inputTokens": 9376,
+          "outputTokens": 356,
+          "totalTokens": 9732,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 1024,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 9376,
+              "noCache": 8352,
+              "cacheRead": 1024,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 356,
+              "text": 356,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 9376,
+              "prompt_tokens_details": {
+                "cached_tokens": 1024,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 356,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 9732,
+              "cost": 0.00400453368,
+              "cost_details": {
+                "upstream_inference_cost": 0.00400453368,
+                "upstream_inference_prompt_cost": 0.00369288416,
+                "upstream_inference_completions_cost": 0.00031164952
+              },
+              "is_byok": false
+            }
+          }
+        },
+        {
+          "inputTokens": 9929,
+          "outputTokens": 286,
+          "totalTokens": 10215,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 9216,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 9929,
+              "noCache": 713,
+              "cacheRead": 9216,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 286,
+              "text": 286,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 9929,
+              "prompt_tokens_details": {
+                "cached_tokens": 9216,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 286,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 10215,
+              "cost": 0.00089662951,
+              "cost_details": {
+                "upstream_inference_cost": 0.00089662951,
+                "upstream_inference_prompt_cost": 0.00064625939,
+                "upstream_inference_completions_cost": 0.00025037012
+              },
+              "is_byok": false
+            }
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "generate_flowchart"
+        },
+        {
+          "name": "generate_flowchart"
+        }
+      ],
+      "errors": [],
+      "sdkTotalUsage": {
+        "inputTokens": 19305,
+        "outputTokens": 642,
+        "totalTokens": 19947,
+        "reasoningTokens": 0,
+        "cachedInputTokens": 10240,
+        "cacheCreationInputTokens": 0,
+        "raw": {
+          "inputTokens": {
+            "total": 9929,
+            "noCache": 713,
+            "cacheRead": 9216,
+            "cacheWrite": 0
+          },
+          "outputTokens": {
+            "total": 286,
+            "text": 286,
+            "reasoning": 0
+          },
+          "raw": {
+            "prompt_tokens": 9929,
+            "prompt_tokens_details": {
+              "cached_tokens": 9216,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 286,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 10215,
+            "cost": 0.00089662951,
+            "cost_details": {
+              "upstream_inference_cost": 0.00089662951,
+              "upstream_inference_prompt_cost": 0.00064625939,
+              "upstream_inference_completions_cost": 0.00025037012
+            },
+            "is_byok": false
+          }
+        }
+      },
+      "sdkSteps": [
+        {
+          "usage": {
+            "inputTokens": 9376,
+            "outputTokens": 356,
+            "totalTokens": 9732,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 1024,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 9376,
+                "noCache": 8352,
+                "cacheRead": 1024,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 356,
+                "text": 356,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 9376,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1024,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 356,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 9732,
+                "cost": 0.00400453368,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00400453368,
+                  "upstream_inference_prompt_cost": 0.00369288416,
+                  "upstream_inference_completions_cost": 0.00031164952
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 9376,
+                "promptTokensDetails": {
+                  "cachedTokens": 1024
+                },
+                "completionTokens": 356,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00400453368,
+                "totalTokens": 9732,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00400453368
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        },
+        {
+          "usage": {
+            "inputTokens": 9929,
+            "outputTokens": 286,
+            "totalTokens": 10215,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 9216,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 9929,
+                "noCache": 713,
+                "cacheRead": 9216,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 286,
+                "text": 286,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 9929,
+                "prompt_tokens_details": {
+                  "cached_tokens": 9216,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 286,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 10215,
+                "cost": 0.00089662951,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00089662951,
+                  "upstream_inference_prompt_cost": 0.00064625939,
+                  "upstream_inference_completions_cost": 0.00025037012
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 9929,
+                "promptTokensDetails": {
+                  "cachedTokens": 9216
+                },
+                "completionTokens": 286,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00089662951,
+                "totalTokens": 10215,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00089662951
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        }
+      ],
+      "success": true,
+      "operation": "patch",
+      "after": {
+        "cells": 71,
+        "vertices": 36,
+        "groups": 6,
+        "flowNodes": 30,
+        "edges": 35,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "财务校验金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "等待60秒后重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          },
+          {
+            "id": "bounded_pay_exec_init",
+            "label": "重试次数 = 0",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "bounded_pay_exec_check",
+            "label": "重试次数 < 3？",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "bounded_pay_exec_increment",
+            "label": "重试次数 + 1",
+            "parent": "pay_retry_group"
+          }
+        ]
+      },
+      "assistantText": "我来为支付部门的退款失败重试添加最多3次重试逻辑。当前已有 `pay_exec`（执行退款）、`pay_success`（退款成功？）、`pay_retryable`（是否可重试？）、`pay_retry`（重试退款）和 `pay_manual`（转人工处理）。\n\n需要：初始化计数器 → 执行退款 → 失败后判断可重试且次数<3 → 等待60秒 → 重试 → 次数+1 → 回到执行退款。次数耗尽或不可重试 → 转人工处理。\n\n让我使用 `retryPolicy` 来局部修改现有循环。\n\n需要至少一个操作。让我同时更新 `pay_retry` 节点的标签以体现\"等待60秒后重试\"，并配合 retryPolicy。\n\n",
+      "commandTitle": "电商退款审批泳道流程图",
+      "changedExistingIds": [
+        "pay_retry_group",
+        "pay_retry",
+        "swim_payment",
+        "e23",
+        "e27",
+        "e28"
+      ],
+      "addedIds": [
+        "bounded_pay_exec_init",
+        "bounded_pay_exec_check",
+        "bounded_pay_exec_increment",
+        "bounded_pay_exec_initial",
+        "bounded_pay_exec_yes",
+        "bounded_pay_exec_no",
+        "bounded_pay_exec_back"
+      ],
+      "removedIds": [],
+      "elapsedMs": 11685,
+      "accountingComplete": true,
+      "costUsd": 0.00490116319,
+      "inputTokens": 19305,
+      "outputTokens": 642,
+      "cachedInputTokens": 10240,
+      "reasoningTokens": 0
+    },
+    {
+      "name": "complex-edit-2-risk",
+      "prompt": "在现有并行审批分叉之前插入客服风控检查和高风险判断：低风险直接进入原来的并行审批；高风险交主管人工复核，复核通过回到原并行审批，复核拒绝通知客户拒绝退款并结束。保留原主管/财务并行分支和AND汇合，以及刚才设置的3次退款重试与60秒等待。局部修改，不重建。",
+      "startedAt": "2026-10-13T16:04:05.465Z",
+      "modelId": "deepseek/deepseek-v4-pro",
+      "historyMessages": 4,
+      "historyCharacters": 968,
+      "before": {
+        "cells": 71,
+        "vertices": 36,
+        "groups": 6,
+        "flowNodes": 30,
+        "edges": 35,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "财务校验金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "等待60秒后重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          },
+          {
+            "id": "bounded_pay_exec_init",
+            "label": "重试次数 = 0",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "bounded_pay_exec_check",
+            "label": "重试次数 < 3？",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "bounded_pay_exec_increment",
+            "label": "重试次数 + 1",
+            "parent": "pay_retry_group"
+          }
+        ]
+      },
+      "calls": [
+        {
+          "index": 1,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 30407,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907445-XaT5VeXFwyltA7KJ0duG",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 10384,
+            "completion_tokens": 1554,
+            "total_tokens": 11938,
+            "cost": 0.00549449852,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00549449852,
+              "upstream_inference_prompt_cost": 0.00413409584,
+              "upstream_inference_completions_cost": 0.00136040268
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ],
+      "stepUsage": [
+        {
+          "inputTokens": 10384,
+          "outputTokens": 1554,
+          "totalTokens": 11938,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 1024,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 10384,
+              "noCache": 9360,
+              "cacheRead": 1024,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 1554,
+              "text": 1554,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 10384,
+              "prompt_tokens_details": {
+                "cached_tokens": 1024,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 1554,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 11938,
+              "cost": 0.00549449852,
+              "cost_details": {
+                "upstream_inference_cost": 0.00549449852,
+                "upstream_inference_prompt_cost": 0.00413409584,
+                "upstream_inference_completions_cost": 0.00136040268
+              },
+              "is_byok": false
+            }
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "generate_flowchart"
+        }
+      ],
+      "errors": [],
+      "sdkTotalUsage": {
+        "inputTokens": 10384,
+        "outputTokens": 1554,
+        "totalTokens": 11938,
+        "reasoningTokens": 0,
+        "cachedInputTokens": 1024,
+        "cacheCreationInputTokens": 0,
+        "raw": {
+          "inputTokens": {
+            "total": 10384,
+            "noCache": 9360,
+            "cacheRead": 1024,
+            "cacheWrite": 0
+          },
+          "outputTokens": {
+            "total": 1554,
+            "text": 1554,
+            "reasoning": 0
+          },
+          "raw": {
+            "prompt_tokens": 10384,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 1554,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 11938,
+            "cost": 0.00549449852,
+            "cost_details": {
+              "upstream_inference_cost": 0.00549449852,
+              "upstream_inference_prompt_cost": 0.00413409584,
+              "upstream_inference_completions_cost": 0.00136040268
+            },
+            "is_byok": false
+          }
+        }
+      },
+      "sdkSteps": [
+        {
+          "usage": {
+            "inputTokens": 10384,
+            "outputTokens": 1554,
+            "totalTokens": 11938,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 1024,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 10384,
+                "noCache": 9360,
+                "cacheRead": 1024,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 1554,
+                "text": 1554,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 10384,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1024,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 1554,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 11938,
+                "cost": 0.00549449852,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00549449852,
+                  "upstream_inference_prompt_cost": 0.00413409584,
+                  "upstream_inference_completions_cost": 0.00136040268
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 10384,
+                "promptTokensDetails": {
+                  "cachedTokens": 1024
+                },
+                "completionTokens": 1554,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00549449852,
+                "totalTokens": 11938,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00549449852
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        }
+      ],
+      "success": true,
+      "operation": "patch",
+      "after": {
+        "cells": 81,
+        "vertices": 41,
+        "groups": 6,
+        "flowNodes": 35,
+        "edges": 40,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "财务校验金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "等待60秒后重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          },
+          {
+            "id": "bounded_pay_exec_init",
+            "label": "重试次数 = 0",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "bounded_pay_exec_check",
+            "label": "重试次数 < 3？",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "bounded_pay_exec_increment",
+            "label": "重试次数 + 1",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "cs_risk_check",
+            "label": "风控检查： 是否高风险？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_risk_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_manual_review",
+            "label": "主管人工复核",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_review_approve",
+            "label": "复核通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_review_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          }
+        ]
+      },
+      "assistantText": "我来在并行审批分叉之前插入客服风控检查。需要：在 `cs_evidence` 的\"完整\"分支之后、`fork` 之前插入风控检查节点，低风险进入原 `fork`，高风险进入主管人工复核，复核通过回到 `fork`，复核拒绝通知客户并结束。\n\n先确认当前文档中相关节点的位置和连接关系。\n\n当前关键路径：`cs_evidence` → (完整) → `fork`。`fork` 在 `swim_cs` 泳道中，坐标为 (154, 557)。\n\n我需要：\n1. 在 `swim_cs` 中添加风控检查节点（decision）和通知拒绝节点（terminator）\n2. 在 `swim_supervisor` 中添加人工复核节点（process）和复核判断节点（decision）\n3. 断开 `cs_evidence` → `fork` 的边（e11），改为 `cs_evidence` → 风控检查\n4. 添加风控检查 → `fork`（低风险）、风控检查 → 人工复核（高风险）\n5. 添加人工复核 → 复核判断 → 通过回到 `fork`，拒绝 → 通知客户拒绝（terminator）\n\n让我计算合适的坐标。`cs_evidence` 在 (324, 400)，`fork` 在 (154, 557)。风控检查放在 `cs_evidence` 下方，大约 (324, 510",
+      "commandTitle": "电商退款审批泳道流程图",
+      "changedExistingIds": [
+        "swim_cs",
+        "swim_supervisor",
+        "e11"
+      ],
+      "addedIds": [
+        "cs_risk_check",
+        "cs_risk_reject",
+        "sup_manual_review",
+        "sup_review_approve",
+        "sup_review_reject",
+        "e_risk_low",
+        "e_risk_high",
+        "e_sup_review_to_decision",
+        "e_review_pass",
+        "e_review_reject"
+      ],
+      "removedIds": [],
+      "elapsedMs": 20874,
+      "accountingComplete": true,
+      "costUsd": 0.00549449852,
+      "inputTokens": 10384,
+      "outputTokens": 1554,
+      "cachedInputTokens": 1024,
+      "reasoningTokens": 0
+    },
+    {
+      "name": "complex-edit-3-style",
+      "prompt": "将财务部门里的所有业务节点改成浅蓝色背景，将“校验金额”节点改名为“金额一致性校验”，同时把主管新增的人工复核相关节点放入主管泳道内一个名为“高风险人工复核”的嵌套组。保留原有ID、业务连线和其他区域样式，风控分支及3次重试/60秒等待都保留，不重建。",
+      "startedAt": "2026-10-13T16:04:26.344Z",
+      "modelId": "deepseek/deepseek-v4-pro",
+      "historyMessages": 6,
+      "historyCharacters": 1686,
+      "before": {
+        "cells": 81,
+        "vertices": 41,
+        "groups": 6,
+        "flowNodes": 35,
+        "edges": 40,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "财务校验金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "等待60秒后重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          },
+          {
+            "id": "bounded_pay_exec_init",
+            "label": "重试次数 = 0",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "bounded_pay_exec_check",
+            "label": "重试次数 < 3？",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "bounded_pay_exec_increment",
+            "label": "重试次数 + 1",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "cs_risk_check",
+            "label": "风控检查： 是否高风险？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_risk_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_manual_review",
+            "label": "主管人工复核",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_review_approve",
+            "label": "复核通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_review_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          }
+        ]
+      },
+      "calls": [
+        {
+          "index": 1,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 34337,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907466-Uy4aetgQ582gwH39Nhbm",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 11790,
+            "completion_tokens": 833,
+            "total_tokens": 12623,
+            "cost": 0.00547874096,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00547874096,
+              "upstream_inference_prompt_cost": 0.0047495161,
+              "upstream_inference_completions_cost": 0.00072922486
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        },
+        {
+          "index": 2,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 39478,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907478-VsJIzGaQPYzFBbOYjtm5",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 13267,
+            "completion_tokens": 673,
+            "total_tokens": 13940,
+            "cost": 0.00187432343,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 11264,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00187432343,
+              "upstream_inference_prompt_cost": 0.00128516577,
+              "upstream_inference_completions_cost": 0.00058915766
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ],
+      "stepUsage": [
+        {
+          "inputTokens": 11790,
+          "outputTokens": 833,
+          "totalTokens": 12623,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 1024,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 11790,
+              "noCache": 10766,
+              "cacheRead": 1024,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 833,
+              "text": 833,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 11790,
+              "prompt_tokens_details": {
+                "cached_tokens": 1024,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 833,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 12623,
+              "cost": 0.00547874096,
+              "cost_details": {
+                "upstream_inference_cost": 0.00547874096,
+                "upstream_inference_prompt_cost": 0.0047495161,
+                "upstream_inference_completions_cost": 0.00072922486
+              },
+              "is_byok": false
+            }
+          }
+        },
+        {
+          "inputTokens": 13267,
+          "outputTokens": 673,
+          "totalTokens": 13940,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 11264,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 13267,
+              "noCache": 2003,
+              "cacheRead": 11264,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 673,
+              "text": 673,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 13267,
+              "prompt_tokens_details": {
+                "cached_tokens": 11264,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 673,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 13940,
+              "cost": 0.00187432343,
+              "cost_details": {
+                "upstream_inference_cost": 0.00187432343,
+                "upstream_inference_prompt_cost": 0.00128516577,
+                "upstream_inference_completions_cost": 0.00058915766
+              },
+              "is_byok": false
+            }
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "generate_flowchart"
+        },
+        {
+          "name": "generate_flowchart"
+        }
+      ],
+      "errors": [],
+      "sdkTotalUsage": {
+        "inputTokens": 25057,
+        "outputTokens": 1506,
+        "totalTokens": 26563,
+        "reasoningTokens": 0,
+        "cachedInputTokens": 12288,
+        "cacheCreationInputTokens": 0,
+        "raw": {
+          "inputTokens": {
+            "total": 13267,
+            "noCache": 2003,
+            "cacheRead": 11264,
+            "cacheWrite": 0
+          },
+          "outputTokens": {
+            "total": 673,
+            "text": 673,
+            "reasoning": 0
+          },
+          "raw": {
+            "prompt_tokens": 13267,
+            "prompt_tokens_details": {
+              "cached_tokens": 11264,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 673,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 13940,
+            "cost": 0.00187432343,
+            "cost_details": {
+              "upstream_inference_cost": 0.00187432343,
+              "upstream_inference_prompt_cost": 0.00128516577,
+              "upstream_inference_completions_cost": 0.00058915766
+            },
+            "is_byok": false
+          }
+        }
+      },
+      "sdkSteps": [
+        {
+          "usage": {
+            "inputTokens": 11790,
+            "outputTokens": 833,
+            "totalTokens": 12623,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 1024,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 11790,
+                "noCache": 10766,
+                "cacheRead": 1024,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 833,
+                "text": 833,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 11790,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1024,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 833,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 12623,
+                "cost": 0.00547874096,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00547874096,
+                  "upstream_inference_prompt_cost": 0.0047495161,
+                  "upstream_inference_completions_cost": 0.00072922486
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 11790,
+                "promptTokensDetails": {
+                  "cachedTokens": 1024
+                },
+                "completionTokens": 833,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00547874096,
+                "totalTokens": 12623,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00547874096
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        },
+        {
+          "usage": {
+            "inputTokens": 13267,
+            "outputTokens": 673,
+            "totalTokens": 13940,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 11264,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 13267,
+                "noCache": 2003,
+                "cacheRead": 11264,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 673,
+                "text": 673,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 13267,
+                "prompt_tokens_details": {
+                  "cached_tokens": 11264,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 673,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 13940,
+                "cost": 0.00187432343,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00187432343,
+                  "upstream_inference_prompt_cost": 0.00128516577,
+                  "upstream_inference_completions_cost": 0.00058915766
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 13267,
+                "promptTokensDetails": {
+                  "cachedTokens": 11264
+                },
+                "completionTokens": 673,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00187432343,
+                "totalTokens": 13940,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00187432343
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        }
+      ],
+      "success": true,
+      "operation": "patch",
+      "after": {
+        "cells": 82,
+        "vertices": 42,
+        "groups": 7,
+        "flowNodes": 35,
+        "edges": 40,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "金额一致性校验",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "等待60秒后重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          },
+          {
+            "id": "bounded_pay_exec_init",
+            "label": "重试次数 = 0",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "bounded_pay_exec_check",
+            "label": "重试次数 < 3？",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "bounded_pay_exec_increment",
+            "label": "重试次数 + 1",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "cs_risk_check",
+            "label": "风控检查： 是否高风险？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_risk_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_manual_review",
+            "label": "主管人工复核",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_review_approve",
+            "label": "复核通过？",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_review_reject",
+            "label": "通知客户拒绝",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_risk_group",
+            "label": "高风险人工复核",
+            "parent": "swim_supervisor"
+          }
+        ]
+      },
+      "assistantText": "我来分析当前文档状态，然后执行三个局部修改：财务节点改浅蓝色背景、校验金额改名、主管人工复核节点放入嵌套组。\n\n先确认相关节点：\n\n- 财务节点：`fin_check`（金额一致性校验，原名\"财务校验金额\"）、`fin_correct`（金额正确？）、`fin_fix`（更正金额）、`fin_approve`（财务审批通过？）、`fin_reject`（通知客户拒绝）\n- 主管人工复核相关：`sup_manual_review`（主管人工复核）、`sup_review_approve`（复核通过？）、`sup_review_reject`（通知客户拒绝）\n\n需要创建一个嵌套组 `sup_risk_group`，将三个主管复核节点移入其中。\n\ngeometry 值需要是数字类型，修正后重发",
+      "commandTitle": "电商退款审批泳道流程",
+      "changedExistingIds": [
+        "fin_check",
+        "fin_correct",
+        "fin_fix",
+        "fin_approve",
+        "fin_reject",
+        "swim_supervisor",
+        "sup_manual_review",
+        "sup_review_approve",
+        "sup_review_reject"
+      ],
+      "addedIds": [
+        "sup_risk_group"
+      ],
+      "removedIds": [],
+      "elapsedMs": 21382,
+      "accountingComplete": true,
+      "costUsd": 0.00735306439,
+      "inputTokens": 25057,
+      "outputTokens": 1506,
+      "cachedInputTokens": 12288,
+      "reasoningTokens": 0
+    },
+    {
+      "name": "complex-platform-repair",
+      "prompt": "删除风控修改时多生成的孤立冗余节点 cs_risk_reject（客服部门内“通知客户拒绝”，没有任何连线）。主管人工复核拒绝已经通过 sup_review_reject 接到结束，保留这条原有拒绝路径。仅删除 cs_risk_reject，其他所有节点、连线、ID、位置、财务浅蓝样式、人工复核嵌套组、3次重试及60秒等待都保持不变。",
+      "startedAt": "2026-10-13T16:09:26.344Z",
+      "modelId": "deepseek/deepseek-v4-pro",
+      "billingClassification": "platform_repair",
+      "historyMessages": 8,
+      "historyCharacters": 2160,
+      "before": {
+        "cells": 82,
+        "vertices": 42,
+        "groups": 7,
+        "flowNodes": 35,
+        "edges": 40,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "金额一致性校验",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "等待60秒后重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          },
+          {
+            "id": "bounded_pay_exec_init",
+            "label": "重试次数 = 0",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "bounded_pay_exec_check",
+            "label": "重试次数 < 3？",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "bounded_pay_exec_increment",
+            "label": "重试次数 + 1",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "cs_risk_check",
+            "label": "风控检查： 是否高风险？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_risk_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_manual_review",
+            "label": "主管人工复核",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_review_approve",
+            "label": "复核通过？",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_review_reject",
+            "label": "通知客户拒绝",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_risk_group",
+            "label": "高风险人工复核",
+            "parent": "swim_supervisor"
+          }
+        ]
+      },
+      "calls": [
+        {
+          "index": 1,
+          "model": "deepseek/deepseek-v4-pro",
+          "maxTokens": 16000,
+          "promptCharacters": 35312,
+          "stream": true,
+          "httpStatus": 200,
+          "generationId": "gen-1791907767-AcUvzqRuRt891YNhdeRw",
+          "provider": "Baidu",
+          "usage": {
+            "prompt_tokens": 12213,
+            "completion_tokens": 190,
+            "total_tokens": 12403,
+            "cost": 0.00510099723,
+            "is_byok": false,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "cost_details": {
+              "upstream_inference_cost": 0.00510099723,
+              "upstream_inference_prompt_cost": 0.00493466743,
+              "upstream_inference_completions_cost": 0.0001663298
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            }
+          }
+        }
+      ],
+      "stepUsage": [
+        {
+          "inputTokens": 12213,
+          "outputTokens": 190,
+          "totalTokens": 12403,
+          "reasoningTokens": 0,
+          "cachedInputTokens": 1024,
+          "cacheCreationInputTokens": 0,
+          "raw": {
+            "inputTokens": {
+              "total": 12213,
+              "noCache": 11189,
+              "cacheRead": 1024,
+              "cacheWrite": 0
+            },
+            "outputTokens": {
+              "total": 190,
+              "text": 190,
+              "reasoning": 0
+            },
+            "raw": {
+              "prompt_tokens": 12213,
+              "prompt_tokens_details": {
+                "cached_tokens": 1024,
+                "cache_write_tokens": 0,
+                "audio_tokens": 0,
+                "video_tokens": 0
+              },
+              "completion_tokens": 190,
+              "completion_tokens_details": {
+                "reasoning_tokens": 0,
+                "image_tokens": 0,
+                "audio_tokens": 0
+              },
+              "total_tokens": 12403,
+              "cost": 0.00510099723,
+              "cost_details": {
+                "upstream_inference_cost": 0.00510099723,
+                "upstream_inference_prompt_cost": 0.00493466743,
+                "upstream_inference_completions_cost": 0.0001663298
+              },
+              "is_byok": false
+            }
+          }
+        }
+      ],
+      "toolCalls": [
+        {
+          "name": "generate_flowchart"
+        }
+      ],
+      "errors": [],
+      "sdkTotalUsage": {
+        "inputTokens": 12213,
+        "outputTokens": 190,
+        "totalTokens": 12403,
+        "reasoningTokens": 0,
+        "cachedInputTokens": 1024,
+        "cacheCreationInputTokens": 0,
+        "raw": {
+          "inputTokens": {
+            "total": 12213,
+            "noCache": 11189,
+            "cacheRead": 1024,
+            "cacheWrite": 0
+          },
+          "outputTokens": {
+            "total": 190,
+            "text": 190,
+            "reasoning": 0
+          },
+          "raw": {
+            "prompt_tokens": 12213,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 190,
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 12403,
+            "cost": 0.00510099723,
+            "cost_details": {
+              "upstream_inference_cost": 0.00510099723,
+              "upstream_inference_prompt_cost": 0.00493466743,
+              "upstream_inference_completions_cost": 0.0001663298
+            },
+            "is_byok": false
+          }
+        }
+      },
+      "sdkSteps": [
+        {
+          "usage": {
+            "inputTokens": 12213,
+            "outputTokens": 190,
+            "totalTokens": 12403,
+            "reasoningTokens": 0,
+            "cachedInputTokens": 1024,
+            "cacheCreationInputTokens": 0,
+            "raw": {
+              "inputTokens": {
+                "total": 12213,
+                "noCache": 11189,
+                "cacheRead": 1024,
+                "cacheWrite": 0
+              },
+              "outputTokens": {
+                "total": 190,
+                "text": 190,
+                "reasoning": 0
+              },
+              "raw": {
+                "prompt_tokens": 12213,
+                "prompt_tokens_details": {
+                  "cached_tokens": 1024,
+                  "cache_write_tokens": 0,
+                  "audio_tokens": 0,
+                  "video_tokens": 0
+                },
+                "completion_tokens": 190,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 0,
+                  "image_tokens": 0,
+                  "audio_tokens": 0
+                },
+                "total_tokens": 12403,
+                "cost": 0.00510099723,
+                "cost_details": {
+                  "upstream_inference_cost": 0.00510099723,
+                  "upstream_inference_prompt_cost": 0.00493466743,
+                  "upstream_inference_completions_cost": 0.0001663298
+                },
+                "is_byok": false
+              }
+            }
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "usage": {
+                "promptTokens": 12213,
+                "promptTokensDetails": {
+                  "cachedTokens": 1024
+                },
+                "completionTokens": 190,
+                "completionTokensDetails": {
+                  "reasoningTokens": 0
+                },
+                "cost": 0.00510099723,
+                "totalTokens": 12403,
+                "costDetails": {
+                  "upstreamInferenceCost": 0.00510099723
+                }
+              },
+              "provider": "Baidu",
+              "reasoning_details": []
+            }
+          },
+          "toolNames": [
+            null
+          ]
+        }
+      ],
+      "success": true,
+      "operation": "patch",
+      "after": {
+        "cells": 81,
+        "vertices": 41,
+        "groups": 7,
+        "flowNodes": 34,
+        "edges": 40,
+        "labels": [
+          {
+            "id": "start",
+            "label": "开始",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cust_apply",
+            "label": "客户申请退款\n并提交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "cs_check",
+            "label": "客服校验订单",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_valid",
+            "label": "订单有效？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject1",
+            "label": "拒绝退款",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_deadline",
+            "label": "是否在退款期限内？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_reject2",
+            "label": "超期拒绝",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_evidence",
+            "label": "凭证完整？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cs_notify_resubmit",
+            "label": "通知客户补交凭证",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "cust_resubmit",
+            "label": "客户补交凭证",
+            "parent": "swim_customer"
+          },
+          {
+            "id": "fork",
+            "label": "并行开始",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_check",
+            "label": "主管检查退款理由",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_approve",
+            "label": "主管审批通过？",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "sup_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_supervisor"
+          },
+          {
+            "id": "fin_check",
+            "label": "金额一致性校验",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_correct",
+            "label": "金额正确？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_fix",
+            "label": "更正金额",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_approve",
+            "label": "财务审批通过？",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "fin_reject",
+            "label": "通知客户拒绝",
+            "parent": "swim_finance"
+          },
+          {
+            "id": "join",
+            "label": "全部审批通过",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_exec",
+            "label": "支付执行退款",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_success",
+            "label": "退款成功？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retryable",
+            "label": "是否可重试？",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry_group",
+            "label": "重试子流程",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "pay_retry",
+            "label": "等待60秒后重试退款",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "pay_manual",
+            "label": "转人工处理",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "cs_notify",
+            "label": "客服通知客户\n并归档",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "end",
+            "label": "结束",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "swim_customer",
+            "label": "客户",
+            "parent": "1"
+          },
+          {
+            "id": "swim_cs",
+            "label": "客服",
+            "parent": "1"
+          },
+          {
+            "id": "swim_supervisor",
+            "label": "主管",
+            "parent": "1"
+          },
+          {
+            "id": "swim_finance",
+            "label": "财务",
+            "parent": "1"
+          },
+          {
+            "id": "swim_payment",
+            "label": "支付",
+            "parent": "1"
+          },
+          {
+            "id": "bounded_pay_exec_init",
+            "label": "重试次数 = 0",
+            "parent": "swim_payment"
+          },
+          {
+            "id": "bounded_pay_exec_check",
+            "label": "重试次数 < 3？",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "bounded_pay_exec_increment",
+            "label": "重试次数 + 1",
+            "parent": "pay_retry_group"
+          },
+          {
+            "id": "cs_risk_check",
+            "label": "风控检查： 是否高风险？",
+            "parent": "swim_cs"
+          },
+          {
+            "id": "sup_manual_review",
+            "label": "主管人工复核",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_review_approve",
+            "label": "复核通过？",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_review_reject",
+            "label": "通知客户拒绝",
+            "parent": "sup_risk_group"
+          },
+          {
+            "id": "sup_risk_group",
+            "label": "高风险人工复核",
+            "parent": "swim_supervisor"
+          }
+        ]
+      },
+      "assistantText": "\n\n`cs_risk_reject` 节点确实没有连线，是孤立的。直接删除它即可",
+      "commandTitle": "电商退款审批泳道流程",
+      "changedExistingIds": [
+        "cs_risk_reject"
+      ],
+      "addedIds": [],
+      "removedIds": [
+        "cs_risk_reject"
+      ],
+      "elapsedMs": 4717,
+      "accountingComplete": true,
+      "costUsd": 0.00510099723,
+      "inputTokens": 12213,
+      "outputTokens": 190,
+      "cachedInputTokens": 1024,
+      "reasoningTokens": 0
+    }
+  ],
+  "totalKnownCost": 0.029566145000000002
+}

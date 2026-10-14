@@ -56,7 +56,7 @@ export async function runGuardedFlowchartAgent<T>(
       status: 429,
       body: {
         error: 'Usage limit exceeded',
-        message: `You have reached your AI usage limit. ${usage.remainingUsage ?? 0} of ${usage.limit ?? 0} requests remaining.`,
+        message: usage.billingMode === 'credits' ? 'You have no credits left. Buy credits to continue.' : `You have reached your AI usage limit. ${usage.remainingUsage ?? 0} of ${usage.limit ?? 0} requests remaining.`,
         usageInfo: usage,
       },
     };

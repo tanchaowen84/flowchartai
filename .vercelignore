@@ -1,0 +1,10 @@
+.git
+.next
+node_modules
+public/drawio
+.env*
+.vercel
+coverage
+docs/billing/research
+docs/billing/screenshots
+docs/qa

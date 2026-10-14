@@ -1,4 +1,6 @@
 import { websiteConfig } from '@/config/website';
+import { OFFERS, isOfferKey } from '@/lib/billing/policy';
+import { PaymentTypes, PlanIntervals } from '@/payment/types';
 import type { Price, PricePlan } from '@/payment/types';
 
 /**
@@ -25,6 +27,31 @@ export const findPlanByPlanId = (planId: string): PricePlan | undefined => {
  * @returns Plan or undefined if not found
  */
 export const findPlanByPriceId = (priceId: string): PricePlan | undefined => {
+  if (
+    process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true' &&
+    isOfferKey(priceId)
+  ) {
+    const offer = OFFERS[priceId];
+    if (offer.kind === 'subscription')
+      return {
+        id: offer.plan,
+        name: offer.plan === 'pro' ? 'Pro' : 'Starter',
+        isFree: false,
+        isLifetime: false,
+        prices: [
+          {
+            type: PaymentTypes.SUBSCRIPTION,
+            priceId,
+            amount: offer.amount,
+            currency: 'USD',
+            interval:
+              offer.interval === 'year'
+                ? PlanIntervals.YEAR
+                : PlanIntervals.MONTH,
+          },
+        ],
+      };
+  }
   const plans = getAllPricePlans();
   for (const plan of plans) {
     const matchingPrice = plan.prices.find(
