@@ -334,13 +334,14 @@ export class CreemProvider implements PaymentProvider {
       const event = this.parseAndValidateEvent(payload);
       eventId = event.id;
       eventType = event.eventType;
+      const canonicalState = await this.resolveUndatedSubscription(event);
 
       console.log(
         `🎯 Processing Creem webhook event: ${eventType} (ID: ${eventId})`
       );
 
       // 3. Event processing with transaction safety
-      await this.processEventWithTransaction(event);
+      await this.processEventWithTransaction(event, canonicalState);
       await this.observeCheckoutPayment(event);
 
       // 4. Performance monitoring
@@ -477,8 +478,44 @@ export class CreemProvider implements PaymentProvider {
   /**
    * Process webhook event within database transaction
    */
-  private async processEventWithTransaction(
+  private async resolveUndatedSubscription(
     event: CreemWebhookEvent
+  ): Promise<boolean> {
+    if (!event.eventType.startsWith('subscription.')) return false;
+    const subscription = event.object as CreemSubscription;
+    if (
+      subscription.updated_at &&
+      Number.isFinite(Date.parse(subscription.updated_at))
+    )
+      return false;
+    const url = new URL('/v1/subscriptions', this.apiUrl);
+    url.searchParams.set('subscription_id', subscription.id);
+    const response = await fetch(url, {
+      headers: { 'x-api-key': this.apiKey },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok)
+      throw new Error(
+        `Canonical Creem subscription lookup failed: HTTP ${response.status}`
+      );
+    const current = (await response.json()) as CreemSubscription;
+    const mode = this.apiUrl.includes('test-api.creem.io') ? 'test' : 'prod';
+    if (
+      current.id !== subscription.id ||
+      current.mode !== mode ||
+      !current.updated_at ||
+      !Number.isFinite(Date.parse(current.updated_at))
+    )
+      throw new Error(
+        'Canonical Creem subscription lookup failed: invalid snapshot'
+      );
+    event.object = current;
+    return true;
+  }
+
+  private async processEventWithTransaction(
+    event: CreemWebhookEvent,
+    canonicalState = false
   ): Promise<void> {
     const db = await getDb();
 
@@ -496,6 +533,13 @@ export class CreemProvider implements PaymentProvider {
         if (!recorded.length) return;
       }
       try {
+        if (canonicalState) {
+          await this.handleSubscriptionUpdate(tx, {
+            ...event,
+            eventType: 'subscription.update',
+          });
+          return;
+        }
         switch (event.eventType) {
           case 'checkout.completed':
             await this.handleCheckoutCompleted(tx, event);
