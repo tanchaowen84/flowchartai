@@ -9,6 +9,7 @@ import {
 } from '@/db/developer-schema';
 import { user } from '@/db/schema';
 import type { BillingTx } from '@/lib/billing/wallet';
+import { originalRequestUrl } from '@/lib/routing/request-url';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { assertLive, ownerPolicy, rateLimit } from './access';
@@ -79,17 +80,33 @@ export async function authorizationRequest(params: URLSearchParams): Promise<{
         'invalid_request',
         'Duplicate authorization parameter.'
       );
+  for (const key of [
+    'client_id',
+    'redirect_uri',
+    'response_type',
+    'code_challenge',
+    'code_challenge_method',
+    'resource',
+  ])
+    if (!params.get(key))
+      throw new DeveloperError(
+        'invalid_request',
+        `Missing authorization parameter: ${key}.`
+      );
   const clientId = params.get('client_id') || '';
   const [client] = await (await getDb())
     .select()
     .from(developerClients)
     .where(eq(developerClients.id, clientId));
   const redirectUri = params.get('redirect_uri') || '';
-  if (!client || !client.redirectUris.includes(redirectUri))
+  if (!client)
+    throw new DeveloperError('invalid_request', 'Unknown OAuth client.');
+  if (!client.redirectUris.includes(redirectUri)) {
     throw new DeveloperError(
       'invalid_request',
-      'Unknown client or redirect URI.'
+      'Redirect URI must exactly match the registered value.'
     );
+  }
   if (
     params.get('response_type') !== 'code' ||
     params.get('code_challenge_method') !== 'S256' ||
@@ -402,11 +419,9 @@ export async function oauthEndpoint(
         201
       );
     if (action === 'authorize') {
-      await authorizationRequest(new URL(request.url).searchParams);
-      return Response.redirect(
-        `${origin()}/developers/consent?${new URL(request.url).searchParams}`,
-        302
-      );
+      const params = originalRequestUrl(request).searchParams;
+      await authorizationRequest(params);
+      return Response.redirect(`${origin()}/developers/consent?${params}`, 302);
     }
     if (
       !request.headers

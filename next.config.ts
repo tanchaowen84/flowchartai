@@ -8,6 +8,10 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const nextConfig: NextConfig = {
   devIndicators: false,
 
+  // NextURL 15 rewrites loopback literals even inside OAuth query values.
+  // Keep the original URL; middleware also restores its search before locale routing.
+  skipMiddlewareUrlNormalize: true,
+
   // Mastra is a Node-only Agent runtime. Keep it out of the webpack server
   // bundle so Vercel can trace the package directly instead of minifying it.
   serverExternalPackages: ['@mastra/core'],

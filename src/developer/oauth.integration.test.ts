@@ -3,6 +3,7 @@ import { getDb } from '@/db';
 import { developerCredentials, developerTokens } from '@/db/developer-schema';
 import { session, user } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { NextRequest } from 'next/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { authenticate, revokeCredential } from './access';
 import { hash, resource } from './contract';
@@ -10,6 +11,7 @@ import {
   authorizationRequest,
   consent,
   exchangeToken,
+  oauthEndpoint,
   registerClient,
   revokeToken,
 } from './oauth';
@@ -66,6 +68,45 @@ describe.skipIf(!process.env.DEVELOPER_TEST_DATABASE_URL)(
       new Request(`https://flowchartai.org${path}`, {
         headers: { authorization: `Bearer ${token}` },
       });
+    it('preserves a registered loopback callback at the public NextRequest boundary', async () => {
+      const callback = 'http://127.0.0.1:3051/callback';
+      const client = await registerClient({ redirect_uris: [callback] });
+      const url = new URL('/api/oauth/authorize', resource());
+      url.search = new URLSearchParams({
+        client_id: String(client.client_id),
+        redirect_uri: callback,
+        response_type: 'code',
+        code_challenge: 'x'.repeat(43),
+        code_challenge_method: 'S256',
+        resource: resource(),
+        state: 'opaque-state',
+      }).toString();
+      const response = await oauthEndpoint(new NextRequest(url), 'authorize');
+      expect(response.status).toBe(302);
+      expect(
+        new URL(response.headers.get('location')!).searchParams.get(
+          'redirect_uri'
+        )
+      ).toBe(callback);
+    });
+    it('identifies missing required authorization parameters before client lookup', async () => {
+      const { params } = await start();
+      for (const key of [
+        'client_id',
+        'redirect_uri',
+        'response_type',
+        'code_challenge',
+        'code_challenge_method',
+        'resource',
+      ]) {
+        const missing = new URLSearchParams(params);
+        missing.delete(key);
+        await expect(authorizationRequest(missing)).rejects.toMatchObject({
+          code: 'invalid_request',
+          message: `Missing authorization parameter: ${key}.`,
+        });
+      }
+    });
     it('validates exact redirect, PKCE S256, scope and resource before consent', async () => {
       const { params } = await start();
       for (const [key, value] of [

@@ -1,3 +1,4 @@
+import { originalRequestUrl } from '@/lib/routing/request-url';
 import { authenticate } from './access';
 import { DeveloperError } from './contract';
 import {
@@ -23,7 +24,7 @@ export async function rest(
   try {
     const principal = await authenticate(request);
     const method = request.method;
-    const url = new URL(request.url);
+    const url = originalRequestUrl(request);
     const key = request.headers.get('idempotency-key') || '';
     if (method === 'GET' && path.join('/') === 'capabilities')
       return json(capabilities);
