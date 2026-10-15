@@ -66,6 +66,24 @@ describe.skipIf(!process.env.DEVELOPER_TEST_DATABASE_URL)(
       new Request(`https://flowchartai.org${path}`, {
         headers: { authorization: `Bearer ${token}` },
       });
+    it('identifies missing required authorization parameters before client lookup', async () => {
+      const { params } = await start();
+      for (const key of [
+        'client_id',
+        'redirect_uri',
+        'response_type',
+        'code_challenge',
+        'code_challenge_method',
+        'resource',
+      ]) {
+        const missing = new URLSearchParams(params);
+        missing.delete(key);
+        await expect(authorizationRequest(missing)).rejects.toMatchObject({
+          code: 'invalid_request',
+          message: `Missing authorization parameter: ${key}.`,
+        });
+      }
+    });
     it('validates exact redirect, PKCE S256, scope and resource before consent', async () => {
       const { params } = await start();
       for (const [key, value] of [

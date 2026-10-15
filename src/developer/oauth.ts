@@ -79,17 +79,39 @@ export async function authorizationRequest(params: URLSearchParams): Promise<{
         'invalid_request',
         'Duplicate authorization parameter.'
       );
+  for (const key of [
+    'client_id',
+    'redirect_uri',
+    'response_type',
+    'code_challenge',
+    'code_challenge_method',
+    'resource',
+  ])
+    if (!params.get(key))
+      throw new DeveloperError(
+        'invalid_request',
+        `Missing authorization parameter: ${key}.`
+      );
   const clientId = params.get('client_id') || '';
   const [client] = await (await getDb())
     .select()
     .from(developerClients)
     .where(eq(developerClients.id, clientId));
   const redirectUri = params.get('redirect_uri') || '';
-  if (!client || !client.redirectUris.includes(redirectUri))
+  if (!client)
+    throw new DeveloperError('invalid_request', 'Unknown OAuth client.');
+  if (!client.redirectUris.includes(redirectUri)) {
+    // Public client metadata only; log hashes rather than callback URLs, codes or tokens.
+    console.warn('Developer OAuth redirect mismatch', {
+      client: hash(clientId).slice(0, 12),
+      supplied: hash(redirectUri),
+      registered: client.redirectUris.map((uri) => hash(uri)),
+    });
     throw new DeveloperError(
       'invalid_request',
-      'Unknown client or redirect URI.'
+      'Redirect URI must exactly match the registered value.'
     );
+  }
   if (
     params.get('response_type') !== 'code' ||
     params.get('code_challenge_method') !== 'S256' ||
