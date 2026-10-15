@@ -41,9 +41,18 @@ Public product-owned assets (HTTP 200 verified):
 - https://cdn.flowchartai.org/developer/2026-10-15/api-onboarding-01aa63ad.webp (410×676)
 - https://cdn.flowchartai.org/developer/2026-10-15/mcp-onboarding-a3102734.webp (410×824)
 
+## Final browser acceptance
+
+Ego Lite recovered after the user restored availability. At application commit 7c7dafe:
+
+- API/MCP pages passed actual 390/1440/1920 rendering and image inspection, with extra header checks at 1024/1280. No horizontal overflow, each primary CTA is in the viewport; word counts and FAQ/schema match the landing contract.
+- Desktop and mobile API/MCP/Pricing navigation pass. Native Tab produces visible focus and Enter navigates. FAQ keyboard expansion passes.
+- A fresh isolated website account showed the empty key/task state. Browser UI saved account budgets 700 Credits/70 AI tasks per day and created a 1-day key with only account:read, 80 Credits/day, 3 AI tasks/day and 20 requests/minute. Account read succeeds; diagram list correctly returns 403. Full secret is shown once, copied, dismissed and absent after reload.
+- Browser rotation preserves the exact expiry; old key 401/new key 200; browser revocation makes the rotated key 401. Dashboard at 390px has no root overflow.
+- Official SDK **1.32.1** completed real **390px browser consent** with PKCE, discovery, 11 tools and get_account. Refresh rotated both tokens; refreshed get_account succeeds; old access returns 401. Browser revocation then makes both access and refresh return 401. Consent has no horizontal overflow.
+- UI screenshots are public product pages with no secrets: API desktop and MCP mobile links in the landing contract. Test secrets stay in ignored local receipts.
+
 ## Remaining release gates
 
-- Final browser acceptance of the same built version at 390/1440/1920 px, header/Pricing navigation, keyboard focus, FAQ/images, and key create/reveal/dismiss/rotate/revoke UI.
-- Ego Lite initially worked for actual canvas/editor/export and consent. Later its Node runtime bootstrap and reconnect timed out even for a minimal console script; native Ego observation also timed out. No Playwright or external DevTools fallback was used. HTTP receipts above do not substitute for responsive UI acceptance.
 - Production migration/deployment, production endpoint acceptance and Registry publish/readback remain pending. `mcp-publisher validate` passes but is not a publication receipt. Namespace: `org.flowchartai/flowchartai`, version 1.0.0; FlowchartAI-only Ed25519 key and public domain proof prepared. Private key remains outside Git.
 - ChatGPT/Claude web clients have not completed real login/connection acceptance. Official SDK success is recorded separately.

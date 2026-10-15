@@ -1,6 +1,6 @@
 # FlowchartAI API / MCP delivery
 
-SPEC ID: flowchart-api-mcp-v1. Status: LOCKED scope from the explicit implementation handoff on 2026-10-15. Risk: HIGH (authorization, usage budgets, billing). Content remains DRAFT REVIEW until owner review; implementation/release is already authorized by the handoff.
+SPEC ID: flowchart-api-mcp-v1. Status: LOCKED scope from the explicit implementation handoff on 2026-10-15. Risk: HIGH (authorization, usage budgets, billing). Implementation and final browser acceptance complete; release is authorized by the handoff. Main-agent review only.
 
 ## 1. Goal
 
@@ -33,8 +33,8 @@ Commands: pnpm test, pnpm typecheck, pnpm build, pnpm exec biome check <changed 
 1. Audit and isolate (complete). Main is ahead of resident checkout; no resident changes imported.
 2. Key/OAuth schema and service contracts + RED tests.
 3. Shared diagram execution, persisted receipts, budgets and REST/MCP adapters (complete). Full-context reservation is independent of caller cap; insufficient cap returns 409/required_credits before model execution.
-4. Dashboard, consent, OpenAPI/Quickstart, landing content/assets/SEO (implemented; final responsive browser acceptance pending).
-5. Local integration and real provider/browser acceptance.
+4. Dashboard, consent, OpenAPI/Quickstart, landing content/assets/SEO (complete; browser acceptance recorded).
+5. Local integration and real provider/browser acceptance (complete; see API_MCP_VERIFICATION.md).
 6. PR, production migration/deployment, Registry publication and readback.
 
 Independent reviewer/evaluator: not run; user has not authorized subagents. Main-agent self-review and automated/real tests are recorded separately.
