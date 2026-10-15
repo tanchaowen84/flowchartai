@@ -5,6 +5,7 @@ import { useCurrentUser } from './use-current-user';
 
 interface AIUsageData {
   billingMode?: string;
+  firstDiagramEligible?: boolean;
   balance?: number;
   usedCount: number;
   totalLimit: number;
@@ -63,6 +64,7 @@ async function fetchUsageDataCore(userId: string): Promise<AIUsageData> {
       // 转换响应数据格式以匹配接口
       const data: AIUsageData = {
         billingMode: responseData.limits?.billingMode,
+        firstDiagramEligible: responseData.limits?.firstDiagramEligible,
         balance:
           responseData.limits?.billingMode === 'credits'
             ? responseData.limits.remainingUsage

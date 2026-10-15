@@ -1,0 +1,17 @@
+{
+  "verifiedAt": "2026-10-15T17:31:41.143Z",
+  "method": "Supabase apply_migration; direct PostgreSQL readback",
+  "migration": "first_diagram_delivery_safeguard_20261016",
+  "column": {
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "column_default": "false"
+  },
+  "summary": {
+    "users": 55806,
+    "tasks": 290,
+    "protected_tasks": 0,
+    "registration_buckets": 141
+  },
+  "change": "Added boolean metadata only; no balance, payment, subscription or grant updates"
+}

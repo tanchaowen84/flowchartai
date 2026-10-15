@@ -32,7 +32,8 @@ export function useNativeDiagramSave(
   const coordinator = useRef<ReturnType<
     typeof createFlowchartAutosaveCoordinator
   > | null>(null);
-  const save = useCallback(async (): Promise<void> => {
+  const pendingSave = useRef<Promise<void> | null>(null);
+  const saveRequest = useCallback(async (): Promise<void> => {
     const { bridge, title } = current.current;
     if (!bridge) throw new Error('Diagram editor is not ready');
     const id = current.current.fileId;
@@ -59,6 +60,13 @@ export function useNativeDiagramSave(
       current.current.onFileId(saved.id);
     }
   }, []);
+  const save = useCallback((): Promise<void> => {
+    if (pendingSave.current) return pendingSave.current;
+    pendingSave.current = saveRequest().finally(() => {
+      pendingSave.current = null;
+    });
+    return pendingSave.current;
+  }, [saveRequest]);
   useEffect(() => {
     const instance = createFlowchartAutosaveCoordinator({
       delayMs: 3000,
@@ -72,6 +80,13 @@ export function useNativeDiagramSave(
     };
   }, [save]);
   return {
+    ensureSaved: async (): Promise<string> => {
+      await save();
+      // A save that started before the AI mutation must not acknowledge the older revision.
+      await save();
+      if (!current.current.fileId) throw new Error('Diagram was not saved');
+      return current.current.fileId;
+    },
     status: state.status,
     error: state.error?.message || null,
     saveNow: () => coordinator.current?.saveNow(),

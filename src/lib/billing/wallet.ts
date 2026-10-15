@@ -7,18 +7,28 @@ import {
   billingTasks,
   creditBuckets,
   creditsHistory,
+  flowcharts,
   payment,
   user,
 } from '@/db/schema';
+import { drawioDocumentSchema } from '@/lib/drawio/contracts';
+import {
+  readNativeCells,
+  validateDrawioXml,
+} from '@/lib/drawio/native-document';
 import { and, asc, eq, gt, gte, inArray, sql } from 'drizzle-orm';
 import {
+  FIRST_DIAGRAM_COMPUTE_LIMIT,
+  FIRST_DIAGRAM_MAX_ATTEMPTS_PER_DAY,
   type ModelCallUsage,
   OFFERS,
   RATE_VERSION,
+  SIGNUP_TRIAL_CREDITS,
   creditsForCalls,
   hasPaidAccess,
   isOfferKey,
   legacyPlanForPayment,
+  registrationCredits,
   subscriptionCreditWindow,
 } from './policy';
 export type BillingTx = Parameters<
@@ -154,7 +164,7 @@ export async function refreshWallet(
     if (owner.createdAt >= new Date(cutover))
       await grantBucket(tx, {
         userId,
-        amount: 200,
+        amount: registrationCredits(owner.createdAt),
         source: 'registration',
         sourceKey: `registration:${userId}`,
         expiresAt: new Date(owner.createdAt.getTime() + 30 * 86400000),
@@ -256,9 +266,37 @@ export async function legacyRequestsRemaining(
     );
   return Math.max(0, limit - Number(usage.count));
 }
+export async function firstDiagramEligible(
+  tx: BillingTx,
+  userId: string
+): Promise<boolean> {
+  const [registration] = await tx
+    .select({ id: creditBuckets.id })
+    .from(creditBuckets)
+    .where(
+      and(
+        eq(creditBuckets.userId, userId),
+        eq(creditBuckets.source, 'registration')
+      )
+    );
+  if (!registration) return false;
+  const [delivered] = await tx
+    .select({ id: billingTasks.id })
+    .from(billingTasks)
+    .where(
+      and(
+        eq(billingTasks.userId, userId),
+        eq(billingTasks.state, 'committed'),
+        sql`${billingTasks.result}->'events' @> '[{"type":"tool-call","args":{"kind":"drawio-command"}}]'::jsonb`
+      )
+    )
+    .limit(1);
+  return !delivered;
+}
 export async function walletSummary(userId: string): Promise<{
   balance: number;
   reserved: number;
+  firstDiagramEligible: boolean;
   legacy: { plan: string; limit: number; manual?: boolean } | null;
   buckets: unknown[];
 }> {
@@ -277,6 +315,7 @@ export async function walletSummary(userId: string): Promise<{
     return {
       balance: owner?.balance ?? 0,
       reserved: buckets.reduce((n, b) => n + b.reserved, 0),
+      firstDiagramEligible: await firstDiagramEligible(tx, userId),
       legacy: await getLegacyEntitlement(tx, userId),
       buckets: buckets
         .filter((b) => b.remaining > 0 || b.reserved > 0)
@@ -292,9 +331,13 @@ export async function grantRegistration(userId: string): Promise<void> {
   const db = await getDb();
   await db.transaction(async (tx) => {
     await lockWallet(tx, userId);
+    const [owner] = await tx
+      .select({ createdAt: user.createdAt })
+      .from(user)
+      .where(eq(user.id, userId));
     await grantBucket(tx, {
       userId,
-      amount: 200,
+      amount: registrationCredits(owner.createdAt),
       source: 'registration',
       sourceKey: `registration:${userId}`,
       expiresAt: new Date(Date.now() + 30 * 86400000),
@@ -306,6 +349,7 @@ export async function reserveTask(args: {
   userId: string;
   requestHash: string;
   budget: number;
+  allowFirstDiagram?: boolean;
 }): Promise<typeof billingTasks.$inferSelect> {
   const db = await getDb();
   return db.transaction(async (tx) => {
@@ -352,13 +396,65 @@ export async function reserveTask(args: {
       entitlement &&
         (await legacyRequestsRemaining(tx, args.userId, entitlement.limit)) > 0
     );
+    const firstDiagram =
+      !legacy &&
+      args.allowFirstDiagram === true &&
+      (await firstDiagramEligible(tx, args.userId));
+    if (firstDiagram) {
+      if (args.budget > FIRST_DIAGRAM_COMPUTE_LIMIT)
+        throw new BillingError(
+          'first_diagram_too_large',
+          'Please start with a smaller diagram or a shorter description. Your first-diagram credits are safe.',
+          413
+        );
+      const [attempts] = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(billingTasks)
+        .where(
+          and(
+            eq(billingTasks.userId, args.userId),
+            eq(billingTasks.firstDiagram, true),
+            gte(billingTasks.createdAt, new Date(Date.now() - 86400000))
+          )
+        );
+      if (Number(attempts.count) >= FIRST_DIAGRAM_MAX_ATTEMPTS_PER_DAY)
+        throw new BillingError(
+          'first_diagram_retry_limit',
+          'Your first-diagram credits are safe. Please retry tomorrow or contact support.',
+          429
+        );
+    }
+    let budget = args.budget;
     const allocations: Allocation[] = [];
     if (!legacy) {
       const [owner] = await tx
         .select()
         .from(user)
         .where(eq(user.id, args.userId));
-      if ((owner.credits ?? 0) < args.budget)
+      if (firstDiagram)
+        budget = Math.min(SIGNUP_TRIAL_CREDITS, owner.credits ?? 0);
+      if (
+        !firstDiagram &&
+        args.allowFirstDiagram === true &&
+        (owner.credits ?? 0) > 0 &&
+        (owner.credits ?? 0) < budget &&
+        args.budget <= FIRST_DIAGRAM_COMPUTE_LIMIT
+      ) {
+        const [trial] = await tx
+          .select({
+            remaining: sql<number>`coalesce(sum(${creditBuckets.remaining}),0)`,
+          })
+          .from(creditBuckets)
+          .where(
+            and(
+              eq(creditBuckets.userId, args.userId),
+              eq(creditBuckets.source, 'registration')
+            )
+          );
+        // Trial credits remain usable after successful delivery; do not strand a small remainder behind a conservative estimate.
+        if (Number(trial.remaining) === owner.credits) budget = owner.credits!;
+      }
+      if ((owner.credits ?? 0) < budget)
         throw new BillingError(
           'insufficient_credits',
           'Not enough credits. Buy credits to continue.',
@@ -377,7 +473,7 @@ export async function reserveTask(args: {
           sql`${creditBuckets.expiresAt} ASC NULLS LAST`,
           asc(creditBuckets.createdAt)
         );
-      let needed = args.budget;
+      let needed = budget;
       for (const b of buckets) {
         const amount = Math.min(needed, b.remaining);
         if (!amount) break;
@@ -394,13 +490,17 @@ export async function reserveTask(args: {
       if (needed) throw new Error('Wallet bucket balance mismatch');
       await tx
         .update(user)
-        .set({ credits: sql`${user.credits}-${args.budget}` })
+        .set({ credits: sql`${user.credits}-${budget}` })
         .where(eq(user.id, args.userId));
     }
     const [task] = await tx
       .insert(billingTasks)
       .values({
-        ...args,
+        id: args.id,
+        userId: args.userId,
+        requestHash: args.requestHash,
+        budget,
+        firstDiagram,
         state: 'running',
         legacy,
         allocations,
@@ -437,7 +537,10 @@ export async function readyTask(
         result: result as Record<string, unknown>,
         resultHash,
         calls,
-        charged: task.legacy ? 0 : Math.min(charge, task.budget),
+        charged:
+          task.legacy || (task.firstDiagram && !(result as any)?.delivery)
+            ? 0
+            : Math.min(charge, task.budget),
         updatedAt: new Date(),
       })
       .where(eq(billingTasks.id, id));
@@ -499,7 +602,8 @@ export async function finalizeTask(
   userId: string,
   id: string,
   resultHash?: string,
-  transaction?: BillingTx
+  transaction?: BillingTx,
+  deliveryFileId?: string
 ): Promise<{ charged: number; state: string }> {
   const db = await getDb();
   const complete = async (
@@ -516,6 +620,51 @@ export async function finalizeTask(
     if (resultHash) {
       if (task.state !== 'ready' || resultHash !== task.resultHash)
         throw new BillingError('invalid_receipt', 'Result is not ready');
+      if (task.firstDiagram && (task.result as any)?.delivery) {
+        const delivery = (task.result as any).delivery;
+        const [saved] = deliveryFileId
+          ? await tx
+              .select()
+              .from(flowcharts)
+              .where(
+                and(
+                  eq(flowcharts.id, deliveryFileId),
+                  eq(flowcharts.userId, userId)
+                )
+              )
+          : [];
+        const document = saved
+          ? drawioDocumentSchema.safeParse(JSON.parse(saved.content))
+          : null;
+        if (
+          !document?.success ||
+          document.data.documentId !== delivery.documentId ||
+          document.data.revision < delivery.revision
+        )
+          throw new BillingError(
+            'delivery_unconfirmed',
+            'Save the usable diagram before confirming delivery'
+          );
+        validateDrawioXml(document.data.xml, document.data.pageId);
+        const cells = readNativeCells(document.data);
+        const visible = cells.filter(
+          (c) =>
+            c.parent &&
+            c.parent !== '0' &&
+            Number(c.geometry.width) > 0 &&
+            Number(c.geometry.height) > 0
+        );
+        if (
+          !visible.length ||
+          !delivery.nodeIds.every((id: string) =>
+            cells.some((c) => c.id === id)
+          )
+        )
+          throw new BillingError(
+            'delivery_unconfirmed',
+            'The saved diagram does not contain this result'
+          );
+      }
       await releaseTaskLocked(tx, task, new Date(), task.charged);
       // Zero-cost legacy results are still committed; release/cancel explicitly overrides below.
       await tx

@@ -44,10 +44,18 @@ export function parseOpenRouterReceipt(
 }
 export function createUsageCollector(
   model: string,
-  transport: typeof fetch = fetch
+  transport: typeof fetch = fetch,
+  creditLimit?: number
 ): UsageCollector {
   const pending: Promise<ModelCallUsage>[] = [];
   const wrapped: typeof fetch = async (input, init) => {
+    if (
+      creditLimit &&
+      creditsForCalls(await Promise.all(pending)) >= creditLimit
+    )
+      throw new Error(
+        'First diagram recovery budget reached. Your trial credits are safe.'
+      );
     // The wallet caps settlement. Let existing Agent step/time limits govern execution,
     // so an underestimated reservation cannot discard a complete complex diagram.
     const response = await transport(input, init);

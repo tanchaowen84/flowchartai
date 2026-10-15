@@ -1,0 +1,12 @@
+{
+  "mode": "test",
+  "source": "authenticated Waffo canonical delivery log; manual recovery of blocked sandbox tunnel",
+  "checkoutId": "afa311ae-6674-471e-8827-a311c4c46517",
+  "orderId": "ORD_5AmlJMsALvL9LaxgkwB88O",
+  "eventId": "PAY_3qHCj6HGyWai7UrPxrh8vG",
+  "before": 20,
+  "after": 1520,
+  "afterDuplicate": 1520,
+  "realMoneyCharged": false,
+  "rawPublicWebhookTransportVerified": false
+}

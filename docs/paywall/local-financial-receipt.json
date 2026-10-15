@@ -1,0 +1,45 @@
+{
+  "tasks": [
+    {
+      "id": "52bdfdec-4cbe-40a9-835d-7aa47a7689e6",
+      "state": "released",
+      "budget": 20,
+      "charged": 0,
+      "first_diagram": true,
+      "calls": 0
+    },
+    {
+      "id": "ec08a68f-8290-4c00-b24f-a1540e19cc72",
+      "state": "committed",
+      "budget": 20,
+      "charged": 0,
+      "first_diagram": true,
+      "calls": 2
+    },
+    {
+      "id": "c055a1fa-c90e-41a1-85bc-22e7a98027de",
+      "state": "committed",
+      "budget": 47,
+      "charged": 5,
+      "first_diagram": false,
+      "calls": 1
+    }
+  ],
+  "ledger": [
+    {
+      "type": "add",
+      "amount": 20,
+      "description": "registration"
+    },
+    {
+      "type": "add",
+      "amount": 1500,
+      "description": "pack"
+    },
+    {
+      "type": "subtract",
+      "amount": 5,
+      "description": "AI task"
+    }
+  ]
+}

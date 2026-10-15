@@ -4,9 +4,9 @@
 
 | 方案 | 月付 | 年付 | 额度 |
 | --- | --- | --- | --- |
-| Free | $0 | — | 注册一次 200 积分，30 天有效 |
-| Starter | $9 | $90 | 每个订阅月 2,000 积分 |
-| Pro | $19 | $190 | 每个订阅月 6,000 积分 |
+| Free | $0 | — | 注册一次 20 积分，30 天有效；历史已发放额度保留 |
+| Starter | $9 | $84（折合 $7/月） | 每个订阅月 2,000 积分 |
+| Pro | $19 | $180（折合 $15/月） | 每个订阅月 6,000 积分 |
 | 积分包 | $10 / $30 | — | 1,500 / 5,000，永久有效，无会员要求 |
 
 年付一次收款，每月发放当月积分，月度额度不结转。优先使用最早到期的额度；永久积分最后使用。套餐使用相同模型、生成和修改能力；手动编辑、保存、撤销、下载免费。
@@ -32,3 +32,15 @@ flowchart LR
 [锁定范围](SPEC.md) · [正式切换说明](rollout.md) · [审核记录](waffo-review.md) · [旧权益只读审计](legacy-entitlement-audit.json)
 
 复用现有 Next.js、Mastra 与 Postgres，不增加生产服务器或定时服务。生产准备已核对 55,663 个原账号余额、113 条原支付/订阅记录和 2 条原积分流水，均无变化；20 条有效旧权益已冻结保留。详见 production-*-receipt.json 和 [正式商品记录](production-catalog.json)。
+
+## Pricing and first-diagram update · 2026-10-16
+
+New registrations receive 20 credits once (30 days); previously issued grants stay intact. New yearly products are Starter $84/year ($7/month equivalent) and Pro $180/year ($15/month equivalent), with unchanged monthly credit delivery. The original $90/$190 contracts and offer keys remain available for their existing renewals only.
+
+The purchase dialog now compares two offers per Monthly / Yearly / One-time tab. Annual total is directly below the monthly-equivalent price. A blocked request is retained privately; only a confirmed, fulfilled purchase resumes its exact task ID, once. One automatic dialog per browser session; dismissing keeps free editing and an inline purchase entry.
+
+Native website first-diagram protection is server opt-in, separate from REST/MCP requests. Admission reserves at most 20 available credits (including a zero balance after expiry), while a separate 120-credit compute admission/check and five-attempt daily recovery limit bound platform exposure. At most two tool-error corrections run. Only a visible editable result saved to the owning account can settle the first diagram. Text-only clarification and failed/canceled requests do not spend trial credits. Actual user charge is capped at the reservation; platform repair/overage is absorbed. Structural delivery does not assert subjective user satisfaction.
+
+See ../paywall/SPEC.md and the new verification receipt for release evidence.
+
+Trial-only balances below a conservative estimate can reserve the remaining trial amount for a bounded native task. Actual settlement consumes that remainder; it is not stranded behind the estimate. The last permitted overage is platform-funded. Paid wallet reservation rules and developer API budgets remain unchanged.

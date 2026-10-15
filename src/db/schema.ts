@@ -163,6 +163,7 @@ export const billingTasks = pgTable(
     budget: integer('budget').notNull(),
     charged: integer('charged').notNull().default(0),
     legacy: boolean('legacy').notNull().default(false),
+    firstDiagram: boolean('first_diagram').notNull().default(false),
     rateVersion: text('rate_version').notNull(),
     allocations: jsonb('allocations').notNull().default('[]'),
     calls: jsonb('calls').notNull().default('[]'),

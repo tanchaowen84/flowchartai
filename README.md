@@ -39,7 +39,7 @@ FlowChart AI is an **open-source, AI-powered flowchart generator** that transfor
 ## 🚀 Quick Start
 
 ### Option 1: Use Our Hosted Version
-Visit [flowchartai.org](https://flowchartai.org) and start creating flowcharts immediately. Free tier includes 1 AI generation per day.
+Visit [flowchartai.org](https://flowchartai.org) and start creating flowcharts immediately. New registrations receive 20 trial credits once, valid for 30 days. Manual editing, saving and downloading are free.
 
 ### Option 2: Self-Host (Recommended for Privacy)
 Follow our [Self-Hosting Guide](#self-hosting-guide) below to run FlowChart AI on your own infrastructure.

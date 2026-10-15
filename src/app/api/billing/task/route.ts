@@ -17,6 +17,8 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json(
       {
         id: task.id,
+        firstDiagram:
+          task.firstDiagram && Boolean((task.result as any)?.delivery),
         state: task.state,
         result: task.result,
         charged: task.charged,
@@ -45,7 +47,13 @@ export async function POST(request: Request): Promise<Response> {
           { status: 400 }
         );
       return Response.json(
-        await finalizeTask(owner.id, body.taskId, body.resultHash)
+        await finalizeTask(
+          owner.id,
+          body.taskId,
+          body.resultHash,
+          undefined,
+          typeof body.flowchartId === 'string' ? body.flowchartId : undefined
+        )
       );
     }
     return Response.json(await finalizeTask(owner.id, body.taskId));

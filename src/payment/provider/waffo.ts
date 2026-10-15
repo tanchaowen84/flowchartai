@@ -121,7 +121,7 @@ export async function createWaffoCheckout(
           eq(billingCheckouts.state, 'pending'),
           gt(billingCheckouts.expiresAt, new Date()),
           offer.kind === 'subscription'
-            ? sql`${billingCheckouts.offerKey} in ('starter_month','starter_year','pro_month','pro_year')`
+            ? sql`${billingCheckouts.offerKey} in ('starter_month','starter_year','pro_month','pro_year','starter_year_202610','pro_year_202610')`
             : eq(billingCheckouts.offerKey, key)
         )
       );

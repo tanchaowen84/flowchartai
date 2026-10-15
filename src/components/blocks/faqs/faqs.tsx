@@ -27,7 +27,7 @@ export default function FaqSection() {
       icon: 'calendar-clock',
       question: t('items.item-1.question'),
       answer: creditBilling
-        ? 'Yes. Registration includes 200 trial credits, valid for 30 days. Manual editing, saving and downloading are free. Every plan uses the same AI quality and editing tools.'
+        ? 'Yes. Registration includes 20 trial credits, valid for 30 days. Manual editing, saving and downloading are free. Every plan uses the same AI quality and editing tools.'
         : t('items.item-1.answer'),
     },
     {
