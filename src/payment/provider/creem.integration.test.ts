@@ -26,8 +26,11 @@ describe.skipIf(!process.env.BILLING_TEST_DATABASE_URL)(
       const url = new URL(process.env.BILLING_TEST_DATABASE_URL!);
       if (
         url.hostname !== '127.0.0.1' ||
-        url.port !== '55438' ||
-        url.pathname !== '/flowchart_billing_test'
+        !(
+          (url.port === '55438' &&
+            url.pathname === '/flowchart_billing_test') ||
+          (url.port === '55469' && url.pathname === '/flowchart_paywall_test')
+        )
       )
         throw new Error('Refusing non-test database');
       process.env.DATABASE_URL = url.toString();

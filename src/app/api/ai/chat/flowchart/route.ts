@@ -5,7 +5,10 @@ import { getFlowchartModelForMode } from '@/lib/ai-models';
 import type { AiAssistantMode } from '@/lib/ai-modes';
 import { canUserUseAI } from '@/lib/ai-usage';
 import { auth } from '@/lib/auth';
-import { billingEnabled } from '@/lib/billing/policy';
+import {
+  FIRST_DIAGRAM_COMPUTE_LIMIT,
+  billingEnabled,
+} from '@/lib/billing/policy';
 import {
   type UsageCollector,
   createUsageCollector,
@@ -25,6 +28,7 @@ import {
 import { prepareDrawioCommand } from '@/lib/drawio/command';
 import { drawioDocumentSchema } from '@/lib/drawio/contracts';
 import { nativeModelSettings } from '@/lib/drawio/model-settings';
+import { readNativeCells } from '@/lib/drawio/native-document';
 import {
   createDrawioAgent,
   nativeAgentInstructions,
@@ -127,6 +131,7 @@ function createAgentStreamResponse(
     userId: string;
     collector: UsageCollector;
     document: any;
+    firstDiagram?: boolean;
   }
 ): Response {
   const encoder = new TextEncoder();
@@ -151,6 +156,7 @@ function createAgentStreamResponse(
       const resultEvents: any[] = [];
       let settled = false;
       let platformRepair = false;
+      let repairCount = 0;
       try {
         const eventCounts: Record<string, number> = {};
         for await (const chunk of output.fullStream) {
@@ -172,7 +178,14 @@ function createAgentStreamResponse(
               });
             }
           }
-          if (chunk?.type === 'tool-error') platformRepair = true;
+          if (chunk?.type === 'tool-error') {
+            platformRepair = true;
+            repairCount++;
+            if (repairCount > 2)
+              throw new Error(
+                'Could not repair this diagram. Your credits are safe; please retry.'
+              );
+          }
           const event = mapper.map(chunk);
           if (event) {
             if (billing && (event as any).type === 'finish') {
@@ -181,8 +194,23 @@ function createAgentStreamResponse(
               const commandEvent = resultEvents.find(
                 (e) => e.type === 'tool-call'
               );
-              if (commandEvent?.args.kind === 'drawio-command')
-                prepareDrawioCommand(billing.document, commandEvent.args);
+              const prepared =
+                commandEvent?.args.kind === 'drawio-command'
+                  ? prepareDrawioCommand(billing.document, commandEvent.args)
+                  : null;
+              if (
+                prepared &&
+                !readNativeCells(prepared).some(
+                  (c) =>
+                    c.parent &&
+                    c.parent !== '0' &&
+                    Number(c.geometry.width) > 0 &&
+                    Number(c.geometry.height) > 0
+                )
+              )
+                throw new Error(
+                  'The diagram has no visible editable shapes. Your credits are safe; please retry.'
+                );
               const hasResult =
                 commandEvent ||
                 resultEvents.some(
@@ -199,6 +227,17 @@ function createAgentStreamResponse(
                 .map((e) => e.content || '')
                 .join('');
               const result = {
+                ...(prepared
+                  ? {
+                      delivery: {
+                        documentId: prepared.documentId,
+                        revision: prepared.revision,
+                        nodeIds: readNativeCells(prepared)
+                          .filter((c) => c.parent && c.parent !== '0')
+                          .map((c) => c.id),
+                      },
+                    }
+                  : {}),
                 events: [
                   ...(text ? [{ type: 'text', content: text }] : []),
                   ...(commandEvent ? [commandEvent] : []),
@@ -214,6 +253,7 @@ function createAgentStreamResponse(
                 type: 'billing',
                 taskId: billing.id,
                 state: 'ready',
+                firstDiagram: billing.firstDiagram && Boolean(prepared),
                 resultHash: hash,
               });
             }
@@ -352,7 +392,13 @@ export async function POST(request: Request): Promise<Response> {
 
   const latestUserPrompt = extractLatestUserPrompt(body.messages);
   let billingContext:
-    | { id: string; userId: string; collector: UsageCollector; document: any }
+    | {
+        id: string;
+        userId: string;
+        collector: UsageCollector;
+        document: any;
+        firstDiagram?: boolean;
+      }
     | undefined;
   let replay: any = null;
   let legacyAllowance = false;
@@ -422,6 +468,7 @@ export async function POST(request: Request): Promise<Response> {
               userId,
               requestHash: hash,
               budget: estimatedBudget,
+              allowFirstDiagram: Boolean(nativeDocument),
             });
             if (['ready', 'committed'].includes(task.state) && task.result) {
               replay = task;
@@ -435,8 +482,15 @@ export async function POST(request: Request): Promise<Response> {
             billingContext = {
               id: taskId,
               userId,
-              collector: createUsageCollector(modelId),
+              collector: createUsageCollector(
+                modelId,
+                fetch,
+                task.budget < estimatedBudget
+                  ? FIRST_DIAGRAM_COMPUTE_LIMIT
+                  : undefined
+              ),
               document: nativeDocument,
+              firstDiagram: task.firstDiagram,
             };
           }
           const model = v1
@@ -492,6 +546,19 @@ export async function POST(request: Request): Promise<Response> {
         mode: requestedMode,
         elapsedMs: Date.now() - startedAt,
       });
+      if (
+        v1 &&
+        guarded.status === 429 &&
+        (guarded.body as any)?.usageInfo?.billingMode === 'credits'
+      )
+        return jsonResponse(
+          {
+            error: 'insufficient_credits',
+            message: 'Add credits to continue this AI request.',
+          },
+          402,
+          requestId
+        );
       return jsonResponse(guarded.body, guarded.status, requestId);
     }
 
@@ -501,6 +568,7 @@ export async function POST(request: Request): Promise<Response> {
         {
           type: 'billing',
           taskId: replay.id,
+          firstDiagram: replay.firstDiagram && Boolean(replay.result?.delivery),
           charged: replay.charged,
           state: replay.state,
           resultHash: replay.resultHash,

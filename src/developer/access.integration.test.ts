@@ -15,8 +15,11 @@ describe.skipIf(!process.env.DEVELOPER_TEST_DATABASE_URL)(
       const url = new URL(process.env.DEVELOPER_TEST_DATABASE_URL!);
       if (
         url.hostname !== '127.0.0.1' ||
-        url.port !== '55449' ||
-        url.pathname !== '/flowchart_developer_test'
+        !(
+          (url.port === '55449' &&
+            url.pathname === '/flowchart_developer_test') ||
+          (url.port === '55469' && url.pathname === '/flowchart_paywall_test')
+        )
       )
         throw new Error('Not isolated developer DB');
       process.env.DATABASE_URL = url.href;

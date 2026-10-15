@@ -2,7 +2,7 @@
 
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { CheckoutButton } from '@/components/pricing/create-checkout-button';
-import { CreditPricing } from '@/components/pricing/credit-pricing';
+import { CreditPlanSelector } from '@/components/pricing/credit-plan-selector';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,7 +25,7 @@ import {
 } from '@/payment/types';
 import { Check } from 'lucide-react';
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface LimitContext {
   type: 'daily' | 'monthly';
@@ -37,6 +37,8 @@ interface PricingModalProps {
   isOpen: boolean;
   onClose: () => void;
   limitContext?: LimitContext;
+  onCheckoutCreated?: (id: string) => Promise<void> | void;
+  hasPendingRequest?: boolean;
 }
 
 interface PlanPriceDisplay {
@@ -97,9 +99,18 @@ export function PricingModal({
   isOpen,
   onClose,
   limitContext,
+  onCheckoutCreated,
+  hasPendingRequest,
 }: PricingModalProps) {
   if (process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true')
-    return <CreditPricingModal isOpen={isOpen} onClose={onClose} />;
+    return (
+      <CreditPricingModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onCheckoutCreated={onCheckoutCreated}
+        hasPendingRequest={hasPendingRequest}
+      />
+    );
   const [interval, setInterval] = useState<PlanInterval>(PlanIntervals.YEAR);
   const [selectedMobilePlanId, setSelectedMobilePlanId] =
     useState('professional');
@@ -346,21 +357,82 @@ export function PricingModal({
 function CreditPricingModal({
   isOpen,
   onClose,
-}: { isOpen: boolean; onClose: () => void }): React.ReactElement {
+  onCheckoutCreated,
+  hasPendingRequest,
+}: PricingModalProps): React.ReactElement {
   const { currentPlan, subscription } = usePayment();
   const legacy = Boolean(
     subscription && ['hobby', 'professional'].includes(currentPlan?.id || '')
   );
+  const purchaseOpenerRef = useRef<HTMLElement | null>(null);
+  const [activeCreditSubscription, setActiveCreditSubscription] =
+    useState(false);
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    void fetch('/api/billing/wallet', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((wallet) => {
+        if (active)
+          setActiveCreditSubscription(
+            Boolean(
+              wallet?.subscriptions?.some(
+                (s: any) =>
+                  new Date(s.paidThrough) > new Date() &&
+                  ['active', 'canceling', 'canceled', 'past_due'].includes(
+                    s.status
+                  )
+              )
+            )
+          );
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Choose your credits</DialogTitle>
+      <DialogContent
+        className="max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-[760px] overflow-y-auto rounded-2xl p-5 sm:p-8"
+        onOpenAutoFocus={() => {
+          purchaseOpenerRef.current =
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement
+              : null;
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          const target = purchaseOpenerRef.current;
+          if (target?.isConnected && target !== document.body) target.focus();
+          else
+            document
+              .querySelector<HTMLButtonElement>(
+                '[data-credit-purchase-trigger]'
+              )
+              ?.focus();
+        }}
+      >
+        <DialogHeader className="text-center sm:text-center">
+          <DialogTitle className="text-2xl font-semibold sm:text-3xl">
+            Keep creating with AI
+          </DialogTitle>
           <DialogDescription>
-            Subscriptions provide monthly credits. One-time packs never expire.
+            {hasPendingRequest
+              ? 'Your current request continues automatically after payment.'
+              : 'Choose credits for your next flowchart.'}
           </DialogDescription>
         </DialogHeader>
-        <CreditPricing compact legacy={legacy} />
+        <CreditPlanSelector
+          packsOnly={legacy || activeCreditSubscription}
+          onCheckoutCreated={onCheckoutCreated}
+        />
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-xs text-muted-foreground">
+          <button type="button" className="underline" onClick={onClose}>
+            Keep editing for free
+          </button>
+          <span>Final tax and total at checkout.</span>
+        </div>
       </DialogContent>
     </Dialog>
   );

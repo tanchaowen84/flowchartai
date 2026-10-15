@@ -1,0 +1,110 @@
+{
+  "environment": "prod",
+  "apply": true,
+  "storeId": "STO_5I2J4YK9UUolwABxwPIhYa",
+  "previousYearlyProducts": [
+    {
+      "id": "PROD_00VFbn8CfEpyiYLokT7NRz",
+      "name": "FlowchartAI Pro Annual · $15/month",
+      "billingPeriod": "yearly",
+      "status": "active",
+      "prices": {
+        "USD": {
+          "amount": "180.00"
+        }
+      },
+      "metadata": {
+        "offerKey": "pro_year_202610"
+      }
+    },
+    {
+      "id": "PROD_5nxFcPPFglXd2kjh9FUk11",
+      "name": "FlowchartAI Starter Annual · $7/month",
+      "billingPeriod": "yearly",
+      "status": "active",
+      "prices": {
+        "USD": {
+          "amount": "84.00"
+        }
+      },
+      "metadata": {
+        "offerKey": "starter_year_202610"
+      }
+    },
+    {
+      "id": "PROD_1QrYip4Z2xttSqdT51LbVu",
+      "name": "FlowchartAI Pro Annual · $15/month",
+      "billingPeriod": "yearly",
+      "status": "active",
+      "prices": {
+        "USD": {
+          "amount": "180.00"
+        }
+      },
+      "metadata": {
+        "offerKey": "pro_year_202610"
+      }
+    },
+    {
+      "id": "PROD_5x2OCEwlvm9Ma6tE9H5JWd",
+      "name": "FlowchartAI Starter Annual · $7/month",
+      "billingPeriod": "yearly",
+      "status": "active",
+      "prices": {
+        "USD": {
+          "amount": "84.00"
+        }
+      },
+      "metadata": {
+        "offerKey": "starter_year_202610"
+      }
+    },
+    {
+      "id": "PROD_3ZsD9g6dSTxOvTJinxYZmM",
+      "name": "Pro Yearly",
+      "billingPeriod": "yearly",
+      "status": "active",
+      "prices": {
+        "USD": {
+          "amount": "190.00"
+        }
+      },
+      "metadata": {
+        "offerKey": "pro_year"
+      }
+    },
+    {
+      "id": "PROD_6x1un7qqsc3QFHAT399Dcp",
+      "name": "Starter Yearly",
+      "billingPeriod": "yearly",
+      "status": "active",
+      "prices": {
+        "USD": {
+          "amount": "90.00"
+        }
+      },
+      "metadata": {
+        "offerKey": "starter_year"
+      }
+    }
+  ],
+  "products": {
+    "starter_year_202610": {
+      "id": "PROD_5nxFcPPFglXd2kjh9FUk11",
+      "amount": "84.00",
+      "credits": 2000,
+      "verified": true
+    },
+    "pro_year_202610": {
+      "id": "PROD_00VFbn8CfEpyiYLokT7NRz",
+      "amount": "180.00",
+      "credits": 6000,
+      "verified": true
+    }
+  },
+  "retiredUnusedDrafts": [
+    "PROD_1QrYip4Z2xttSqdT51LbVu",
+    "PROD_5x2OCEwlvm9Ma6tE9H5JWd"
+  ],
+  "verifiedAt": "2026-10-15T16:39:11.175Z"
+}

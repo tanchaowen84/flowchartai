@@ -98,7 +98,7 @@ export default async function HomePage(props: HomePageProps) {
             name: 'Is there a free version of FlowChart AI?',
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Yes. FlowChart AI is open-sourced under the MIT License and available on GitHub. You can self-host and modify it freely. We also offer a free tier so that every registered user can generate one AI flowchart per day for free.',
+              text: 'Yes. FlowChart AI is open-sourced under the MIT License and available on GitHub. You can self-host and modify it freely. New registrations receive 20 trial credits once, valid for 30 days. Manual editing, saving and downloads are free.',
             },
           },
           {

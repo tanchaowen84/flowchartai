@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LocaleLink } from '@/i18n/navigation';
 import { authClient } from '@/lib/auth-client';
 import { BILLING_OFFERS, type OfferKey } from '@/lib/billing/policy';
+import { creditPrice } from '@/lib/billing/presentation';
 import { Routes } from '@/routes';
 import { useState } from 'react';
 export function CreditPricing({
@@ -52,8 +53,8 @@ export function CreditPricing({
     }
   }
   const cards: OfferKey[] = [
-    annual ? 'starter_year' : 'starter_month',
-    annual ? 'pro_year' : 'pro_month',
+    annual ? 'starter_year_202610' : 'starter_month',
+    annual ? 'pro_year_202610' : 'pro_month',
   ];
   return (
     <div className="space-y-5">
@@ -74,7 +75,7 @@ export function CreditPricing({
             variant={annual ? 'secondary' : 'ghost'}
             onClick={() => setAnnual(true)}
           >
-            Yearly · save 17%
+            Yearly · save up to 22%
           </Button>
         </div>
       </div>
@@ -88,7 +89,7 @@ export function CreditPricing({
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-3xl font-semibold">$0</p>
-              <p className="font-medium">200 trial credits</p>
+              <p className="font-medium">20 trial credits</p>
               <p className="text-sm text-muted-foreground">
                 Once at registration. Valid for 30 days.
               </p>
@@ -112,13 +113,18 @@ export function CreditPricing({
               <CardContent className="space-y-4">
                 <p>
                   <span className="text-3xl font-semibold">
-                    ${offer.amount / 100}
+                    ${creditPrice(key).main}
                   </span>
                   <span className="text-sm text-muted-foreground">
                     {' '}
-                    / {annual ? 'year' : 'month'}
+                    / month
                   </span>
                 </p>
+                {annual && (
+                  <p className="text-sm text-muted-foreground">
+                    {creditPrice(key).billed}
+                  </p>
+                )}
                 <p className="font-medium">
                   {offer.credits.toLocaleString()} credits each subscription
                   month

@@ -29,10 +29,49 @@ export const BILLING_OFFERS = {
     amount: 19000,
     credits: 6000,
   },
+  starter_year_202610: {
+    plan: 'starter',
+    kind: 'subscription',
+    interval: 'year',
+    amount: 8400,
+    credits: 2000,
+  },
+  pro_year_202610: {
+    plan: 'pro',
+    kind: 'subscription',
+    interval: 'year',
+    amount: 18000,
+    credits: 6000,
+  },
   pack_small: { plan: 'pack_small', kind: 'pack', amount: 1000, credits: 1500 },
   pack_large: { plan: 'pack_large', kind: 'pack', amount: 3000, credits: 5000 },
 } as const;
 export const OFFERS = BILLING_OFFERS;
+// Sold offers stay immutable for renewal and webhook reconciliation.
+export const SELLABLE_OFFERS = [
+  'starter_month',
+  'starter_year_202610',
+  'pro_month',
+  'pro_year_202610',
+  'pack_small',
+  'pack_large',
+] as const;
+export function isSellableOffer(
+  value: unknown
+): value is (typeof SELLABLE_OFFERS)[number] {
+  return (
+    typeof value === 'string' &&
+    (SELLABLE_OFFERS as readonly string[]).includes(value)
+  );
+}
+export const SIGNUP_TRIAL_CREDITS = 20;
+export const FIRST_DIAGRAM_COMPUTE_LIMIT = 120;
+export const FIRST_DIAGRAM_MAX_ATTEMPTS_PER_DAY = 5;
+// Preserve eligibility for the old 200-credit grant before this release's policy boundary.
+export const TRIAL_POLICY_START_AT = new Date('2026-10-16T00:00:00+08:00');
+export function registrationCredits(createdAt: Date): number {
+  return createdAt < TRIAL_POLICY_START_AT ? 200 : SIGNUP_TRIAL_CREDITS;
+}
 export type OfferKey = keyof typeof OFFERS;
 export function isOfferKey(value: unknown): value is OfferKey {
   return typeof value === 'string' && Object.hasOwn(OFFERS, value);

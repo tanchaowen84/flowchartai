@@ -78,6 +78,13 @@
       "when": 1792032497752,
       "tag": "0010_developer_access",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792082591754,
+      "tag": "0011_majestic_ultimo",
+      "breakpoints": true
     }
   ]
 }

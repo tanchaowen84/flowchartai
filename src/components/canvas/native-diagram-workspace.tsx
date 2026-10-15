@@ -597,6 +597,7 @@ export default function NativeDiagramWorkspace({
               }}
               onTaskStatusChange={setTask}
               onDiagramTitle={onDiagramTitle}
+              onPersistDiagram={save.ensureSaved}
               onFocusChanges={() => bridge?.focusChanges()}
             />
           </div>

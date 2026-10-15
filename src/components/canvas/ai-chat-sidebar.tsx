@@ -33,6 +33,13 @@ import {
   type AiAssistantMode,
   DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
+import {
+  type PendingCreditRequest,
+  canResumeCreditRequest,
+  clearPendingCreditRequest,
+  readPendingCreditRequest,
+  writePendingCreditRequest,
+} from '@/lib/billing/pending-credit-request';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
 import {
   type CanvasCommand,
@@ -45,6 +52,7 @@ import type {
   DrawioCommand,
   NativeEditorController,
 } from '@/lib/drawio/contracts';
+import { nativeContentFingerprint } from '@/lib/drawio/native-document';
 import { readNativeCells } from '@/lib/drawio/native-document';
 import {
   buildRetryConversation,
@@ -146,6 +154,7 @@ interface AiChatSidebarProps {
     operation: DrawioCommand['operation']
   ) => void;
   onFocusChanges?: () => void;
+  onPersistDiagram?: () => Promise<string>;
 }
 
 function getUserFacingErrorMessage(
@@ -209,6 +218,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   onTaskStatusChange,
   onDiagramTitle,
   onFocusChanges,
+  onPersistDiagram,
 }) => {
   const [taskStartedAt, setTaskStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -242,9 +252,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const billingReceiptRef = useRef<{
     taskId: string;
     resultHash: string;
+    firstDiagram?: boolean;
+    flowchartId?: string;
   } | null>(null);
   const [lastCreditCharge, setLastCreditCharge] = useState<number | null>(null);
   const [recoverableTask, setRecoverableTask] = useState<string | null>(null);
+  const pendingCreditRef = useRef<PendingCreditRequest | null>(null);
+  const [creditBlocked, setCreditBlocked] = useState(false);
+  const [pendingCheckoutId, setPendingCheckoutId] = useState<string | null>(
+    null
+  );
+  const resumingCreditRef = useRef(false);
+  const resumeCreditRef = useRef<
+    (pending: PendingCreditRequest) => Promise<void>
+  >(async () => {});
   const creditBilling = process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true';
   useEffect(() => {
     if (creditBilling)
@@ -265,6 +286,121 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const { usageData, checkUsageLimit, refreshUsageData } = useAIUsageLimit();
   const { handleLimitReached: handleGuestLimitReached } = useGuestAIUsage();
 
+  useEffect(() => {
+    if (!creditBilling || !currentUser?.id) return;
+    void readPendingCreditRequest(currentUser.id)
+      .then((pending) => {
+        if (!pending || pending.path !== window.location.pathname) return;
+        pendingCreditRef.current = pending;
+        setCreditBlocked(true);
+        if (pending.resumeStartedAt) {
+          setRecoverableTask(pending.requestBody.billingTaskId);
+          return;
+        }
+        setPendingCheckoutId(pending.checkoutId || null);
+      })
+      .catch(() => undefined);
+  }, [creditBilling, currentUser?.id]);
+  useEffect(() => {
+    if (!pendingCheckoutId || !currentUser?.id) return;
+    let disposed = false;
+    let checking = false;
+    let nextCheckAt = 0;
+    const check = async () => {
+      if (checking || resumingCreditRef.current || Date.now() < nextCheckAt)
+        return;
+      nextCheckAt = Date.now() + 2500;
+      checking = true;
+      try {
+        const response = await fetch(
+          `/api/billing/checkout?id=${encodeURIComponent(pendingCheckoutId)}`,
+          { cache: 'no-store' }
+        );
+        const result = await response.json();
+        if (disposed || !response.ok) return;
+        if (['failed', 'refunded', 'scheduled'].includes(result.state)) {
+          setPendingCheckoutId(null);
+          const pending = pendingCreditRef.current;
+          if (pending) {
+            pending.checkoutId = undefined;
+            await writePendingCreditRequest(pending);
+          }
+          return;
+        }
+        if (!result.fulfilled) {
+          if (
+            result.expiresAt &&
+            new Date(result.expiresAt).getTime() <= Date.now()
+          )
+            nextCheckAt = Date.now() + 60000;
+          return;
+        }
+        if (pendingCreditRef.current && !nativeEditorRef.current) return;
+        resumingCreditRef.current = true;
+        setPendingCheckoutId(null);
+        setShowPricingModal(false);
+        refreshUsageData();
+        const notice = toast({
+          title: `${result.creditsAdded.toLocaleString()} credits added`,
+          description: pendingCreditRef.current
+            ? 'Continuing your request…'
+            : 'Your balance is ready.',
+          duration: 1500,
+        });
+        window.setTimeout(notice.dismiss, 1500);
+        const pending = pendingCreditRef.current;
+        if (pending && pending.checkoutId === pendingCheckoutId)
+          await resumeCreditRef.current(pending);
+      } catch {
+        /* Retain operation while confirmation is unavailable. */
+      } finally {
+        checking = false;
+      }
+    };
+    void check();
+    const timer = window.setInterval(check, 2500);
+    const focusCheck = () => {
+      nextCheckAt = 0;
+      void check();
+    };
+    window.addEventListener('focus', focusCheck);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', focusCheck);
+    };
+  }, [pendingCheckoutId, currentUser?.id]);
+  const onCreditCheckoutCreated = async (id: string) => {
+    const pending = pendingCreditRef.current;
+    if (pending) {
+      pending.checkoutId = id;
+      await writePendingCreditRequest(pending);
+    }
+    resumingCreditRef.current = false;
+    setPendingCheckoutId(id);
+  };
+  const pauseForCredits = async (requestBody: any) => {
+    const document = nativeEditorRef.current?.getDocument();
+    if (currentUser && document) {
+      const pending: PendingCreditRequest = {
+        userId: currentUser.id,
+        requestBody,
+        documentId: document.documentId,
+        fingerprint: nativeContentFingerprint(document.xml),
+        path: window.location.pathname,
+        createdAt: Date.now(),
+      };
+      await writePendingCreditRequest(pending);
+      pendingCreditRef.current = pending;
+    }
+    setCreditBlocked(true);
+    const key = `flowchartai:paywall-shown:${currentUser?.id}`;
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      setShowPricingModal(true);
+    }
+  };
+
   const acknowledgeBillingResult = async () => {
     if (!creditBilling) return;
     let receipt = billingReceiptRef.current;
@@ -276,6 +412,28 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       } catch {}
     }
     if (!receipt) return;
+    if (
+      receipt.firstDiagram &&
+      !receipt.flowchartId &&
+      nativeEditorRef.current
+    ) {
+      try {
+        if (!onPersistDiagram)
+          throw new Error('Could not confirm diagram save');
+        receipt.flowchartId = await onPersistDiagram();
+      } catch (error) {
+        await fetch('/api/billing/task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId: receipt.taskId, action: 'cancel' }),
+        });
+        billingReceiptRef.current = null;
+        sessionStorage.removeItem('flowchartai:billing-commit');
+        sessionStorage.removeItem('flowchartai:billing-task');
+        refreshUsageData();
+        throw error;
+      }
+    }
     sessionStorage.setItem(
       'flowchartai:billing-commit',
       JSON.stringify(receipt)
@@ -298,7 +456,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   useEffect(() => {
     if (!creditBilling) return;
     const retry = () => {
-      void acknowledgeBillingResult();
+      void acknowledgeBillingResult().catch(() => undefined);
     };
     retry();
     window.addEventListener('focus', retry);
@@ -642,7 +800,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       await waitForNextPaint();
 
       // Logged in user - check subscription limits after rendering the user's message
-      const canUseAI = await checkUsageLimit();
+      const canUseAI = creditBilling ? true : await checkUsageLimit();
       if (!canUseAI) {
         setIsLoading(false);
         setSendStatus(null);
@@ -690,7 +848,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       // }
     } catch (error) {
       console.error('Error sending auto message:', error);
-      // Handle errors similar to handleSendMessage
+      // Insufficient credits pauses this request without a generation error.
+      if ((error as any)?.isCreditRequired) return false;
       if (error instanceof Error && error.name === 'AbortError') {
         return false;
       }
@@ -924,6 +1083,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       billingReceiptRef.current = {
         taskId: task.id,
         resultHash: task.resultHash,
+        firstDiagram: task.firstDiagram,
       };
       const commandEvent = task.result?.events?.find(
         (e: any) => e.type === 'tool-call'
@@ -1255,6 +1415,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             : 'The target diagram was rendered on the canvas.',
       });
     } catch (error) {
+      if ((error as any)?.isCreditRequired) return;
       if (error instanceof Error && error.name === 'AbortError') {
         usageGate.abort();
       } else {
@@ -1287,7 +1448,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     try {
       await waitForNextPaint();
 
-      const canUseAI = await checkUsageLimit();
+      const canUseAI = creditBilling ? true : await checkUsageLimit();
       if (!canUseAI) {
         if (creditBilling) {
           setShowPricingModal(true);
@@ -1313,6 +1474,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         }))
       );
     } catch (error) {
+      if ((error as any)?.isCreditRequired) return;
       if (error instanceof Error && error.name === 'AbortError') return;
 
       if (error instanceof Error && (error as any).isDailyLimit) {
@@ -1494,7 +1656,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       await waitForNextPaint();
 
       // Logged in user - check subscription limits after rendering the user's message
-      const canUseAI = await checkUsageLimit();
+      const canUseAI = creditBilling ? true : await checkUsageLimit();
       if (!canUseAI) {
         setIsLoading(false);
         setSendStatus(null);
@@ -1542,6 +1704,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     } catch (error) {
       console.error('Error sending message:', error);
 
+      if ((error as any)?.isCreditRequired) return;
       if (error instanceof Error && error.name === 'AbortError') {
         // Request was cancelled, don't show error
         return;
@@ -1610,7 +1773,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       stage: FlowchartDiagnosticStage;
       code: FlowchartDiagnosticCode;
       startedAt: number;
-    }
+    },
+    retainedBody?: any
   ) => {
     const canvasSnapshot = getCanvasState();
     const sceneElements = excalidrawAPI
@@ -1665,12 +1829,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setAssistantResponsePhase('thinking');
     markFlowchartPerformance('agentRequestStarted');
 
-    const billingTaskId = creditBilling ? crypto.randomUUID() : undefined;
+    const billingTaskId =
+      retainedBody?.billingTaskId ||
+      (creditBilling ? crypto.randomUUID() : undefined);
     billingTaskRef.current = billingTaskId || null;
     billingReceiptRef.current = null;
     if (billingTaskId)
       sessionStorage.setItem('flowchartai:billing-task', billingTaskId);
-    const requestBody = {
+    const requestBody = retainedBody || {
       billingTaskId,
       messages: conversationMessages,
       aiContext: {
@@ -1707,6 +1873,17 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     if (!response.ok) {
       diagnostic.code = 'http_error';
       const errorData = await response.json().catch(() => ({}));
+      if (
+        creditBilling &&
+        response.status === 402 &&
+        errorData.error === 'insufficient_credits'
+      ) {
+        await pauseForCredits(requestBody);
+        sessionStorage.removeItem('flowchartai:billing-task');
+        const paused = new Error('Add credits to continue this request');
+        (paused as any).isCreditRequired = true;
+        throw paused;
+      }
 
       if (response.status === 429) {
         // Handle rate limit errors specifically
@@ -1828,6 +2005,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         billingReceiptRef.current = {
           taskId: data.taskId,
           resultHash: data.resultHash,
+          firstDiagram: data.firstDiagram,
         };
         if (data.state === 'committed') setLastCreditCharge(data.charged);
         return;
@@ -2002,7 +2180,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     await acknowledgeBillingResult();
   };
 
-  const processAIConversation = async (conversationMessages: any[]) => {
+  const processAIConversation = async (
+    conversationMessages: any[],
+    retainedBody?: any
+  ) => {
     const diagnostic = {
       requestId: 'not-issued',
       stage: 'request' as FlowchartDiagnosticStage,
@@ -2011,7 +2192,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     };
 
     try {
-      await processAIConversationCore(conversationMessages, diagnostic);
+      await processAIConversationCore(
+        conversationMessages,
+        diagnostic,
+        retainedBody
+      );
     } catch (error) {
       const aborted = error instanceof Error && error.name === 'AbortError';
       logFlowchartDiagnostic({
@@ -2027,6 +2212,67 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         elapsedMs: Date.now() - diagnostic.startedAt,
       });
       throw error;
+    }
+  };
+
+  resumeCreditRef.current = async (pending) => {
+    if (
+      isLoading ||
+      !currentUser ||
+      !canResumeCreditRequest(
+        pending,
+        currentUser.id,
+        nativeEditorRef.current?.getDocument()
+      ) ||
+      latestChatStateRef.current.input.trim()
+    ) {
+      toast({
+        title: 'Credits added',
+        description:
+          'Your diagram or draft changed. The previous request is kept in this conversation.',
+      });
+      if (currentUser)
+        await clearPendingCreditRequest(
+          currentUser.id,
+          pending.requestBody.billingTaskId
+        );
+      pendingCreditRef.current = null;
+      setCreditBlocked(false);
+      return;
+    }
+    pending.resumeStartedAt = Date.now();
+    await writePendingCreditRequest(pending);
+    setCreditBlocked(false);
+    setIsLoading(true);
+    setIsStreamingResponse(true);
+    setTaskOutcome('ready');
+    requestCommittedRef.current = false;
+    abortControllerRef.current = new AbortController();
+    try {
+      await processAIConversation(
+        pending.requestBody.messages,
+        pending.requestBody
+      );
+      await clearPendingCreditRequest(
+        pending.userId,
+        pending.requestBody.billingTaskId
+      );
+      pendingCreditRef.current = null;
+    } catch (error) {
+      if (!(error as any)?.isCreditRequired)
+        toast({
+          title: 'Request paused',
+          description: getUserFacingErrorMessage(
+            error,
+            'Your request is kept. Please retry.'
+          ),
+          variant: 'destructive',
+        });
+    } finally {
+      setIsLoading(false);
+      setIsStreamingResponse(false);
+      setAssistantResponsePhase('idle');
+      abortControllerRef.current = null;
     }
   };
 
@@ -2428,17 +2674,49 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                     {lastCreditCharge !== null
                       ? ` · Last request ${lastCreditCharge} credits`
                       : usageData?.balance !== undefined
-                        ? ' · Estimate ~9–35 credits; longer requests use more'
+                        ? usageData.firstDiagramEligible
+                          ? ' · First diagram protected'
+                          : ''
                         : ''}
                   </span>
-                  <a
-                    href="/settings/billing"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
                     className="underline"
+                    onClick={() => setShowPricingModal(true)}
+                    data-credit-purchase-trigger
                   >
                     Buy credits
-                  </a>
+                  </button>
+                  {creditBlocked && (
+                    <span className="w-full">
+                      Your request is kept.{' '}
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() => setShowPricingModal(true)}
+                      >
+                        View purchase options
+                      </button>{' '}
+                      ·{' '}
+                      <button
+                        type="button"
+                        className="underline"
+                        onClick={() => {
+                          const p = pendingCreditRef.current;
+                          if (p)
+                            void clearPendingCreditRequest(
+                              p.userId,
+                              p.requestBody.billingTaskId
+                            );
+                          pendingCreditRef.current = null;
+                          setPendingCheckoutId(null);
+                          setCreditBlocked(false);
+                        }}
+                      >
+                        Cancel request
+                      </button>
+                    </span>
+                  )}
                   {recoverableTask && (
                     <button
                       type="button"
@@ -2624,6 +2902,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       {/* Pricing Modal */}
       <PricingModal
         isOpen={showPricingModal}
+        onCheckoutCreated={onCreditCheckoutCreated}
+        hasPendingRequest={Boolean(pendingCreditRef.current)}
         onClose={() => {
           setShowPricingModal(false);
           setDailyLimitUsageInfo(null); // Clear limit context

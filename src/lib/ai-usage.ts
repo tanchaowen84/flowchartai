@@ -147,6 +147,7 @@ export async function canUserUseAI(userId: string): Promise<{
   timeFrame?: 'daily' | 'monthly';
   nextResetTime?: Date;
   billingMode?: string;
+  firstDiagramEligible?: boolean;
 }> {
   const wallet = billingEnabled() ? await walletSummary(userId) : null;
   if (wallet) {
@@ -171,7 +172,8 @@ export async function canUserUseAI(userId: string): Promise<{
       }
     }
     return {
-      canUse: wallet.balance > 0,
+      canUse: wallet.balance > 0 || wallet.firstDiagramEligible,
+      firstDiagramEligible: wallet.firstDiagramEligible,
       remainingUsage: wallet.balance,
       limit: wallet.balance,
       reason: wallet.balance > 0 ? undefined : 'Buy credits to continue',
