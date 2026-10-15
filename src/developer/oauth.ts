@@ -9,6 +9,7 @@ import {
 } from '@/db/developer-schema';
 import { user } from '@/db/schema';
 import type { BillingTx } from '@/lib/billing/wallet';
+import { originalRequestUrl } from '@/lib/routing/request-url';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { assertLive, ownerPolicy, rateLimit } from './access';
@@ -418,11 +419,9 @@ export async function oauthEndpoint(
         201
       );
     if (action === 'authorize') {
-      await authorizationRequest(new URL(request.url).searchParams);
-      return Response.redirect(
-        `${origin()}/developers/consent?${new URL(request.url).searchParams}`,
-        302
-      );
+      const params = originalRequestUrl(request).searchParams;
+      await authorizationRequest(params);
+      return Response.redirect(`${origin()}/developers/consent?${params}`, 302);
     }
     if (
       !request.headers

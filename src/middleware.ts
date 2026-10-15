@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { LOCALES, routing } from './i18n/routing';
 import type { Session } from './lib/auth-types';
 import { isKnownUnlocalizedPath } from './lib/routing/known-unlocalized-paths';
+import { originalRequestUrl } from './lib/routing/request-url';
 import {
   DEFAULT_LOGIN_REDIRECT,
   protectedRoutes,
@@ -25,7 +26,7 @@ const intlMiddleware = createMiddleware(routing);
 export default async function middleware(req: NextRequest) {
   // Even with skipMiddlewareUrlNormalize, nextUrl itself is normalized by Next.
   // next-intl reads nextUrl.search, so restore it from the original request URL.
-  req.nextUrl.search = new URL(req.url).search;
+  req.nextUrl.search = originalRequestUrl(req).search;
   const { nextUrl, headers } = req;
   console.log('>> middleware start, pathname', nextUrl.pathname);
 
