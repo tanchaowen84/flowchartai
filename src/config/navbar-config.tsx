@@ -64,6 +64,8 @@ export function getNavbarLinks(): NestedMenuItem[] {
       href: Routes.Blog,
       external: false,
     },
+    { title: 'API', href: '/flowchart-api', external: false },
+    { title: 'MCP', href: '/mcp', external: false },
   ];
 
   // 条件性添加docs链接

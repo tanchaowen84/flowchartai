@@ -4,6 +4,11 @@ import { allCategories, allPosts } from 'content-collections';
 const EXACT_PATHS = new Set([
   '/',
   '/pricing',
+  '/flowchart-api',
+  '/mcp',
+  '/developers',
+  '/developers/docs',
+  '/developers/consent',
   '/blog',
   '/about',
   '/contact',

@@ -2,6 +2,12 @@
   "functions": {
     "src/app/api/ai/chat/flowchart/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/v1/[...path]/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/mcp/route.ts": {
+      "maxDuration": 300
     }
   }
 }

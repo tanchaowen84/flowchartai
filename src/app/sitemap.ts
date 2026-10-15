@@ -17,6 +17,9 @@ function getEnabledStaticRoutes(): string[] {
   const baseRoutes = [
     '/',
     '/pricing',
+    '/flowchart-api',
+    '/mcp',
+    '/developers/docs',
     '/about',
     '/contact',
     '/changelog',

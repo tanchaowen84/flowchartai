@@ -1,0 +1,11 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "org.flowchartai/flowchartai",
+  "title": "FlowchartAI",
+  "description": "Create, edit, save and export native flowcharts through OAuth with your FlowchartAI account.",
+  "version": "1.0.0",
+  "websiteUrl": "https://flowchartai.org/mcp",
+  "remotes": [
+    { "type": "streamable-http", "url": "https://flowchartai.org/api/mcp" }
+  ]
+}

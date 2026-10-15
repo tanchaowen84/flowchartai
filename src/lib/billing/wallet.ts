@@ -416,11 +416,12 @@ export async function readyTask(
   userId: string,
   result: unknown,
   resultHash: string,
-  calls: ModelCallUsage[]
+  calls: ModelCallUsage[],
+  transaction?: BillingTx
 ): Promise<void> {
   const charge = creditsForCalls(calls);
   const db = await getDb();
-  await db.transaction(async (tx) => {
+  const complete = async (tx: BillingTx): Promise<void> => {
     await lockWallet(tx, userId);
     const [task] = await tx
       .select()
@@ -440,7 +441,9 @@ export async function readyTask(
         updatedAt: new Date(),
       })
       .where(eq(billingTasks.id, id));
-  });
+  };
+  if (transaction) await complete(transaction);
+  else await db.transaction(complete);
 }
 async function releaseTaskLocked(
   tx: BillingTx,
@@ -495,10 +498,13 @@ async function releaseTaskLocked(
 export async function finalizeTask(
   userId: string,
   id: string,
-  resultHash?: string
+  resultHash?: string,
+  transaction?: BillingTx
 ): Promise<{ charged: number; state: string }> {
   const db = await getDb();
-  return db.transaction(async (tx) => {
+  const complete = async (
+    tx: BillingTx
+  ): Promise<{ charged: number; state: string }> => {
     await lockWallet(tx, userId);
     const [task] = await tx
       .select()
@@ -562,7 +568,8 @@ export async function finalizeTask(
       .set({ state: 'released' })
       .where(eq(billingTasks.id, id));
     return { charged: 0, state: 'released' };
-  });
+  };
+  return transaction ? complete(transaction) : db.transaction(complete);
 }
 
 export async function recordTaskCalls(
