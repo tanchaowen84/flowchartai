@@ -215,6 +215,22 @@ describe.skipIf(!process.env.DEVELOPER_TEST_DATABASE_URL)(
         code: 'daily_budget_exceeded',
       });
     });
+    it('requires read permission before sending an existing diagram to the editing model', async () => {
+      const created = (await generate(principal, input(), key())) as any;
+      state.calls = 0;
+      await expect(
+        generate(
+          { ...principal, scopes: ['diagrams:write', 'diagrams:generate'] },
+          {
+            ...input(),
+            diagram_id: created.diagram_id,
+            expected_version: created.diagram.version,
+          },
+          key()
+        )
+      ).rejects.toMatchObject({ code: 'insufficient_scope', status: 403 });
+      expect(state.calls).toBe(0);
+    });
     it('rejects a caller cap below the server reservation instead of discounting the task', async () => {
       await expect(
         generate(principal, { ...input(), max_credits: 1 }, key())

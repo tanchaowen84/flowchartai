@@ -253,6 +253,11 @@ export function openapi(): Record<string, unknown> {
               properties: {
                 code: { type: 'string' },
                 message: { type: 'string' },
+                required_credits: {
+                  type: 'integer',
+                  description:
+                    'Full-context reservation required when max_credits_too_low is returned.',
+                },
               },
             },
           },
@@ -303,7 +308,7 @@ export function openapi(): Record<string, unknown> {
             diagram_id: {
               type: 'string',
               description:
-                'Existing owned native file to edit; omit to create.',
+                'Existing owned native file to edit; omit to create. Edits also require diagrams:read in addition to diagrams:write and diagrams:generate.',
             },
             expected_version: {
               type: 'string',

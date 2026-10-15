@@ -396,6 +396,7 @@ export async function generate(
   requireScope(principal, 'diagrams:generate');
   requireScope(principal, 'diagrams:write');
   const input = generationSchema.parse(raw);
+  if (input.diagram_id) requireScope(principal, 'diagrams:read');
   const key = idempotencySchema.parse(idempotencyKey);
   if (input.image) validateImage(input.image);
   const operation = input.diagram_id ? 'edit' : 'generate';

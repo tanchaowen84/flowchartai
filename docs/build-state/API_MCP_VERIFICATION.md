@@ -6,8 +6,10 @@
 
 - Base: origin/main `a7cd7d671c3888ec72770b09a944ed2d40ea0f3a`; isolated branch `codex/flowchart-api-mcp`. Resident checkout remains untouched.
 - Full suite: **60 files / 294 tests passed**, no skipped tests, with two independent local Postgres clusters. Developer tests used port 55449; historical wallet/Creem tests used a newly initialized, separate cluster on 55438 and stopped it after completion.
+- Follow-up edit-scope regression: **15/15 service tests** pass after reproducing the missing-read-permission case. The full runnable suite after this fix passes **265 tests** with 30 historical billing cases intentionally skipped because their separate cluster was already stopped; those 30 passed in the earlier full 294-test run.
 - `pnpm typecheck`, scoped Biome and `git diff --check`: pass.
 - `pnpm build`: pass. Local build reused the existing project's cached Google font CSS/WOFF resources because external font downloads were unreliable. No substitute application logic or placeholder font was introduced.
+- Editing an existing diagram explicitly requires diagrams:read as well as generate/write, before its contents can be sent to the model.
 - Self-review only; no independent reviewer/subagent was authorized.
 - Migration 0010 creates eight developer tables and their indexes/FKs. No historical balance, payment, subscription or ledger updates. New timestamps use `timestamptz`; schema and snapshot are aligned.
 

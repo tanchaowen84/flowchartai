@@ -185,7 +185,7 @@ export function DeveloperDocs() {
               ['GET /account', 'account:read · wallet and budgets'],
               [
                 'POST /generations',
-                'diagrams:generate + diagrams:write · create or edit',
+                'diagrams:generate + diagrams:write · create; also diagrams:read to edit',
               ],
               ['GET /tasks, /tasks/{id}', 'tasks:read · durable receipts'],
               [

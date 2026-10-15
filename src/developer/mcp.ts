@@ -105,7 +105,7 @@ export function mcpServer(principal: Principal): McpServer {
   );
   tool(
     'edit_flowchart',
-    'Apply a natural-language edit to an owned native diagram at its expected_version. Saves atomically and spends existing allowance. Read the diagram first; keep one idempotency key for all retries.',
+    'Apply a natural-language edit to an owned native diagram at its expected_version. Saves atomically and spends existing allowance. Requires diagram read, write and generate scopes. Read the diagram first; keep one idempotency key for all retries.',
     {
       ...ai,
       diagram_id: z.string().min(1).max(160),
