@@ -23,6 +23,9 @@ const intlMiddleware = createMiddleware(routing);
  * to handle redirection. To avoid blocking requests by making API or database calls.
  */
 export default async function middleware(req: NextRequest) {
+  // Even with skipMiddlewareUrlNormalize, nextUrl itself is normalized by Next.
+  // next-intl reads nextUrl.search, so restore it from the original request URL.
+  req.nextUrl.search = new URL(req.url).search;
   const { nextUrl, headers } = req;
   console.log('>> middleware start, pathname', nextUrl.pathname);
 

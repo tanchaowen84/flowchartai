@@ -101,12 +101,6 @@ export async function authorizationRequest(params: URLSearchParams): Promise<{
   if (!client)
     throw new DeveloperError('invalid_request', 'Unknown OAuth client.');
   if (!client.redirectUris.includes(redirectUri)) {
-    // Public client metadata only; log hashes rather than callback URLs, codes or tokens.
-    console.warn('Developer OAuth redirect mismatch', {
-      client: hash(clientId).slice(0, 12),
-      supplied: hash(redirectUri),
-      registered: client.redirectUris.map((uri) => hash(uri)),
-    });
     throw new DeveloperError(
       'invalid_request',
       'Redirect URI must exactly match the registered value.'
