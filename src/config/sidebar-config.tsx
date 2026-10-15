@@ -38,6 +38,12 @@ export function getSidebarLinks(): NestedMenuItem[] {
       external: false,
     },
     {
+      title: 'Developers',
+      icon: <LockKeyholeIcon className="size-4 shrink-0" />,
+      href: '/developers',
+      external: false,
+    },
+    {
       title: t('admin.title'),
       icon: <SettingsIcon className="size-4 shrink-0" />,
       authorizeOnly: isDemo ? ['admin', 'user'] : ['admin'],

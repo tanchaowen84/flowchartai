@@ -6,6 +6,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { Agent } from '@mastra/core/agent';
+import { noopLogger } from '@mastra/core/logger';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { prepareDrawioCommand } from '../drawio/command';
@@ -24,6 +25,7 @@ import { layoutNewDiagram } from '../drawio/layout-new-diagram';
 import { readNativeCells } from '../drawio/native-document';
 import { compileRetryPolicy, retryPolicySchema } from '../drawio/retry-policy';
 import { routeDrawioPatch } from '../drawio/route-patch';
+import { assertVisibleAdditions } from '../drawio/visible-additions';
 import { drawioSkill, relevantDrawioKnowledge } from './drawio-knowledge';
 import { createNativeModel } from './native-model';
 
@@ -133,7 +135,8 @@ export async function buildNativeCommand(
 export function createDrawioAgent(
   document: DrawioDocument,
   selection: string[],
-  requestGoal = ''
+  requestGoal = '',
+  options?: { silent?: boolean; safeEdits?: boolean }
 ): Agent {
   const tool = createTool({
     id: 'generate_flowchart',
@@ -142,9 +145,13 @@ export function createDrawioAgent(
     inputSchema: nativeToolInputSchema,
     outputSchema: drawioCommandSchema,
     strict: true,
-    execute: (input) => buildNativeCommand(document, input),
+    execute: async (input) => {
+      const command = await buildNativeCommand(document, input);
+      if (options?.safeEdits) assertVisibleAdditions(document, command);
+      return command;
+    },
   });
-  return new Agent({
+  const agent = new Agent({
     id: 'drawio-agent',
     name: 'FlowchartAgent',
     model: createNativeModel('text_to_flowchart'),
@@ -173,4 +180,6 @@ export function createDrawioAgent(
         }) || false,
     },
   });
+  if (options?.silent) agent.__setLogger(noopLogger);
+  return agent;
 }

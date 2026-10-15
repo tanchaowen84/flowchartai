@@ -71,6 +71,13 @@
       "when": 1791951025906,
       "tag": "0009_checkout_recovery",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792032497752,
+      "tag": "0010_developer_access",
+      "breakpoints": true
     }
   ]
 }

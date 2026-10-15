@@ -47,6 +47,7 @@
     "@fumadocs/content-collections": "^1.1.8",
     "@hookform/resolvers": "^4.1.0",
     "@mastra/core": "1.51.0",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@next/third-parties": "^15.3.0",
     "@openpanel/nextjs": "^1.0.7",
     "@openrouter/ai-sdk-provider": "3.1.0",
