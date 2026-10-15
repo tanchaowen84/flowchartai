@@ -31,4 +31,13 @@ Images: actual native output from this task; original six-node generation 01aa63
 
 ## Acceptance evidence
 
-Pending final same-version rendered checks: 390px, 1440px, 1920px; first visit; desktop/mobile API/MCP/Pricing destinations; menu keyboard/focus; images after scrolling; FAQ/schema consistency; developer empty/create/reveal/dismiss/revoke/rotate; consent approved/revoked. Earlier local cold compilation and later Ego runtime bootstrap caused navigation timeouts; those attempts are not recorded as completed checks. Production and browser client compatibility remain separate proof layers.
+| Version | Viewport/state | Evidence | Outcome |
+| --- | --- | --- | --- |
+| Application 7c7dafe | API and MCP, 390/1440/1920 | No horizontal overflow, one H1 each, primary CTA in viewport, actual images loaded, FAQ answers match JSON-LD | Pass |
+| Application 7c7dafe | Header 1024/1280, desktop and mobile | API/MCP/Pricing activate correct destinations; native Tab focus visible and Enter navigates; FAQ opens by keyboard | Pass |
+| Application 7c7dafe | Developer dashboard empty/populated, 390/1440 | Daily settings read back; scoped expiring key created; secret copied/dismissed/absent after reload; rotation preserves expiry; old/new/revoked access checked | Pass |
+| Application 7c7dafe | OAuth consent, 390 | Browser consent, SDK 1.32.1 PKCE/11 tools, refreshed-token tool call; browser revoke blocks access and refresh | Pass |
+
+Earlier Ego timeouts were resolved after user recovery; no timed-out attempt is counted as a pass. Production and ChatGPT/Claude web clients remain separate proof layers.
+
+UI screenshots: [API desktop](https://cdn.flowchartai.org/developer/2026-10-15/api-desktop-7c7dafe.webp), [MCP mobile](https://cdn.flowchartai.org/developer/2026-10-15/mcp-mobile-7c7dafe.webp).
