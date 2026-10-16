@@ -12,13 +12,14 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe('the six operating goals', () => {
+describe('the operating goals', () => {
   it('uses the SpriteFuse milestones with Flowchart names', () => {
     expect(CORE_GOALS).toEqual([
       'Registration Completed',
       'Flowchart Processing Started',
       'Flowchart Export Ready',
       'Download Clicked',
+      'Paywall Viewed',
       'Checkout Handoff',
       'Payment Confirmed',
     ]);
@@ -30,12 +31,19 @@ describe('the six operating goals', () => {
         mode: 'image_to_flowchart',
         editor: 'drawio',
         format: 'png',
+        source: 'paywall',
         prompt: 'private prompt',
         email: 'private@example.com',
         userId: '123',
         plan: 'custom-private-plan',
       })
-    ).toEqual({ mode: 'image_to_flowchart', editor: 'drawio', format: 'png' });
+    ).toEqual({
+      mode: 'image_to_flowchart',
+      editor: 'drawio',
+      format: 'png',
+      source: 'paywall',
+    });
+    expect(sanitizeEventProperties({ source: 'private-user-id' })).toEqual({});
   });
 
   it('keeps development and preview traffic out of production', () => {
@@ -70,11 +78,11 @@ describe('the six operating goals', () => {
     );
     const browser = { location: { origin: 'https://flowchartai.org' } } as any;
     vi.stubGlobal('window', browser);
-    trackFlowchartEvent(EVENTS.exportReady, { editor: 'drawio' });
+    trackFlowchartEvent(EVENTS.paywallViewed);
     expect(browser.plausible.q).toHaveLength(1);
     expect(Array.from(browser.plausible.q[0])).toEqual([
-      EVENTS.exportReady,
-      { props: { editor: 'drawio' } },
+      EVENTS.paywallViewed,
+      { props: {} },
     ]);
   });
 
@@ -112,14 +120,14 @@ describe('the six operating goals', () => {
       navigator: { sendBeacon: beacon },
       plausible,
     });
-    trackFlowchartEvent(EVENTS.checkoutHandoff);
+    trackFlowchartEvent(EVENTS.checkoutHandoff, { source: 'paywall' });
     expect(beacon).toHaveBeenCalledTimes(1);
     expect(beacon.mock.calls[0][0]).toBe('https://myplausible.app/api/event');
     expect(JSON.parse(await beacon.mock.calls[0][1].text())).toEqual({
       name: EVENTS.checkoutHandoff,
       domain: 'flowchartai.org',
       url: 'https://flowchartai.org/pricing',
-      props: {},
+      props: { source: 'paywall' },
     });
     expect(plausible).not.toHaveBeenCalled();
   });

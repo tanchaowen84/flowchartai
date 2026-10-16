@@ -1,6 +1,6 @@
 # FlowchartAI operating analytics
 
-The dashboard uses six English goals, following SpriteFuse's milestone definitions.
+The dashboard uses seven English goals, following SpriteFuse's milestone definitions.
 
 | Event | Trigger |
 | --- | --- |
@@ -8,10 +8,11 @@ The dashboard uses six English goals, following SpriteFuse's milestone definitio
 | Flowchart Processing Started | The server passed auth, quota, moderation and agent startup, then accepted the generation/edit request. |
 | Flowchart Export Ready | A validated AI command was successfully applied to the native or Excalidraw canvas. Chat-only answers and render failures do not count. |
 | Download Clicked | The user selected an export format on a nonempty canvas. This records intent, including failed export attempts; it does not prove a file was saved. |
-| Checkout Handoff | A checkout URL was created successfully and the browser starts navigating to Creem. This does not mean payment succeeded. |
+| Paywall Viewed | The pricing modal transitions from closed to open. Initial closed renders and plan/tab changes do not count. |
+| Checkout Handoff | A valid checkout URL was returned and browser navigation to Waffo (or the legacy provider) was initiated. Waffo popup and fallback entry points share one sender; blocked/closed popups wait for a fallback click. Repeat handoffs for a URL are deduplicated for the lifetime of the mounted checkout component. This does not prove the cashier loaded or payment succeeded. |
 | Payment Confirmed | A live, signed `checkout.completed` webhook with a paid positive-value order finished its database transaction. Count each order once. |
 
-Only three finite properties are used: `mode` (text/image), `editor` (drawio/excalidraw), and `format` (PNG/SVG/drawio/Excalidraw). Never send prompts, diagram contents, images, filenames, emails, user IDs, payment IDs or errors as event properties.
+Only four finite properties are used: `source` (`paywall`/`pricing`, for the new paywall and Waffo checkout paths), `mode` (text/image), `editor` (drawio/excalidraw), and `format` (PNG/SVG/drawio/Excalidraw). Never send prompts, diagram contents, images, filenames, emails, user IDs, payment IDs or errors as event properties.
 
 Production requires the canonical `https://flowchartai.org` base URL, the `flowchartai.org` Plausible domain and the existing script setting. Vercel Preview and localhost are excluded. The deployed self-hosted `/js/script.js` already supports custom events; `script.custom-events.js` returns 404 and must not be used here. Browser events queue before tracker initialization; checkout uses `sendBeacon` to survive navigation.
 

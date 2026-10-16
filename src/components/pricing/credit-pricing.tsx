@@ -1,6 +1,4 @@
 'use client';
-import { EVENTS } from '@/analytics/core-goals';
-import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LocaleLink } from '@/i18n/navigation';
@@ -9,49 +7,20 @@ import { BILLING_OFFERS, type OfferKey } from '@/lib/billing/policy';
 import { creditPrice } from '@/lib/billing/presentation';
 import { Routes } from '@/routes';
 import { useState } from 'react';
+import { useCreditCheckout } from './use-credit-checkout';
 export function CreditPricing({
   compact = false,
   legacy = false,
 }: { compact?: boolean; legacy?: boolean }): React.ReactElement {
   const [annual, setAnnual] = useState(false);
-  const [pending, setPending] = useState<OfferKey | null>(null);
-  const [error, setError] = useState('');
-  const [checkoutUrl, setCheckoutUrl] = useState('');
+  const {
+    pending,
+    error,
+    url: checkoutUrl,
+    buy,
+    trackHandoff,
+  } = useCreditCheckout();
   const { data: session } = authClient.useSession();
-  async function buy(key: OfferKey): Promise<void> {
-    if (pending) return;
-    setPending(key);
-    setError('');
-    setCheckoutUrl('');
-    const popup = window.open('about:blank', '_blank');
-    if (popup) popup.opener = null;
-    try {
-      const response = await fetch('/api/billing/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offerKey: key }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        if (result.resumeUrl) setCheckoutUrl(result.resumeUrl);
-        throw new Error(
-          result.message || result.error || 'Checkout is unavailable'
-        );
-      }
-      setCheckoutUrl(result.url);
-      if (popup) {
-        trackFlowchartEvent(EVENTS.checkoutHandoff);
-        popup.location.replace(result.url);
-      }
-    } catch (error) {
-      popup?.close();
-      setError(
-        error instanceof Error ? error.message : 'Checkout is unavailable'
-      );
-    } finally {
-      setPending(null);
-    }
-  }
   const cards: OfferKey[] = [
     annual ? 'starter_year_202610' : 'starter_month',
     annual ? 'pro_year_202610' : 'pro_month',
@@ -209,6 +178,7 @@ export function CreditPricing({
       )}
       {checkoutUrl && (
         <a
+          onClick={trackHandoff}
           href={checkoutUrl}
           target="_blank"
           rel="noopener noreferrer"

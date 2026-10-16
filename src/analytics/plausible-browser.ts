@@ -1,7 +1,7 @@
 /**
  * [INPUT] Browser milestones, production origin and allowlisted context.
  * [OUTPUT] Best-effort Plausible events, queued until the tracker loads.
- * [POS] Browser delivery for ready, download and checkout milestones.
+ * [POS] Browser delivery for ready, download, paywall and checkout milestones.
  * [UPDATE] Sync core-goals.ts and loader when tracker behavior changes.
  */
 import {
@@ -14,6 +14,7 @@ import {
 type BrowserEvent =
   | typeof EVENTS.exportReady
   | typeof EVENTS.downloadClicked
+  | typeof EVENTS.paywallViewed
   | typeof EVENTS.checkoutHandoff;
 type Plausible = {
   (event: string, options: { props: Record<string, string> }): void;
@@ -42,13 +43,14 @@ export function trackFlowchartEvent(
     ![
       EVENTS.exportReady,
       EVENTS.downloadClicked,
+      EVENTS.paywallViewed,
       EVENTS.checkoutHandoff,
     ].includes(event)
   )
     return;
   try {
     // The existing tracker uses XHR. A beacon survives the immediate redirect
-    // to Creem, so checkout handoff is not lost when the page unloads.
+    // to the payment provider, so checkout handoff is not lost when the page unloads.
     if (event === EVENTS.checkoutHandoff && window.navigator?.sendBeacon) {
       try {
         if (window.localStorage?.getItem('plausible_ignore') === 'true') return;

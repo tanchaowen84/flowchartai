@@ -1,6 +1,4 @@
 'use client';
-import { EVENTS } from '@/analytics/core-goals';
-import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { Button } from '@/components/ui/button';
 import { OFFERS, type OfferKey } from '@/lib/billing/policy';
 import {
@@ -21,7 +19,10 @@ export function CreditPlanSelector({
   const [selected, setSelected] = useState<OfferKey>(
     packsOnly ? 'pack_small' : 'starter_month'
   );
-  const { pending, error, url, buy } = useCreditCheckout(onCheckoutCreated);
+  const { pending, error, url, buy, trackHandoff } = useCreditCheckout(
+    onCheckoutCreated,
+    'paywall'
+  );
   useEffect(() => {
     if (packsOnly) {
       setView('once');
@@ -172,7 +173,7 @@ export function CreditPlanSelector({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackFlowchartEvent(EVENTS.checkoutHandoff)}
+              onClick={trackHandoff}
             >
               Open secure checkout
             </a>

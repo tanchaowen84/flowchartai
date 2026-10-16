@@ -1,5 +1,6 @@
 'use client';
 
+import { usePaywallView } from '@/analytics/use-paywall-view';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { CheckoutButton } from '@/components/pricing/create-checkout-button';
 import { CreditPlanSelector } from '@/components/pricing/credit-plan-selector';
@@ -102,6 +103,7 @@ export function PricingModal({
   onCheckoutCreated,
   hasPendingRequest,
 }: PricingModalProps) {
+  usePaywallView(isOpen);
   if (process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true')
     return (
       <CreditPricingModal

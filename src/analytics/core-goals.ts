@@ -1,6 +1,6 @@
 /**
  * [INPUT] Confirmed product milestones and finite context values.
- * [OUTPUT] Six English Plausible goals, production gate and safe properties.
+ * [OUTPUT] English Plausible goals, production gate and safe properties.
  * [POS] Shared FlowchartAI analytics contract, matching SpriteFuse semantics.
  * [UPDATE] Keep dashboard Goals, sender tests and README.md in sync.
  */
@@ -9,6 +9,7 @@ export const EVENTS = {
   processingStarted: 'Flowchart Processing Started',
   exportReady: 'Flowchart Export Ready',
   downloadClicked: 'Download Clicked',
+  paywallViewed: 'Paywall Viewed',
   checkoutHandoff: 'Checkout Handoff',
   paymentConfirmed: 'Payment Confirmed',
 } as const;
@@ -16,12 +17,14 @@ export const EVENTS = {
 export const CORE_GOALS = Object.values(EVENTS);
 export type CoreEvent = (typeof CORE_GOALS)[number];
 export interface EventProperties {
+  source?: 'paywall' | 'pricing';
   mode?: 'text_to_flowchart' | 'image_to_flowchart';
   editor?: 'drawio' | 'excalidraw';
   format?: 'png' | 'svg' | 'drawio' | 'excalidraw';
 }
 
 const PROPERTY_VALUES = {
+  source: ['paywall', 'pricing'],
   mode: ['text_to_flowchart', 'image_to_flowchart'],
   editor: ['drawio', 'excalidraw'],
   format: ['png', 'svg', 'drawio', 'excalidraw'],
