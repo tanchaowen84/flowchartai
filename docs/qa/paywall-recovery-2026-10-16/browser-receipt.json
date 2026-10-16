@@ -1,0 +1,12 @@
+{
+  "automaticNetworkFailureRecovered": true,
+  "reloadShowsRetry": true,
+  "releasedTaskUsesNewId": true,
+  "retainedBodyPreserved": true,
+  "realModelDeleteLastNode": true,
+  "state": "committed",
+  "charged": 3,
+  "debitLedgerEntries": 1,
+  "retainedRequestsAfterCommit": 0,
+  "editableNodesAfterDelete": 0
+}

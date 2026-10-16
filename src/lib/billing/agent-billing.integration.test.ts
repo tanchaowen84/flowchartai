@@ -9,7 +9,12 @@ import {
   it,
   vi,
 } from 'vitest';
-const state = vi.hoisted(() => ({ userId: '', abort: false, requests: 0 }));
+const state = vi.hoisted(() => ({
+  userId: '',
+  abort: false,
+  requests: 0,
+  command: null as unknown,
+}));
 vi.mock('@/lib/auth', () => ({
   auth: {
     api: {
@@ -33,6 +38,15 @@ async function streamAgent(_messages: unknown, options: any) {
         type: 'text-delta',
         payload: { id: 'text-1', text: 'A usable answer' },
       };
+      if (state.command)
+        yield {
+          type: 'tool-result',
+          payload: {
+            toolName: 'generate_flowchart',
+            toolCallId: 'remove-last',
+            result: state.command,
+          },
+        };
       yield state.abort
         ? { type: 'abort', payload: {} }
         : { type: 'finish', payload: {} };
@@ -84,6 +98,7 @@ describe.skipIf(!enabled)('Agent HTTP stream to real Postgres billing', () => {
     ids.push(state.userId);
     state.abort = false;
     state.requests = 0;
+    state.command = null;
     const db = await getDb();
     await db.insert(user).values({
       id: state.userId,
@@ -109,7 +124,7 @@ describe.skipIf(!enabled)('Agent HTTP stream to real Postgres billing', () => {
     const db = await getDb();
     for (const id of ids) await db.delete(user).where(eq(user.id, id));
   });
-  function request(id: string) {
+  function request(id: string, xml?: string) {
     return new Request('http://fixture/api/ai/chat/flowchart', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -125,7 +140,9 @@ describe.skipIf(!enabled)('Agent HTTP stream to real Postgres billing', () => {
             revision: 0,
             diagramType: 'flowchart',
             pageId: 'page-1',
-            xml: '<mxfile><diagram id="page-1"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>',
+            xml:
+              xml ||
+              '<mxfile><diagram id="page-1"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>',
           },
         },
       }),
@@ -184,6 +201,42 @@ describe.skipIf(!enabled)('Agent HTTP stream to real Postgres billing', () => {
     );
     expect((await response.json()).charged).toBe(0);
     expect((await walletSummary(state.userId)).balance).toBe(100);
+  });
+  it('delivers and settles an edit that removes the final node exactly once', async () => {
+    state.command = {
+      kind: 'drawio-command',
+      commandId: 'remove-last',
+      documentId: 'fixture-doc',
+      baseRevision: 0,
+      pageId: 'page-1',
+      operation: 'patch',
+      diagramType: 'flowchart',
+      description: 'Removed the final node',
+      patch: {
+        baseRevision: 0,
+        operations: [{ type: 'removeCell', id: 'last' }],
+      },
+    };
+    const xml =
+      '<mxfile><diagram id="page-1"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="last" vertex="1" parent="1"><mxGeometry width="120" height="60" as="geometry"/></mxCell></root></mxGraphModel></diagram></mxfile>';
+    const id = randomUUID();
+    const stream = await (await chat(request(id, xml))).text();
+    expect(stream).toContain('"state":"ready"');
+    expect(stream).not.toContain('"type":"error"');
+    const db = await getDb();
+    const [task] = await db
+      .select()
+      .from(billingTasks)
+      .where(eq(billingTasks.id, id));
+    expect(task.firstDiagram).toBe(false);
+    expect(task.result).toMatchObject({ delivery: { nodeIds: [] } });
+    expect((await (await commit(id, task.resultHash!)).json()).charged).toBe(4);
+    expect((await (await commit(id, task.resultHash!)).json()).charged).toBe(4);
+    expect((await walletSummary(state.userId)).balance).toBe(96);
+    expect(await (await chat(request(id, xml))).text()).toContain(
+      '"state":"committed"'
+    );
+    expect(state.requests).toBe(1);
   });
   it('an aborted stream releases funds and records provider cost without successful billing', async () => {
     state.abort = true;

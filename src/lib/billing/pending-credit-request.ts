@@ -1,4 +1,9 @@
-/** [INPUT] One paused authenticated request. [OUTPUT] Private durable purchase continuation; never analytics. */
+/**
+ * [INPUT] A retained request and the owned server task status.
+ * [OUTPUT] Durable continuation or safe explicit retry; never analytics.
+ * [POS] Shared recovery policy for continuation errors and reloads.
+ * [UPDATE] Keep the chat recovery UI and billing documentation in sync.
+ */
 import type { DrawioDocument } from '@/lib/drawio/contracts';
 import { nativeContentFingerprint } from '@/lib/drawio/native-document';
 export interface PendingCreditRequest {
@@ -10,6 +15,56 @@ export interface PendingCreditRequest {
   createdAt: number;
   checkoutId?: string;
   resumeStartedAt?: number;
+  retryReady?: boolean;
+}
+export interface CreditTaskLookup {
+  status: number;
+  task?: { id: string; state: string };
+}
+export interface PendingCreditRecovery {
+  kind: 'retry' | 'restore';
+  pending: PendingCreditRequest;
+}
+export async function reconcilePendingCreditRequest(
+  pending: PendingCreditRequest,
+  lookupTask: (id: string) => Promise<CreditTaskLookup> = async (id) => {
+    const response = await fetch(
+      `/api/billing/task?id=${encodeURIComponent(id)}`,
+      { cache: 'no-store' }
+    );
+    return {
+      status: response.status,
+      task: response.ok ? await response.json() : undefined,
+    };
+  },
+  newTaskId: () => string = () => crypto.randomUUID()
+): Promise<PendingCreditRecovery> {
+  let lookup: CreditTaskLookup;
+  try {
+    lookup = await lookupTask(pending.requestBody.billingTaskId);
+  } catch {
+    // An unavailable lookup cannot prove the original request did not run.
+    return { kind: 'restore', pending };
+  }
+  const released =
+    lookup.status === 200 &&
+    lookup.task?.id === pending.requestBody.billingTaskId &&
+    lookup.task?.state === 'released';
+  if (lookup.status === 404 || released) {
+    return {
+      kind: 'retry',
+      pending: {
+        ...pending,
+        requestBody: released
+          ? { ...pending.requestBody, billingTaskId: newTaskId() }
+          : pending.requestBody,
+        resumeStartedAt: undefined,
+        checkoutId: undefined,
+        retryReady: true,
+      },
+    };
+  }
+  return { kind: 'restore', pending };
 }
 export function canResumeCreditRequest(
   pending: PendingCreditRequest,

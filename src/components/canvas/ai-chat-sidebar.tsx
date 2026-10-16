@@ -34,10 +34,12 @@ import {
   DEFAULT_AI_ASSISTANT_MODE,
 } from '@/lib/ai-modes';
 import {
+  type CreditTaskLookup,
   type PendingCreditRequest,
   canResumeCreditRequest,
   clearPendingCreditRequest,
   readPendingCreditRequest,
+  reconcilePendingCreditRequest,
   writePendingCreditRequest,
 } from '@/lib/billing/pending-credit-request';
 import { generateAICanvasDescription } from '@/lib/canvas-analyzer';
@@ -259,6 +261,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [recoverableTask, setRecoverableTask] = useState<string | null>(null);
   const pendingCreditRef = useRef<PendingCreditRequest | null>(null);
   const [creditBlocked, setCreditBlocked] = useState(false);
+  const [creditRetryReady, setCreditRetryReady] = useState(false);
   const [pendingCheckoutId, setPendingCheckoutId] = useState<string | null>(
     null
   );
@@ -286,6 +289,34 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const { usageData, checkUsageLimit, refreshUsageData } = useAIUsageLimit();
   const { handleLimitReached: handleGuestLimitReached } = useGuestAIUsage();
 
+  const reconcileCreditRequest = async (
+    pending: PendingCreditRequest,
+    lookupTask?: (id: string) => Promise<CreditTaskLookup>
+  ) => {
+    const recovery = await reconcilePendingCreditRequest(pending, lookupTask);
+    if (
+      pendingCreditRef.current !== pending ||
+      currentUser?.id !== pending.userId
+    )
+      return;
+    if (recovery.kind === 'retry') {
+      await writePendingCreditRequest(recovery.pending);
+      if (pendingCreditRef.current !== pending) return;
+      if (
+        sessionStorage.getItem('flowchartai:billing-task') ===
+        pending.requestBody.billingTaskId
+      )
+        sessionStorage.removeItem('flowchartai:billing-task');
+    }
+    pendingCreditRef.current = recovery.pending;
+    setCreditRetryReady(recovery.kind === 'retry');
+    setCreditBlocked(true);
+    setRecoverableTask(
+      recovery.kind === 'restore' ? pending.requestBody.billingTaskId : null
+    );
+    return recovery.kind;
+  };
+
   useEffect(() => {
     if (!creditBilling || !currentUser?.id) return;
     void readPendingCreditRequest(currentUser.id)
@@ -293,8 +324,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         if (!pending || pending.path !== window.location.pathname) return;
         pendingCreditRef.current = pending;
         setCreditBlocked(true);
+        setCreditRetryReady(Boolean(pending.retryReady));
         if (pending.resumeStartedAt) {
           setRecoverableTask(pending.requestBody.billingTaskId);
+          void reconcileCreditRequest(pending).catch(() => undefined);
           return;
         }
         setPendingCheckoutId(pending.checkoutId || null);
@@ -380,6 +413,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     setPendingCheckoutId(id);
   };
   const pauseForCredits = async (requestBody: any) => {
+    setCreditRetryReady(false);
     const document = nativeEditorRef.current?.getDocument();
     if (currentUser && document) {
       const pending: PendingCreditRequest = {
@@ -445,6 +479,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }).catch(() => null);
     if (response?.ok) {
       const result = await response.json();
+      const pending = pendingCreditRef.current;
+      if (pending?.requestBody.billingTaskId === receipt.taskId) {
+        await clearPendingCreditRequest(pending.userId, receipt.taskId);
+        pendingCreditRef.current = null;
+        setCreditBlocked(false);
+        setCreditRetryReady(false);
+      }
       setLastCreditCharge(result.charged);
       billingReceiptRef.current = null;
       sessionStorage.removeItem('flowchartai:billing-commit');
@@ -1110,6 +1151,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       setRecoverableTask(null);
       refreshUsageData();
     } else {
+      const pending = pendingCreditRef.current;
+      if (pending?.requestBody.billingTaskId === recoverableTask) {
+        const recovery = await reconcileCreditRequest(pending, async () => ({
+          status: response.status,
+          task,
+        }));
+        if (recovery === 'retry') {
+          toast({
+            title: 'Request ready to retry',
+            description: 'Your original input and attachments are kept.',
+          });
+          return;
+        }
+      }
       toast({
         title: 'AI request',
         description:
@@ -2216,8 +2271,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   };
 
   resumeCreditRef.current = async (pending) => {
+    // A second click must not discard the first continuation's retained input.
+    if (isLoading || pending.resumeStartedAt || !nativeEditorRef.current)
+      return;
     if (
-      isLoading ||
       !currentUser ||
       !canResumeCreditRequest(
         pending,
@@ -2238,10 +2295,14 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         );
       pendingCreditRef.current = null;
       setCreditBlocked(false);
+      setCreditRetryReady(false);
+      resumingCreditRef.current = false;
       return;
     }
     pending.resumeStartedAt = Date.now();
-    await writePendingCreditRequest(pending);
+    pending.retryReady = false;
+    pending.checkoutId = undefined;
+    setCreditRetryReady(false);
     setCreditBlocked(false);
     setIsLoading(true);
     setIsStreamingResponse(true);
@@ -2249,6 +2310,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     requestCommittedRef.current = false;
     abortControllerRef.current = new AbortController();
     try {
+      await writePendingCreditRequest(pending);
       await processAIConversation(
         pending.requestBody.messages,
         pending.requestBody
@@ -2259,6 +2321,10 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       );
       pendingCreditRef.current = null;
     } catch (error) {
+      if (!(error as any)?.isCreditRequired) {
+        setRecoverableTask(pending.requestBody.billingTaskId);
+        await reconcileCreditRequest(pending).catch(() => undefined);
+      }
       if (!(error as any)?.isCreditRequired)
         toast({
           title: 'Request paused',
@@ -2269,6 +2335,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
           variant: 'destructive',
         });
     } finally {
+      resumingCreditRef.current = false;
       setIsLoading(false);
       setIsStreamingResponse(false);
       setAssistantResponsePhase('idle');
@@ -2690,13 +2757,27 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   {creditBlocked && (
                     <span className="w-full">
                       Your request is kept.{' '}
-                      <button
-                        type="button"
-                        className="underline"
-                        onClick={() => setShowPricingModal(true)}
-                      >
-                        View purchase options
-                      </button>{' '}
+                      {creditRetryReady ? (
+                        <button
+                          type="button"
+                          className="underline"
+                          disabled={isLoading || !nativeEditor}
+                          onClick={() => {
+                            const pending = pendingCreditRef.current;
+                            if (pending) void resumeCreditRef.current(pending);
+                          }}
+                        >
+                          Retry request
+                        </button>
+                      ) : !recoverableTask ? (
+                        <button
+                          type="button"
+                          className="underline"
+                          onClick={() => setShowPricingModal(true)}
+                        >
+                          View purchase options
+                        </button>
+                      ) : null}{' '}
                       ·{' '}
                       <button
                         type="button"
@@ -2711,6 +2792,9 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                           pendingCreditRef.current = null;
                           setPendingCheckoutId(null);
                           setCreditBlocked(false);
+                          setCreditRetryReady(false);
+                          if (p?.requestBody.billingTaskId === recoverableTask)
+                            setRecoverableTask(null);
                         }}
                       >
                         Cancel request

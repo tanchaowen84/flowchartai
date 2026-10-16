@@ -199,6 +199,7 @@ function createAgentStreamResponse(
                   ? prepareDrawioCommand(billing.document, commandEvent.args)
                   : null;
               if (
+                billing.firstDiagram &&
                 prepared &&
                 !readNativeCells(prepared).some(
                   (c) =>
