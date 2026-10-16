@@ -118,6 +118,24 @@ describe('native billed command delivery', () => {
     expect(readyTask).not.toHaveBeenCalled();
     expect(finalizeTask).toHaveBeenCalled();
   });
+  it.each(['create', 'replace'])(
+    'rejects empty %s results for ordinary billed requests',
+    async (operation) => {
+      state.command = {
+        ...state.command,
+        operation,
+        patch: undefined,
+        xml: EMPTY_DRAWIO_XML,
+      };
+      const stream = await run(
+        operation === 'create' ? EMPTY_DRAWIO_XML : singleNodeXml
+      );
+      expect(stream).toContain('no visible editable shapes');
+      expect(stream).not.toContain('"state":"ready"');
+      expect(readyTask).not.toHaveBeenCalled();
+      expect(finalizeTask).toHaveBeenCalled();
+    }
+  );
   it('still delivers a visible protected first diagram', async () => {
     state.firstDiagram = true;
     state.command = {

@@ -238,6 +238,46 @@ describe.skipIf(!enabled)('Agent HTTP stream to real Postgres billing', () => {
     );
     expect(state.requests).toBe(1);
   });
+  it.each(['create', 'replace'])(
+    'releases an empty ordinary %s result without charging or recording success',
+    async (operation) => {
+      state.command = {
+        kind: 'drawio-command',
+        commandId: 'empty-result',
+        documentId: 'fixture-doc',
+        baseRevision: 0,
+        pageId: 'page-1',
+        operation,
+        diagramType: 'flowchart',
+        description: 'Unusable empty generation',
+        xml: '<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel>',
+      };
+      const id = randomUUID();
+      const stream = await (await chat(request(id))).text();
+      expect(stream).toContain('no visible editable shapes');
+      expect(stream).not.toContain('"state":"ready"');
+      const db = await getDb();
+      const [task] = await db
+        .select()
+        .from(billingTasks)
+        .where(eq(billingTasks.id, id));
+      expect(task.firstDiagram).toBe(false);
+      expect(task.state).toBe('released');
+      expect(task.charged).toBe(0);
+      expect((await walletSummary(state.userId)).balance).toBe(100);
+      expect(
+        await db.select().from(aiUsage).where(eq(aiUsage.userId, state.userId))
+      ).toHaveLength(0);
+      expect(
+        (
+          await db
+            .select()
+            .from(creditsHistory)
+            .where(eq(creditsHistory.userId, state.userId))
+        ).filter((entry) => entry.type === 'subtract')
+      ).toHaveLength(0);
+    }
+  );
   it('an aborted stream releases funds and records provider cost without successful billing', async () => {
     state.abort = true;
     const id = randomUUID();

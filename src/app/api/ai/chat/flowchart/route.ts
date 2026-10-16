@@ -199,8 +199,9 @@ function createAgentStreamResponse(
                   ? prepareDrawioCommand(billing.document, commandEvent.args)
                   : null;
               if (
-                billing.firstDiagram &&
                 prepared &&
+                (billing.firstDiagram ||
+                  commandEvent.args.operation !== 'patch') &&
                 !readNativeCells(prepared).some(
                   (c) =>
                     c.parent &&
