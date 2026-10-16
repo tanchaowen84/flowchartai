@@ -43,4 +43,10 @@ Native website first-diagram protection is server opt-in, separate from REST/MCP
 
 See ../paywall/SPEC.md and the new verification receipt for release evidence.
 
+## Interrupted paid continuation · 2026-10-16
+
+Before releasing a continuation claim after an error or reload, the website queries the owned server task. A missing task can retry the exact retained body with the same ID; a released task retries with a fresh task ID. Running, ready, committed and unavailable task states keep the claim and use result recovery. The explicit Retry request action preserves original input and attachments and retains the owner, canvas fingerprint and 24-hour checks. A consumed checkout is removed from the retained operation, so reloading a failed continuation cannot create an automatic retry loop. A confirmed result receipt clears the retained operation.
+
+Empty create/replace results are rejected for every account, and protected first-diagram delivery still requires visible content. Ordinary validated patch edits may intentionally remove every editable node. No wallet, grant or payment-provider policy changes are required. See [recovery verification](../qa/paywall-recovery-2026-10-16/verification.md).
+
 Trial-only balances below a conservative estimate can reserve the remaining trial amount for a bounded native task. Actual settlement consumes that remainder; it is not stranded behind the estimate. The last permitted overage is platform-funded. Paid wallet reservation rules and developer API budgets remain unchanged.

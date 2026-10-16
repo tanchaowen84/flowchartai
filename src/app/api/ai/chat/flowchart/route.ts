@@ -200,6 +200,8 @@ function createAgentStreamResponse(
                   : null;
               if (
                 prepared &&
+                (billing.firstDiagram ||
+                  commandEvent.args.operation !== 'patch') &&
                 !readNativeCells(prepared).some(
                   (c) =>
                     c.parent &&
