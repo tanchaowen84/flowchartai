@@ -36,7 +36,7 @@ Commands: pnpm test; pnpm typecheck; pnpm build; pnpm exec biome check <changed 
 
 ## Current state
 
-Assessment complete for source/UI; production send/receipt not yet verified. Resend dashboard asks for login. Vercel connector env listing returns 403; CLI fallback is being checked. Authorized test recipient not found in Issue or its existing evidence. Production verification is a separate pending step, not assumed from local credentials.
+Assessment complete for source/UI; production send/receipt not yet verified. Vercel connector env listing returned 403; the exact linked project's CLI fallback succeeded. The current production-config Resend key was rejected by two read-only provider APIs (`API key is invalid`). This does not independently identify the runtime secret in an older deployment. Resend dashboard asks for login. Authorized test recipient not found in Issue or its existing evidence. Production verification is a separate pending step, not assumed from local credentials.
 
 ## Scoped experience contract
 
@@ -52,5 +52,7 @@ Desktop and mobile preserve reading/action order. Labels, browser email/OTP auto
 Round 1, snapshot 79e2de3: Reviewer reproduced CR597-001 (P1): non-JSON form requests were accepted by Better Auth after the guard failed to parse JSON, bypassing resend/guess bounds and allowing an older code to be reused. The owner added four failing regression assertions, then made OTP HTTP endpoints reject unsupported encodings with 415 and malformed JSON with 400. Actual JSON client behavior is retained. CR597-002 (P2): the expiry fixture reset all guard rows; the owner limited it to that fixture's hashed ID. No product implementation or test assertions were edited by the Reviewer. The revised version requires same-Reviewer Round 2.
 
 Owner UI check also replaced generic HTTP 500 wording with the actionable send failure message and translated invalid/expired OTP responses. Local real inbox/production OAuth acceptance remains pending; a controlled transport is not delivery proof.
+
+Actual local password sign-in established a verified fixture session and returned to `/pricing?offer=pro_year_202610#selected-plan`, with the correct yearly price and selected Pro card. A 390px mobile screenshot exposed an inline selected-plan notice wrapping under the fixed header; the owner made it block-level with anchor scroll spacing and an explicit yearly billing summary. No checkout or payment was initiated. Canvas content restoration remains covered by existing persistence tests, without a new end-to-end canvas acceptance claim.
 
 Reviewer tooling subsequently failed twice with `This content was flagged for possible cybersecurity risk` while finalizing the existing defensive review. The two confirmed findings and independent verification logs remain available, but no final independent CR PASS exists. Do not treat the interruption or owner fixes as approval, reset the cycle, or mark the Issue Done. Preserve the original Reviewer/cycle and resume only through an available authorized review path.

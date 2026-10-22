@@ -46,11 +46,12 @@ export function CreditPricing({
       {selectedOffer && (
         <output
           id="selected-plan"
-          className="rounded-lg border border-primary p-3 text-sm"
+          className="block scroll-mt-24 rounded-lg border border-primary p-3 text-sm"
         >
           Your selected plan: {creditPrice(selectedOffer).name} ·{' '}
-          {creditPrice(selectedOffer).period}. Review the plan below and
-          continue to checkout when ready.
+          {creditPrice(selectedOffer).billed ||
+            (selectedOffer.includes('month') ? 'Monthly' : 'One-time purchase')}
+          . Review the plan below and continue to checkout when ready.
         </output>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
