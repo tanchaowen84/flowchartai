@@ -325,3 +325,39 @@ test.skipIf(!url)(
     expect(row.delivered_without_saved_file).toBe(0);
   }
 );
+
+test.skipIf(!url)(
+  'a test-mode checkout is QA evidence even when the account was marked natural',
+  async () => {
+    const owner = await addUser('test-checkout', '2026-10-19T00:00:00Z');
+    await sql!`INSERT INTO billing_checkouts (id,user_id,offer_key,environment,state,checkout_url,created_at) VALUES (${owner + '-checkout'},${owner},'fixture','test','pending','https://example.invalid/fixture','2026-10-19T01:00Z')`;
+    const rows = await report(
+      owner,
+      '2026-10-19T00:00:00Z',
+      '2026-10-20T00:00:00Z'
+    );
+    expect(rows.find((x) => x.audience === 'qa')?.accounts).toBe(1);
+    expect(rows.find((x) => x.audience === 'natural')).toBeUndefined();
+  }
+);
+
+test.skipIf(!url)(
+  'a prod checkout created without browser handoff is not a conversion',
+  async () => {
+    const owner = await addUser(
+      'created-only-checkout',
+      '2026-10-20T00:00:00Z'
+    );
+    await sql!`INSERT INTO billing_checkouts (id,user_id,offer_key,environment,state,checkout_url,created_at) VALUES (${owner + '-checkout'},${owner},'fixture','prod','pending','https://example.invalid/fixture','2026-10-20T01:00Z')`;
+    await emit(owner, 'paywall_viewed', '2026-10-20T01:00Z', null, null);
+    const rows = await report(
+      owner,
+      '2026-10-20T00:00:00Z',
+      '2026-10-21T00:00:00Z'
+    );
+    const natural = rows.find((x) => x.audience === 'natural')!;
+    expect(natural.mature_paywall_accounts).toBe(1);
+    expect(natural.paywall_to_checkout_accounts).toBe(0);
+    expect(natural.handed_off_orders_with_provider_receipt_accounts).toBe(0);
+  }
+);

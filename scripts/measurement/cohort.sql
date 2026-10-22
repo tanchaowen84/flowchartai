@@ -3,7 +3,8 @@
 WITH p AS (
  SELECT $1::timestamp AS start_at, $2::timestamp AS end_at, $3::timestamp AS as_of, $4::text::jsonb AS classification
 ), qa_users AS (
- SELECT value AS id FROM p, jsonb_array_elements_text(coalesce(classification->'qaUserIds','[]'))
+ SELECT user_id AS id FROM billing_checkouts WHERE environment='test'
+ UNION SELECT value AS id FROM p, jsonb_array_elements_text(coalesce(classification->'qaUserIds','[]'))
  UNION SELECT user_id FROM billing_tasks,p WHERE id IN (SELECT jsonb_array_elements_text(coalesce(classification->'qaTaskIds','[]')))
  UNION SELECT user_id FROM flowcharts,p WHERE id IN (SELECT jsonb_array_elements_text(coalesce(classification->'qaFlowchartIds','[]')))
  UNION SELECT user_id FROM billing_checkouts,p WHERE id IN (SELECT jsonb_array_elements_text(coalesce(classification->'qaCheckoutIds','[]')))
@@ -56,12 +57,12 @@ WITH p AS (
  SELECT x.*, x.exposed_at+interval '24 hours'<=x.as_of AS mature,
  EXISTS (SELECT 1 FROM events e JOIN billing_checkouts b ON b.id=e.checkout_id AND b.user_id=e.user_id
    WHERE e.user_id=x.id AND e.name='checkout_handoff' AND e.source='paywall'
-   AND b.created_at<=e.recorded_at AND b.created_at<x.as_of
+   AND b.environment='prod' AND b.created_at<=e.recorded_at AND b.created_at<x.as_of
    AND e.recorded_at>=x.exposed_at AND e.recorded_at<x.exposed_at+interval '24 hours') AS handed_off,
  EXISTS (SELECT 1 FROM events e JOIN billing_checkouts b ON b.id=e.checkout_id AND b.user_id=e.user_id
    JOIN billing_events be ON be.order_id=b.order_id
    WHERE e.user_id=x.id AND e.name='checkout_handoff' AND e.source='paywall'
-   AND b.environment='live' AND b.state='paid' AND be.provider='waffo'
+   AND b.environment='prod' AND b.state='paid' AND be.provider='waffo'
    AND be.event_type IN ('order.completed','subscription.payment_succeeded')
    AND be.created_at>=e.recorded_at AND be.created_at<x.as_of
    AND e.recorded_at>=x.exposed_at AND e.recorded_at<x.exposed_at+interval '24 hours') AS order_with_provider_receipt

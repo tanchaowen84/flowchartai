@@ -141,7 +141,7 @@ test.skipIf(!enabled)(
       } = {}
     ) =>
       sql!`INSERT INTO growth_events (id,user_id,name,recorded_at,task_id,flowchart_id,checkout_id,source) VALUES (${randomUUID()},${owner},${name},${at},${keys.task || null},${keys.file || null},${keys.checkout || null},${keys.source || null})`;
-    await sql!`INSERT INTO billing_checkouts (id,user_id,offer_key,environment,state,order_id,checkout_url,created_at) VALUES (${`${prefix}-checkout`},${ids[0]},'starter','live','paid',${`${prefix}-order`},'https://checkout.example.invalid/','2026-10-16T02:00Z')`;
+    await sql!`INSERT INTO billing_checkouts (id,user_id,offer_key,environment,state,order_id,checkout_url,created_at) VALUES (${`${prefix}-checkout`},${ids[0]},'starter','prod','paid',${`${prefix}-order`},'https://checkout.example.invalid/','2026-10-16T02:00Z')`;
     await sql!`INSERT INTO billing_events (id,provider,event_type,order_id,created_at) VALUES (${randomUUID()},'waffo','order.completed',${`${prefix}-order`},'2026-10-16T05:00Z')`;
     for (const owner of [ids[0], ids[2]]) {
       await emit(owner, 'result_delivered', '2026-10-16T01:00Z', {
