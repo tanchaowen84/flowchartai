@@ -118,10 +118,11 @@ export async function PUT(
       validatedData.content !== existingFlowchart.content &&
       hasSavedContent(validatedData.content)
     ) {
+      const observationId = `save:${id}:${createHash('sha256').update(validatedData.content).digest('hex')}`;
       try {
         after(async () => {
           await recordGrowth(session.user.id, {
-            id: `save:${id}:${createHash('sha256').update(validatedData.content).digest('hex')}`,
+            id: observationId,
             name: 'save_succeeded',
             recordedAt: savedAt,
             flowchartId: id,
