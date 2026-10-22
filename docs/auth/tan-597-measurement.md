@@ -1,0 +1,16 @@
+# TAN-597 authentication measurement contract
+
+This fixes measurement definitions for the authentication change. TAN-599 owns implementation of attribution, internal joins and reporting. The existing event names remain unchanged. No raw user ID, email, OTP, callback URL, document content or identity is sent to third-party analytics.
+
+| Stage | Numerator / evidence | Denominator / observation |
+| --- | --- | --- |
+| Account creation | Distinct new internal user IDs, based on stored createdAt. Registration Completed remains the existing new-user hook event. | Overall website visitors are a separate aggregate, not a strict same-person funnel until a trusted internal join exists. Never equate Plausible goal visitors with accounts. |
+| Verified authentication | Distinct accounts with verified ownership and an established session; split new account creation from recovery of an older unverified account and returning login. | Internal auth-entry cohort, deduplicated by the documented entry/session key; source/method unknown stays unknown. Sending a code is not registration or authentication. |
+| Entry breakdown | Finite entry context (pricing, canvas, direct auth entry, unknown) and auth method (Google, email OTP, credential). | Use the same cohort and period for numerator and denominator. Missing attribution is unknown, not Direct. A browser CTA click and completed authentication are separate milestones. |
+| First task accepted within 24h | Distinct mature new account IDs with an authenticated task accepted by the server in [createdAt, createdAt + 24h). | New accounts created in the cohort window with a full 24h of follow-up at the report cutoff. Exclude immature accounts from the rate and report them separately. Do not count request retries as people. |
+| Usable delivery within 24h | Distinct mature new accounts with a valid delivered diagram, applied/persisted document and a readback that can be reopened. Task ready or a created empty file alone is insufficient. | Same mature new-account denominator. Also report accepted-task-to-usable-delivery separately, with its own denominator. No success inferred from account count, API 200, generated text or a click. |
+| Checkout / payment | Checkout Handoff requires a valid checkout URL and actual initiated navigation; Payment Confirmed requires signed provider confirmation. | Keep pricing and paywall exposure cohorts separate; a selected offer after authentication is not a checkout or purchase. |
+
+Use Asia/Shanghai for report windows, store UTC timestamps, publish the actual start/end/cutoff and numerator/denominator. Preserve the original diagnostic window (2026-10-16 00:00 through 2026-10-21 00:00 Asia/Shanghai) as a historical snapshot, not a post-change result. Recovered credential-only accounts from that period stay in their original creation cohort. QA is marked/excluded by controlled internal test-account/entry identifiers. Do not infer natural conversion from these tests.
+
+The authentication entry retains its safe callback and finite selected offer. This PR does not overwrite TAN-599's analytics modules or registration hook. Schema, attribution storage or growth experiments are not added here. Any later outcome comparison must state instrumentation completeness and missing joins before drawing a growth conclusion.

@@ -2,6 +2,7 @@ import { betterFetch } from '@better-fetch/fetch';
 import createMiddleware from 'next-intl/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
 import { LOCALES, routing } from './i18n/routing';
+import { safeAuthCallback } from './lib/auth-callback-url';
 import type { Session } from './lib/auth-types';
 import { isKnownUnlocalizedPath } from './lib/routing/known-unlocalized-paths';
 import { originalRequestUrl } from './lib/routing/request-url';
@@ -59,7 +60,16 @@ export default async function middleware(req: NextRequest) {
       console.log(
         '<< middleware end, not allowed route, already logged in, redirecting to dashboard'
       );
-      return NextResponse.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+      return NextResponse.redirect(
+        new URL(
+          safeAuthCallback(
+            nextUrl.searchParams.get('callbackUrl'),
+            nextUrl.origin,
+            DEFAULT_LOGIN_REDIRECT
+          ),
+          nextUrl
+        )
+      );
     }
   }
 

@@ -3,8 +3,10 @@
 import { DividerWithText } from '@/components/auth/divider-with-text';
 import { GitHubIcon } from '@/components/icons/github';
 import { GoogleIcon } from '@/components/icons/google';
+import { FormError } from '@/components/shared/form-error';
 import { Button } from '@/components/ui/button';
 import { websiteConfig } from '@/config/website';
+import { safeAuthCallback, withAuthCallbackUrl } from '@/lib/auth-callback-url';
 import { authClient } from '@/lib/auth-client';
 import { getUrlWithLocaleInCallbackUrl } from '@/lib/urls/urls';
 import { DEFAULT_LOGIN_REDIRECT, Routes } from '@/routes';
@@ -17,6 +19,7 @@ interface SocialLoginButtonProps {
   callbackUrl?: string;
   showDivider?: boolean;
   action?: 'sign-in' | 'continue';
+  disabled?: boolean;
 }
 
 /**
@@ -26,6 +29,7 @@ export const SocialLoginButton = ({
   callbackUrl: propCallbackUrl,
   showDivider = true,
   action = 'sign-in',
+  disabled = false,
 }: SocialLoginButtonProps) => {
   if (
     !websiteConfig.auth.enableGoogleLogin &&
@@ -43,60 +47,71 @@ export const SocialLoginButton = ({
     DEFAULT_LOGIN_REDIRECT,
     locale
   );
-  const callbackUrl = propCallbackUrl || paramCallbackUrl || defaultCallbackUrl;
+  const callbackUrl = safeAuthCallback(
+    propCallbackUrl || paramCallbackUrl || defaultCallbackUrl,
+    typeof window === 'undefined' ? undefined : window.location.origin
+  );
   const [isLoading, setIsLoading] = useState<'google' | 'github' | null>(null);
-  console.log('social login button, callbackUrl', callbackUrl);
+  const [error, setError] = useState('');
 
   const onClick = async (provider: 'google' | 'github') => {
-    await authClient.signIn.social(
-      {
-        /**
-         * The social provider id
-         * @example "github", "google"
-         */
-        provider: provider,
-        /**
-         * a url to redirect after the user authenticates with the provider
-         * @default "/"
-         */
-        callbackURL: callbackUrl,
-        /**
-         * a url to redirect if an error occurs during the sign in process
-         */
-        errorCallbackURL: Routes.AuthError,
-        /**
-         * a url to redirect if the user is newly registered
-         */
-        // newUserCallbackURL: "/auth/welcome",
-        /**
-         * disable the automatic redirect to the provider.
-         * @default false
-         */
-        // disableRedirect: true,
-      },
-      {
-        onRequest: (ctx) => {
-          // console.log("onRequest", ctx);
-          setIsLoading(provider);
+    setError('');
+    try {
+      await authClient.signIn.social(
+        {
+          /**
+           * The social provider id
+           * @example "github", "google"
+           */
+          provider: provider,
+          /**
+           * a url to redirect after the user authenticates with the provider
+           * @default "/"
+           */
+          callbackURL: callbackUrl,
+          /**
+           * a url to redirect if an error occurs during the sign in process
+           */
+          errorCallbackURL: withAuthCallbackUrl(Routes.AuthError, callbackUrl),
+          /**
+           * a url to redirect if the user is newly registered
+           */
+          // newUserCallbackURL: "/auth/welcome",
+          /**
+           * disable the automatic redirect to the provider.
+           * @default false
+           */
+          // disableRedirect: true,
         },
-        onResponse: (ctx) => {
-          // console.log("onResponse", ctx.response);
-          setIsLoading(null);
-        },
-        onSuccess: (ctx) => {
-          // console.log("onSuccess", ctx.data);
-          setIsLoading(null);
-        },
-        onError: (ctx) => {
-          console.log('social login error', ctx.error.message);
-          setIsLoading(null);
-        },
-      }
-    );
+        {
+          onRequest: (ctx) => {
+            // console.log("onRequest", ctx);
+            setIsLoading(provider);
+          },
+          onResponse: (ctx) => {
+            // console.log("onResponse", ctx.response);
+            setIsLoading(null);
+          },
+          onSuccess: (ctx) => {
+            // console.log("onSuccess", ctx.data);
+            setIsLoading(null);
+          },
+          onError: (ctx) => {
+            setError(t('signInFailed'));
+            setIsLoading(null);
+          },
+        }
+      );
+    } catch {
+      setError(t('signInFailed'));
+    } finally {
+      setIsLoading(null);
+    }
   };
 
   return (
     <div className="w-full flex flex-col gap-4">
+      <FormError message={error} />
       {showDivider && <DividerWithText text={t('or')} />}
       {websiteConfig.auth.enableGoogleLogin && (
         <Button
@@ -104,7 +119,7 @@ export const SocialLoginButton = ({
           className="w-full cursor-pointer"
           variant="outline"
           onClick={() => onClick('google')}
-          disabled={isLoading === 'google'}
+          disabled={disabled || isLoading !== null}
         >
           {isLoading === 'google' ? (
             <Loader2Icon className="mr-2 size-4 animate-spin" />
@@ -124,7 +139,7 @@ export const SocialLoginButton = ({
           className="w-full cursor-pointer"
           variant="outline"
           onClick={() => onClick('github')}
-          disabled={isLoading === 'github'}
+          disabled={disabled || isLoading !== null}
         >
           {isLoading === 'github' ? (
             <Loader2Icon className="mr-2 size-4 animate-spin" />
