@@ -112,6 +112,7 @@ export async function PUT(
 
     await db.update(flowcharts).set(updateData).where(eq(flowcharts.id, id));
 
+    const savedAt = new Date();
     if (
       validatedData.content &&
       validatedData.content !== existingFlowchart.content &&
@@ -122,6 +123,7 @@ export async function PUT(
           await recordGrowth(session.user.id, {
             id: `save:${id}:${createHash('sha256').update(validatedData.content).digest('hex')}`,
             name: 'save_succeeded',
+            recordedAt: savedAt,
             flowchartId: id,
           });
         });

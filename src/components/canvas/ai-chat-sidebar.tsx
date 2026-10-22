@@ -469,6 +469,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         throw error;
       }
     }
+    // Existing saved diagrams also keep their explicit result/file association.
+    receipt.flowchartId ||= flowchartId;
     sessionStorage.setItem(
       'flowchartai:billing-commit',
       JSON.stringify(receipt)

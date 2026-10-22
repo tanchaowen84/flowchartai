@@ -66,7 +66,9 @@ export default async function LocaleLayout({
             <DeferredToaster richColors position="top-right" offset={64} />
             <TailwindIndicator />
             <Analytics />
-            <GrowthObserver />
+            {process.env.NEXT_PUBLIC_GROWTH_MEASUREMENT === 'true' && (
+              <GrowthObserver />
+            )}
             <AdSense />
             <AffonsoScript />
             <PromotekitScript />

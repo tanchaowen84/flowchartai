@@ -67,6 +67,8 @@ export interface GrowthObservation {
   checkoutId?: string;
   source?: 'paywall' | 'pricing';
   properties?: Record<string, unknown>;
+  /** Server-only milestone time, captured before deferring the write. */
+  recordedAt?: Date;
 }
 export async function recordGrowth(
   userId: string,
@@ -90,6 +92,16 @@ export async function recordGrowth(
         );
       if (!task || !['ready', 'committed'].includes(task.state)) return false;
       taskResult = task.result as Record<string, any>;
+      if (
+        event.name === 'result_ready' &&
+        !taskResult?.delivery &&
+        !taskResult?.events?.some(
+          (item: any) =>
+            item.type === 'tool-call' &&
+            ['render-mermaid', 'patch-diagram'].includes(item.args?.kind)
+        )
+      )
+        return false;
       if (event.name === 'result_delivered') deliveredAt = task.updatedAt;
       if (
         event.name === 'result_delivered' &&
@@ -110,12 +122,34 @@ export async function recordGrowth(
       if (!file || !hasSavedContent(file.content)) return false;
       if (event.taskId) {
         const document = JSON.parse(file.content);
-        if (
-          !taskResult?.delivery ||
-          document.documentId !== taskResult.delivery.documentId ||
-          document.revision < taskResult.delivery.revision
-        )
-          return false;
+        if (taskResult?.delivery) {
+          if (document.documentId !== taskResult.delivery.documentId)
+            return false;
+          // Ready is client-observed on this same document; only server delivery
+          // asserts that this revision has also reached persistence.
+          if (
+            event.name === 'result_delivered' &&
+            document.revision < taskResult.delivery.revision
+          )
+            event = { ...event, flowchartId: undefined };
+        } else if (
+          event.name === 'result_ready' &&
+          event.properties?.editor === 'excalidraw'
+        ) {
+          const command = taskResult?.events?.find(
+            (item: any) => item.type === 'tool-call'
+          )?.args;
+          const diagramId = command?.patch?.diagramId || command?.diagramId;
+          const linked =
+            diagramId &&
+            document.elements?.some(
+              (item: any) =>
+                !item.isDeleted && item.customData?.diagramId === diagramId
+            );
+          // Keep a valid client-ready task observation even when old saved files
+          // lack diagram metadata. Never invent a same-file association.
+          if (!linked) event = { ...event, flowchartId: undefined };
+        } else return false;
       }
     }
     if (event.checkoutId) {
@@ -139,7 +173,7 @@ export async function recordGrowth(
           event.name === 'result_ready' && event.taskId
             ? `ready:${event.taskId}`
             : event.id,
-        recordedAt: deliveredAt,
+        recordedAt: deliveredAt || event.recordedAt,
         userId,
         properties: sanitizeEventProperties(event.properties || {}),
       })
