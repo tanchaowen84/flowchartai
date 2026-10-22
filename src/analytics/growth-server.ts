@@ -79,6 +79,7 @@ export async function recordGrowth(
     const db = await getDb();
     let taskResult: Record<string, any> | undefined;
     let deliveredAt: Date | undefined;
+    let linkedFileId = event.flowchartId;
     // Ownership is always checked here, even for events originating in server code.
     if (event.taskId) {
       const [task] = await db
@@ -131,7 +132,7 @@ export async function recordGrowth(
             event.name === 'result_delivered' &&
             document.revision < taskResult.delivery.revision
           )
-            event = { ...event, flowchartId: undefined };
+            linkedFileId = undefined;
         } else if (
           event.name === 'result_ready' &&
           event.properties?.editor === 'excalidraw'
@@ -148,7 +149,7 @@ export async function recordGrowth(
             );
           // Keep a valid client-ready task observation even when old saved files
           // lack diagram metadata. Never invent a same-file association.
-          if (!linked) event = { ...event, flowchartId: undefined };
+          if (!linked) linkedFileId = undefined;
         } else return false;
       }
     }
@@ -169,6 +170,7 @@ export async function recordGrowth(
       .insert(growthEvents)
       .values({
         ...event,
+        flowchartId: linkedFileId,
         id:
           event.name === 'result_ready' && event.taskId
             ? `ready:${event.taskId}`
