@@ -45,3 +45,12 @@ Existing auth card/modal and pricing cards are retained. Audience: a first-time 
 Initial email form -> sending (deduplicated and disabled) -> six-digit code form -> verifying -> original local URL. A failed send stays on the email form; a failed verification preserves email/code and shows the error. Resend has a visible cooldown and server rejection remains visible. Editing email returns to the email form. Password mode describes password login rather than promising an email code. Typed email survives entry/provider/method switches; OTP/password are not stored. Pricing highlights the exact restored offer/interval and requires an explicit checkout click; authentication alone cannot create an order. Existing canvas draft/attachment persistence remains responsible for restoring user content.
 
 Desktop and mobile preserve reading/action order. Labels, browser email/OTP autocomplete, numeric OTP input, disabled states and keyboard focus use existing primitives. UI screenshots and interaction evidence are owner QA, not an independent review. Full production Google identity exchange and real inbox acceptance remain separate pending checks.
+
+
+## Independent review cycle 1
+
+Round 1, snapshot 79e2de3: Reviewer reproduced CR597-001 (P1): non-JSON form requests were accepted by Better Auth after the guard failed to parse JSON, bypassing resend/guess bounds and allowing an older code to be reused. The owner added four failing regression assertions, then made OTP HTTP endpoints reject unsupported encodings with 415 and malformed JSON with 400. Actual JSON client behavior is retained. CR597-002 (P2): the expiry fixture reset all guard rows; the owner limited it to that fixture's hashed ID. No product implementation or test assertions were edited by the Reviewer. The revised version requires same-Reviewer Round 2.
+
+Owner UI check also replaced generic HTTP 500 wording with the actionable send failure message and translated invalid/expired OTP responses. Local real inbox/production OAuth acceptance remains pending; a controlled transport is not delivery proof.
+
+Reviewer tooling subsequently failed twice with `This content was flagged for possible cybersecurity risk` while finalizing the existing defensive review. The two confirmed findings and independent verification logs remain available, but no final independent CR PASS exists. Do not treat the interruption or owner fixes as approval, reset the cycle, or mark the Issue Done. Preserve the original Reviewer/cycle and resume only through an available authorized review path.

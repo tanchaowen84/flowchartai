@@ -59,7 +59,7 @@ function formatAuthClientError(
   const message =
     ctx.error?.message || ctx.error?.statusText || fallbackMessage;
 
-  return status ? `${status}: ${message}` : message;
+  return Number(status) >= 500 ? fallbackMessage : message;
 }
 
 export const LoginForm = ({
@@ -235,7 +235,13 @@ export const LoginForm = ({
         otp: parsed.data,
       });
       if (result.error || !result.data?.user) {
-        setOtpError(formatAuthClientError(result, t('verifyCodeFailed')));
+        setOtpError(
+          result.error?.message === 'otp expired'
+            ? t('expiredCode')
+            : result.error?.message === 'invalid otp'
+              ? t('invalidCode')
+              : formatAuthClientError(result, t('verifyCodeFailed'))
+        );
         return;
       }
       redirectAfterSignIn();

@@ -178,8 +178,9 @@ describe.skipIf(!enabled)(
         .where(eq(verification.identifier, `sign-in-otp-${email}`));
       expect((await verify(email, old)).status).toBe(400);
       expect(await owners(email)).toHaveLength(0);
+      const guardId = `otp-guard:${createHash('sha256').update(email).digest('hex')}`;
       await db.execute(
-        sql`update verification set value = jsonb_set(value::jsonb, '{lastSend}', '0')::text where id like 'otp-guard:%'`
+        sql`update verification set value = jsonb_set(value::jsonb, '{lastSend}', '0')::text where id = ${guardId}`
       );
       await send(email);
       expect((await verify(email, code(email))).status).toBe(200);
@@ -266,6 +267,59 @@ describe.skipIf(!enabled)(
         batch.map((email) => verify(email, code(email)))
       );
       expect(signedIn.every((response) => response.status === 200)).toBe(true);
+    });
+
+    it('rejects form/multipart and malformed JSON before any send or account creation', async () => {
+      const email = newEmail();
+      const size = fixture.outbox.length;
+      for (const type of [
+        'application/x-www-form-urlencoded',
+        'multipart/form-data',
+      ]) {
+        const response = await guardEmailOtp(
+          new Request(
+            'http://localhost:3597/api/auth/email-otp/send-verification-otp',
+            {
+              method: 'POST',
+              headers: {
+                'content-type': type,
+                origin: 'http://localhost:3597',
+              },
+              body: new URLSearchParams({ email, type: 'sign-in' }).toString(),
+            }
+          ),
+          emailOtpStore,
+          (request) => auth.handler(request)
+        );
+        expect(response.status).toBe(415);
+      }
+      const malformed = await guardEmailOtp(
+        new Request('http://localhost:3597/api/auth/sign-in/email-otp', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: '{',
+        }),
+        emailOtpStore,
+        (request) => auth.handler(request)
+      );
+      expect(malformed.status).toBe(400);
+      expect(fixture.outbox).toHaveLength(size);
+      expect(await owners(email)).toHaveLength(0);
+      await send(email);
+      const formVerify = await guardEmailOtp(
+        new Request('http://localhost:3597/api/auth/sign-in/email-otp', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/x-www-form-urlencoded',
+            origin: 'http://localhost:3597',
+          },
+          body: new URLSearchParams({ email, otp: code(email) }).toString(),
+        }),
+        emailOtpStore,
+        (request) => auth.handler(request)
+      );
+      expect(formVerify.status).toBe(415);
+      expect((await verify(email, code(email))).status).toBe(200);
     });
 
     it('send failure creates no account or usable verification and retry is bounded', async () => {

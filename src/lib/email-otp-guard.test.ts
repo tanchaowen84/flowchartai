@@ -43,6 +43,39 @@ function harness() {
 }
 
 describe('HTTP email OTP guard', () => {
+  it.each([
+    'application/x-www-form-urlencoded',
+    'multipart/form-data',
+    'text/plain',
+  ])(
+    'rejects unsupported encoding %s before the underlying handler',
+    async (type) => {
+      const h = harness();
+      const run = vi.fn(async () => Response.json({ success: true }));
+      const request = new Request(
+        'http://localhost/api/auth/email-otp/send-verification-otp',
+        {
+          method: 'POST',
+          headers: { 'content-type': type },
+          body: 'email=qa%40example.com&type=sign-in',
+        }
+      );
+      expect((await guardEmailOtp(request, h.store, run)).status).toBe(415);
+      expect(run).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rejects malformed JSON rather than bypassing the guard', async () => {
+    const h = harness();
+    const run = vi.fn(async () => Response.json({ success: true }));
+    const request = new Request('http://localhost/api/auth/sign-in/email-otp', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{',
+    });
+    expect((await guardEmailOtp(request, h.store, run)).status).toBe(400);
+    expect(run).not.toHaveBeenCalled();
+  });
   it('serializes duplicate sends and normalizes email before authentication', async () => {
     const h = harness();
     const run = vi.fn(async (request: Request) => {

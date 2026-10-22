@@ -45,11 +45,27 @@ export async function guardEmailOtp(
   const send = path === '/api/auth/email-otp/send-verification-otp';
   const verify = path === '/api/auth/sign-in/email-otp';
   if (request.method !== 'POST' || (!send && !verify)) return run(request);
+  if (
+    !/^application\/json(?:\s*;|$)/i.test(
+      request.headers.get('content-type')?.trim() || ''
+    )
+  ) {
+    return Response.json(
+      {
+        code: 'UNSUPPORTED_MEDIA_TYPE',
+        message: 'Use application/json for email verification.',
+      },
+      { status: 415 }
+    );
+  }
   let body: Record<string, unknown>;
   try {
     body = await request.clone().json();
   } catch {
-    return run(request);
+    return Response.json(
+      { code: 'INVALID_REQUEST', message: 'Invalid authentication request.' },
+      { status: 400 }
+    );
   }
   if (!body || typeof body.email !== 'string') return run(request);
   const email = body.email.trim().toLowerCase();
