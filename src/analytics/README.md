@@ -25,3 +25,7 @@ Payment delivery atomically claims a hashed order key under `user.metadata.plaus
 Maintain `core-goals.ts` as the name contract; keep the Plausible Goals and this document in sync. `plausible-browser.ts` owns browser delivery; `plausible-server.ts` owns bounded server delivery; `payment-conversion.ts` and `checkout-context.ts` own payment evidence and encrypted attribution.
 
 Verify with `pnpm test`, `pnpm typecheck`, `pnpm build`, and Biome on changed files. Production acceptance must separately record deployed commit, collector receipts, dashboard Goals/properties, real output/download, checkout handoff, and whether a real payment was observed.
+
+## Internal cohort measurement (TAN-599)
+
+[Measurement contract](../../docs/measurement/TAN-599.md) defines first-party acquisition, account/result joins, successful save/export initiation, strict ordered paywall handoff, classification and maturity. The additive first-party tables are opt-in and never send their business keys to Plausible. Run `scripts/measurement/report.ts` with explicit UTC boundaries, as-of and private QA/natural classification. Historical Plausible aggregates cannot reconstruct these joins. Deploying this collection is separate from PR validation.

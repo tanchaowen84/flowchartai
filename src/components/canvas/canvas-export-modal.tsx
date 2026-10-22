@@ -2,6 +2,7 @@
 
 import { EVENTS } from '@/analytics/core-goals';
 import { hasLiveSceneContent } from '@/analytics/export-content';
+import { trackGrowth } from '@/analytics/growth-browser';
 import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,6 +14,7 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 
 interface CanvasExportModalProps {
+  flowchartId?: string;
   excalidrawAPI: ExcalidrawImperativeAPI;
   flowchartAiMetadata: FlowchartAiMetadata;
   onClose: () => void;
@@ -51,6 +53,7 @@ function downloadBlob(blob: Blob, filename: string): void {
 }
 
 export default function CanvasExportModal({
+  flowchartId,
   excalidrawAPI,
   flowchartAiMetadata,
   onClose,
@@ -137,6 +140,15 @@ export default function CanvasExportModal({
       }
 
       downloadBlob(blob, filename);
+      if (hasLiveSceneContent(elements))
+        trackGrowth(
+          'export_initiated',
+          { flowchartId },
+          {
+            editor: 'excalidraw',
+            format: selectedFormat === 'json' ? 'excalidraw' : selectedFormat,
+          }
+        );
       setStatus('success');
       window.setTimeout(onClose, 1000);
     } catch (exportError) {
