@@ -463,6 +463,12 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       link.download = `${currentTitle || 'flowchart'}.excalidraw`;
       document.body.appendChild(link);
       link.click();
+      if (hasLiveSceneContent(elements))
+        trackGrowth(
+          'export_initiated',
+          { flowchartId: currentFlowchartId },
+          { editor: 'excalidraw', format: 'excalidraw' }
+        );
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {

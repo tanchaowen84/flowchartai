@@ -1,5 +1,7 @@
-import { createHash } from 'node:crypto';
-import { hasSavedContent, recordGrowth } from '@/analytics/growth-server';
+import {
+  hasSavedContent,
+  recordConfirmedSave,
+} from '@/analytics/growth-server';
 import { getDb } from '@/db';
 import { flowcharts } from '@/db/schema';
 import { auth } from '@/lib/auth';
@@ -110,7 +112,20 @@ export async function PUT(
     }
     updateData.updatedAt = new Date();
 
-    await db.update(flowcharts).set(updateData).where(eq(flowcharts.id, id));
+    const [savedFile] = await db
+      .update(flowcharts)
+      .set(updateData)
+      .where(and(eq(flowcharts.id, id), eq(flowcharts.userId, session.user.id)))
+      .returning({
+        id: flowcharts.id,
+        userId: flowcharts.userId,
+        content: flowcharts.content,
+      });
+    if (!savedFile)
+      return NextResponse.json(
+        { error: 'Flowchart not found' },
+        { status: 404 }
+      );
 
     const savedAt = new Date();
     if (
@@ -118,15 +133,9 @@ export async function PUT(
       validatedData.content !== existingFlowchart.content &&
       hasSavedContent(validatedData.content)
     ) {
-      const observationId = `save:${id}:${createHash('sha256').update(validatedData.content).digest('hex')}`;
       try {
         after(async () => {
-          await recordGrowth(session.user.id, {
-            id: observationId,
-            name: 'save_succeeded',
-            recordedAt: savedAt,
-            flowchartId: id,
-          });
+          await recordConfirmedSave(session.user.id, savedFile, savedAt);
         });
       } catch {}
     }

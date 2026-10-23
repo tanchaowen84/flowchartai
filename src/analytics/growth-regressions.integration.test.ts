@@ -140,7 +140,7 @@ test.skipIf(!url)(
     const owner = await addUser('deleted-qa-file', '2026-10-17T00:00:00Z');
     const file = await addFile(owner);
     const task = await addTask(owner, 'task', '2026-10-17T01:00:00Z');
-    await emit(owner, 'result_delivered', '2026-10-17T01:00:00Z', task, file);
+    await emit(owner, 'result_delivered', '2026-10-17T00:00:00Z', task, file);
     await sql!`DELETE FROM flowcharts WHERE id=${file}`;
     const rows = await report(
       owner,
@@ -359,5 +359,86 @@ test.skipIf(!url)(
     expect(natural.mature_paywall_accounts).toBe(1);
     expect(natural.paywall_to_checkout_accounts).toBe(0);
     expect(natural.handed_off_orders_with_provider_receipt_accounts).toBe(0);
+  }
+);
+
+test.skipIf(!url)(
+  'an acknowledgement outside registration24h does not hide eligible ready evidence',
+  async () => {
+    const owner = await addUser('late-ack', '2026-10-16T00:00:00Z');
+    const file = await addFile(owner);
+    const task = await addTask(owner, 'task', '2026-10-16T23:00:00Z');
+    await emit(owner, 'result_ready', '2026-10-16T23:00:00Z', task, file);
+    await emit(owner, 'result_delivered', '2026-10-17T00:00:00Z', task, file);
+    await emit(owner, 'export_initiated', '2026-10-16T23:30:00Z', null, file);
+    const [row] = await report(
+      owner,
+      '2026-10-16T00:00:00Z',
+      '2026-10-17T00:00:00Z'
+    );
+    expect(row.mature_delivered_results).toBe(1);
+    expect(row.used_results).toBe(1);
+  }
+);
+
+for (const mutation of ['clear', 'delete']) {
+  test.skipIf(!url)(
+    `a confirmed save remains observed after a later ${mutation} before deferred write`,
+    async () => {
+      const owner = await addUser(
+        `deferred-${mutation}`,
+        new Date().toISOString()
+      );
+      deferred.userId = owner;
+      const file = await addFile(owner, content(0));
+      const response = await PUT(
+        new NextRequest(`http://localhost/api/flowcharts/${file}`, {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ content: content(1) }),
+        }),
+        { params: Promise.resolve({ id: file }) }
+      );
+      expect(response.status).toBe(200);
+      if (mutation === 'clear')
+        await sql!`UPDATE flowcharts SET content='{"elements":[]}' WHERE id=${file}`;
+      else await sql!`DELETE FROM flowcharts WHERE id=${file}`;
+      await deferred.callbacks.shift()!();
+      const rows =
+        await sql!`SELECT name,flowchart_id FROM growth_events WHERE user_id=${owner}`;
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        name: 'save_succeeded',
+        flowchart_id: file,
+      });
+    }
+  );
+}
+
+test.skipIf(!url)(
+  'the different-plan pending checkout response retains its owned checkout ID',
+  async () => {
+    const owner = await addUser('resume-checkout', new Date().toISOString());
+    process.env.BILLING_V1_ENABLED = 'true';
+    process.env.WAFFO_ENVIRONMENT = 'prod';
+    process.env.WAFFO_PROD_PRODUCT_STARTER_YEAR = 'local-product-fixture';
+    await sql!`INSERT INTO billing_checkouts (id,user_id,offer_key,environment,state,checkout_url,expires_at) VALUES (${owner + '-checkout'},${owner},'starter_month','prod','pending','https://checkout.example.invalid/resume',now()+interval '1 hour')`;
+    const { createWaffoCheckout } = await import('@/payment/provider/waffo');
+    await expect(
+      createWaffoCheckout(
+        owner,
+        'fixture@example.invalid',
+        'starter_year',
+        'http://localhost/return',
+        {} as any
+      )
+    ).rejects.toMatchObject({
+      code: 'checkout_open',
+      status: 409,
+      details: {
+        resumeUrl: 'https://checkout.example.invalid/resume',
+        checkoutId: owner + '-checkout',
+      },
+    });
   }
 );

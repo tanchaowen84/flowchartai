@@ -131,7 +131,7 @@ export async function createWaffoCheckout(
           'checkout_open',
           'A subscription checkout is already open. Finish it before choosing another plan.',
           409,
-          { resumeUrl: pending.checkoutUrl }
+          { resumeUrl: pending.checkoutUrl, checkoutId: pending.id }
         );
       id = pending.id;
       if (pending.checkoutUrl) return { existing: pending, subscription: null };

@@ -2,6 +2,7 @@
  * [OUTPUT] Internal, best-effort, idempotent observations; no third-party sender.
  * [POS] Growth joins for TAN-599. Schema migration precedes flag enablement.
  */
+import { createHash } from 'node:crypto';
 import { getDb } from '@/db';
 import { growthAcquisition, growthEvents } from '@/db/growth-schema';
 import { billingCheckouts, billingTasks, flowcharts } from '@/db/schema';
@@ -19,6 +20,40 @@ export function hasSavedContent(content: string): boolean {
       ? hasNativeExportContent(doc)
       : Array.isArray(doc.elements) && hasLiveSceneContent(doc.elements);
   } catch {
+    return false;
+  }
+}
+/** Server-only receipt from UPDATE ... RETURNING, captured before deferring.
+ * Later edits/deletion must not erase a successfully committed save milestone.
+ * Never accept this receipt from the browser measurement endpoint.
+ */
+export async function recordConfirmedSave(
+  userId: string,
+  file: { id: string; userId: string; content: string },
+  recordedAt: Date
+): Promise<boolean> {
+  if (
+    !growthEnabled() ||
+    file.userId !== userId ||
+    !hasSavedContent(file.content)
+  )
+    return false;
+  try {
+    const db = await getDb();
+    await db
+      .insert(growthEvents)
+      .values({
+        id: `save:${file.id}:${createHash('sha256').update(file.content).digest('hex')}`,
+        name: 'save_succeeded',
+        userId,
+        flowchartId: file.id,
+        recordedAt,
+        properties: {},
+      })
+      .onConflictDoNothing();
+    return true;
+  } catch {
+    console.warn('growth_save_write_failed');
     return false;
   }
 }

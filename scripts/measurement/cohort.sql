@@ -38,7 +38,7 @@ WITH p AS (
  FROM delivery_observations e JOIN cohort c ON c.id=e.user_id
  WHERE e.task_id IS NOT NULL
    AND e.recorded_at>=c.created_at AND e.recorded_at<c.created_at+interval '24 hours'
-   AND NOT (e.name='result_ready' AND EXISTS (SELECT 1 FROM events x WHERE x.user_id=e.user_id AND x.task_id=e.task_id AND x.name='result_delivered'))
+   AND NOT (e.name='result_ready' AND EXISTS (SELECT 1 FROM events x WHERE x.user_id=e.user_id AND x.task_id=e.task_id AND x.name='result_delivered' AND x.recorded_at>=c.created_at AND x.recorded_at<c.created_at+interval '24 hours'))
  ORDER BY e.user_id,coalesce('file:'||e.linked_file,'task:'||e.task_id),e.recorded_at
 ), result_usage AS (
  SELECT d.*,row_number() OVER (PARTITION BY d.user_id ORDER BY d.delivered_at,d.result_key) AS result_rank,

@@ -55,7 +55,13 @@ export function useCreditCheckout(
       });
       const result = await response.json();
       if (!response.ok) {
-        if (result.resumeUrl) saveUrl(result.resumeUrl);
+        if (
+          result.resumeUrl &&
+          new URL(result.resumeUrl).protocol === 'https:'
+        ) {
+          checkoutId.current = result.checkoutId;
+          saveUrl(result.resumeUrl);
+        }
         throw new Error(result.message || 'Checkout is unavailable');
       }
       if (!result.url || new URL(result.url).protocol !== 'https:')
