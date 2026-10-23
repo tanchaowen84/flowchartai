@@ -8,7 +8,7 @@ export const growthAcquisition = pgTable('growth_acquisition', {
   captureKey: text('capture_key').unique(),
   observation: jsonb('observation').notNull(),
   recordedAt: timestamp('recorded_at').notNull().defaultNow(),
-});
+}).enableRLS();
 export const growthEvents = pgTable(
   'growth_events',
   {
@@ -27,4 +27,4 @@ export const growthEvents = pgTable(
   (t) => ({
     userTime: index('growth_events_user_time_idx').on(t.userId, t.recordedAt),
   })
-);
+).enableRLS();
