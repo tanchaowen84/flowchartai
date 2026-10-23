@@ -2,6 +2,7 @@
 
 import { createCheckoutAction } from '@/actions/create-checkout-session';
 import { EVENTS } from '@/analytics/core-goals';
+import { trackGrowth } from '@/analytics/growth-browser';
 import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { Button } from '@/components/ui/button';
 import { websiteConfig } from '@/config/website';
@@ -102,6 +103,7 @@ export function CheckoutButton({
       // Redirect to checkout page
       if (result?.data?.success && result.data.data?.url) {
         trackFlowchartEvent(EVENTS.checkoutHandoff);
+        trackGrowth('checkout_handoff');
         window.location.href = result.data.data?.url;
       } else {
         console.error('Create checkout session error, result:', result);

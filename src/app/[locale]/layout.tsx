@@ -1,4 +1,5 @@
 import { Analytics } from '@/analytics/analytics';
+import { GrowthObserver } from '@/analytics/growth-observer';
 import {
   fontBricolageGrotesque,
   fontNotoSans,
@@ -65,6 +66,9 @@ export default async function LocaleLayout({
             <DeferredToaster richColors position="top-right" offset={64} />
             <TailwindIndicator />
             <Analytics />
+            {process.env.NEXT_PUBLIC_GROWTH_MEASUREMENT === 'true' && (
+              <GrowthObserver />
+            )}
             <AdSense />
             <AffonsoScript />
             <PromotekitScript />

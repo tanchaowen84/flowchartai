@@ -2,6 +2,7 @@
 
 import { EVENTS } from '@/analytics/core-goals';
 import { hasLiveSceneContent } from '@/analytics/export-content';
+import { trackGrowth } from '@/analytics/growth-browser';
 import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
@@ -357,6 +358,12 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       link.download = `${currentTitle || 'flowchart'}.png`;
       document.body.appendChild(link);
       link.click();
+      if (hasLiveSceneContent(elements))
+        trackGrowth(
+          'export_initiated',
+          { flowchartId: currentFlowchartId },
+          { editor: 'excalidraw', format: 'png' }
+        );
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -403,6 +410,12 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       link.download = `${currentTitle || 'flowchart'}.svg`;
       document.body.appendChild(link);
       link.click();
+      if (hasLiveSceneContent(elements))
+        trackGrowth(
+          'export_initiated',
+          { flowchartId: currentFlowchartId },
+          { editor: 'excalidraw', format: 'svg' }
+        );
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -450,6 +463,12 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       link.download = `${currentTitle || 'flowchart'}.excalidraw`;
       document.body.appendChild(link);
       link.click();
+      if (hasLiveSceneContent(elements))
+        trackGrowth(
+          'export_initiated',
+          { flowchartId: currentFlowchartId },
+          { editor: 'excalidraw', format: 'excalidraw' }
+        );
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -789,6 +808,7 @@ const ExcalidrawWrapper: React.FC<ExcalidrawWrapperProps> = ({
       {/* Export Modal */}
       {isExportModalOpen && excalidrawAPI && (
         <CanvasExportModal
+          flowchartId={currentFlowchartId}
           excalidrawAPI={excalidrawAPI}
           flowchartAiMetadata={flowchartAiMetadata}
           onClose={() => setIsExportModalOpen(false)}

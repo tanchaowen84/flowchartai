@@ -1,8 +1,10 @@
+import { recordGrowth } from '@/analytics/growth-server';
 import { getDb } from '@/db';
 import { billingTasks } from '@/db/schema';
 import { billingError, billingSession } from '@/lib/billing/http';
 import { finalizeTask } from '@/lib/billing/wallet';
 import { and, eq } from 'drizzle-orm';
+import { after } from 'next/server';
 export async function GET(request: Request): Promise<Response> {
   try {
     const owner = await billingSession(request);
@@ -46,15 +48,29 @@ export async function POST(request: Request): Promise<Response> {
           { error: 'Invalid result receipt' },
           { status: 400 }
         );
-      return Response.json(
-        await finalizeTask(
-          owner.id,
-          body.taskId,
-          body.resultHash,
-          undefined,
-          typeof body.flowchartId === 'string' ? body.flowchartId : undefined
-        )
+      const result = await finalizeTask(
+        owner.id,
+        body.taskId,
+        body.resultHash,
+        undefined,
+        typeof body.flowchartId === 'string' ? body.flowchartId : undefined
       );
+      if (result.state === 'committed') {
+        try {
+          after(async () => {
+            await recordGrowth(owner.id, {
+              id: `delivered:${body.taskId}`,
+              name: 'result_delivered',
+              taskId: body.taskId,
+              flowchartId:
+                typeof body.flowchartId === 'string'
+                  ? body.flowchartId
+                  : undefined,
+            });
+          });
+        } catch {}
+      }
+      return Response.json(result);
     }
     return Response.json(await finalizeTask(owner.id, body.taskId));
   } catch (error) {

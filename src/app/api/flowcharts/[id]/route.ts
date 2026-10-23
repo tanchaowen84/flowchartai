@@ -1,9 +1,14 @@
+import { randomUUID } from 'node:crypto';
+import {
+  hasSavedContent,
+  recordConfirmedSave,
+} from '@/analytics/growth-server';
 import { getDb } from '@/db';
 import { flowcharts } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
-import { type NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse, after } from 'next/server';
 import { z } from 'zod';
 
 // Schema for updating flowcharts
@@ -82,7 +87,7 @@ export async function PUT(
 
     // Check if flowchart exists and belongs to user
     const [existingFlowchart] = await db
-      .select({ id: flowcharts.id })
+      .select({ id: flowcharts.id, content: flowcharts.content })
       .from(flowcharts)
       .where(
         and(eq(flowcharts.id, id), eq(flowcharts.userId, session.user.id))
@@ -108,7 +113,39 @@ export async function PUT(
     }
     updateData.updatedAt = new Date();
 
-    await db.update(flowcharts).set(updateData).where(eq(flowcharts.id, id));
+    const [savedFile] = await db
+      .update(flowcharts)
+      .set(updateData)
+      .where(and(eq(flowcharts.id, id), eq(flowcharts.userId, session.user.id)))
+      .returning({
+        id: flowcharts.id,
+        userId: flowcharts.userId,
+        content: flowcharts.content,
+      });
+    if (!savedFile)
+      return NextResponse.json(
+        { error: 'Flowchart not found' },
+        { status: 404 }
+      );
+
+    const savedAt = new Date();
+    if (
+      validatedData.content &&
+      validatedData.content !== existingFlowchart.content &&
+      hasSavedContent(validatedData.content)
+    ) {
+      const occurrenceId = randomUUID();
+      try {
+        after(async () => {
+          await recordConfirmedSave(
+            session.user.id,
+            savedFile,
+            savedAt,
+            occurrenceId
+          );
+        });
+      } catch {}
+    }
 
     return NextResponse.json({
       success: true,

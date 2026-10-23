@@ -2,10 +2,12 @@ import { EVENTS } from '@/analytics/core-goals';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCreditCheckout } from './use-credit-checkout';
 
-const { track, setState } = vi.hoisted(() => ({
+const { track, growth, setState } = vi.hoisted(() => ({
   track: vi.fn(),
+  growth: vi.fn(),
   setState: vi.fn(),
 }));
+vi.mock('@/analytics/growth-browser', () => ({ trackGrowth: growth }));
 vi.mock('@/analytics/plausible-browser', () => ({
   trackFlowchartEvent: track,
 }));
@@ -117,6 +119,7 @@ describe('Waffo checkout handoff', () => {
       json: async () => ({
         message: 'Existing checkout',
         resumeUrl: checkoutUrl,
+        checkoutId: 'owned-pending-checkout',
       }),
     });
     const checkout = useCreditCheckout(undefined, 'paywall');
@@ -126,5 +129,10 @@ describe('Waffo checkout handoff', () => {
     expect(track).toHaveBeenCalledExactlyOnceWith(EVENTS.checkoutHandoff, {
       source: 'paywall',
     });
+    expect(growth).toHaveBeenCalledExactlyOnceWith(
+      'checkout_handoff',
+      { checkoutId: 'owned-pending-checkout' },
+      { source: 'paywall' }
+    );
   });
 });
