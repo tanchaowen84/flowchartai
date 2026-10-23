@@ -2,7 +2,6 @@
  * [OUTPUT] Internal, best-effort, idempotent observations; no third-party sender.
  * [POS] Growth joins for TAN-599. Schema migration precedes flag enablement.
  */
-import { createHash } from 'node:crypto';
 import { getDb } from '@/db';
 import { growthAcquisition, growthEvents } from '@/db/growth-schema';
 import { billingCheckouts, billingTasks, flowcharts } from '@/db/schema';
@@ -30,7 +29,8 @@ export function hasSavedContent(content: string): boolean {
 export async function recordConfirmedSave(
   userId: string,
   file: { id: string; userId: string; content: string },
-  recordedAt: Date
+  recordedAt: Date,
+  occurrenceId: string
 ): Promise<boolean> {
   if (
     !growthEnabled() ||
@@ -43,7 +43,7 @@ export async function recordConfirmedSave(
     await db
       .insert(growthEvents)
       .values({
-        id: `save:${file.id}:${createHash('sha256').update(file.content).digest('hex')}`,
+        id: `save:${file.id}:${occurrenceId}`,
         name: 'save_succeeded',
         userId,
         flowchartId: file.id,
@@ -110,6 +110,7 @@ export async function recordGrowth(
   event: GrowthObservation
 ): Promise<boolean> {
   if (!growthEnabled()) return false;
+  if (event.name === 'result_delivered' && !event.taskId) return false;
   try {
     const db = await getDb();
     let taskResult: Record<string, any> | undefined;
@@ -155,12 +156,18 @@ export async function recordGrowth(
             eq(flowcharts.userId, userId)
           )
         );
-      if (!file || !hasSavedContent(file.content)) return false;
-      if (event.taskId) {
+      if (!file || !hasSavedContent(file.content)) {
+        // The committed task is durable delivery evidence even when a later
+        // clear/delete makes the best-effort deferred file lookup unavailable.
+        if (event.name !== 'result_delivered') return false;
+        linkedFileId = undefined;
+      } else if (event.taskId) {
         const document = JSON.parse(file.content);
         if (taskResult?.delivery) {
-          if (document.documentId !== taskResult.delivery.documentId)
-            return false;
+          if (document.documentId !== taskResult.delivery.documentId) {
+            if (event.name !== 'result_delivered') return false;
+            linkedFileId = undefined;
+          }
           // Ready is client-observed on this same document; only server delivery
           // asserts that this revision has also reached persistence.
           if (

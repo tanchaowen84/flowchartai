@@ -20,7 +20,7 @@ vi.mock('next/server', async (original) => ({
 
 import { NextRequest } from 'next/server';
 import { PUT } from '../app/api/flowcharts/[id]/route';
-import { recordGrowth } from './growth-server';
+import { recordConfirmedSave, recordGrowth } from './growth-server';
 
 const url = process.env.MEASUREMENT_TEST_DATABASE_URL;
 if (url && !/^postgres:\/\/[^@]+@127\.0\.0\.1:55499\//.test(url))
@@ -442,3 +442,78 @@ test.skipIf(!url)(
     });
   }
 );
+
+test.skipIf(!url)(
+  'returning to earlier content is a new save while replaying its receipt is idempotent',
+  async () => {
+    const owner = await addUser('save-occurrence', '2026-10-16T00:00:00Z');
+    const file = await addFile(owner);
+    const task = await addTask(owner, 'task', '2026-10-16T01:00:00Z');
+    const snapshot = (revision: number) => ({
+      id: file,
+      userId: owner,
+      content: content(revision),
+    });
+    await recordConfirmedSave(
+      owner,
+      snapshot(1),
+      new Date('2026-10-16T00:30:00Z'),
+      'before-a'
+    );
+    await recordConfirmedSave(
+      owner,
+      snapshot(2),
+      new Date('2026-10-16T00:50:00Z'),
+      'before-b'
+    );
+    await emit(owner, 'result_delivered', '2026-10-16T01:00:00Z', task, file);
+    for (let replay = 0; replay < 2; replay++)
+      await recordConfirmedSave(
+        owner,
+        snapshot(1),
+        new Date('2026-10-16T01:30:00Z'),
+        'after-a'
+      );
+    const rows =
+      await sql!`SELECT id FROM growth_events WHERE user_id=${owner} AND name='save_succeeded'`;
+    expect(rows).toHaveLength(3);
+    const [row] = await report(
+      owner,
+      '2026-10-16T00:00:00Z',
+      '2026-10-17T00:00:00Z'
+    );
+    expect(row.used_results).toBe(1);
+  }
+);
+
+for (const mutation of ['clear', 'delete']) {
+  test.skipIf(!url)(
+    `committed delivery remains task-only after a later ${mutation} before its deferred observation`,
+    async () => {
+      const owner = await addUser(
+        `delivery-${mutation}`,
+        new Date().toISOString()
+      );
+      const file = await addFile(owner);
+      const task = await addTask(owner, 'task', new Date().toISOString());
+      if (mutation === 'clear')
+        await sql!`UPDATE flowcharts SET content='{"elements":[]}' WHERE id=${file}`;
+      else await sql!`DELETE FROM flowcharts WHERE id=${file}`;
+      expect(
+        await recordGrowth(owner, {
+          id: `committed:${task}`,
+          name: 'result_delivered',
+          taskId: task,
+          flowchartId: file,
+        })
+      ).toBe(true);
+      const [row] =
+        await sql!`SELECT name,task_id,flowchart_id FROM growth_events WHERE user_id=${owner}`;
+      expect(row).toMatchObject({
+        name: 'result_delivered',
+        task_id: task,
+        flowchart_id: null,
+      });
+    }
+  );
+}

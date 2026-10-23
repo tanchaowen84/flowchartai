@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   hasSavedContent,
   recordConfirmedSave,
@@ -133,9 +134,15 @@ export async function PUT(
       validatedData.content !== existingFlowchart.content &&
       hasSavedContent(validatedData.content)
     ) {
+      const occurrenceId = randomUUID();
       try {
         after(async () => {
-          await recordConfirmedSave(session.user.id, savedFile, savedAt);
+          await recordConfirmedSave(
+            session.user.id,
+            savedFile,
+            savedAt,
+            occurrenceId
+          );
         });
       } catch {}
     }
