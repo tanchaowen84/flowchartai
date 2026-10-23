@@ -1,4 +1,5 @@
 'use client';
+import { setGrowthResult, trackGrowth } from '@/analytics/growth-browser';
 
 import { EVENTS } from '@/analytics/core-goals';
 import {
@@ -468,6 +469,8 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         throw error;
       }
     }
+    // Existing saved diagrams also keep their explicit result/file association.
+    receipt.flowchartId ||= flowchartId;
     sessionStorage.setItem(
       'flowchartai:billing-commit',
       JSON.stringify(receipt)
@@ -479,6 +482,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     }).catch(() => null);
     if (response?.ok) {
       const result = await response.json();
+      setGrowthResult(receipt.taskId, receipt.flowchartId);
       const pending = pendingCreditRef.current;
       if (pending?.requestBody.billingTaskId === receipt.taskId) {
         await clearPendingCreditRequest(pending.userId, receipt.taskId);
@@ -2209,11 +2213,20 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         const exportable = nativeResult
           ? hasNativeExportContent(nativeEditorRef.current?.getDocument())
           : hasLiveSceneContent(excalidrawAPI?.getSceneElements());
-        if (exportable)
+        if (exportable) {
+          if (billingTaskRef.current) {
+            setGrowthResult(billingTaskRef.current, flowchartId);
+            trackGrowth(
+              'result_ready',
+              { taskId: billingTaskRef.current, flowchartId },
+              { editor: nativeResult ? 'drawio' : 'excalidraw' }
+            );
+          }
           trackFlowchartEvent(EVENTS.exportReady, {
             mode: aiMode,
             editor: nativeResult ? 'drawio' : 'excalidraw',
           });
+        }
       } catch {}
       logFlowchartDiagnostic({
         requestId: diagnostic.requestId,

@@ -1,6 +1,8 @@
 'use client';
+import { hasNativeExportContent } from '@/analytics/export-content';
 
 import { EVENTS } from '@/analytics/core-goals';
+import { trackGrowth } from '@/analytics/growth-browser';
 import { trackFlowchartEvent } from '@/analytics/plausible-browser';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { UserButton } from '@/components/layout/user-button';
@@ -249,6 +251,12 @@ export default function NativeDiagramWorkspace({
           `${title}.${format}`
         );
       }
+      if (hasNativeExportContent(bridge.getDocument()))
+        trackGrowth(
+          'export_initiated',
+          { flowchartId: fileId },
+          { editor: 'drawio', format }
+        );
     } catch (error) {
       setExportError(
         error instanceof Error ? error.message : 'Download failed'
