@@ -1,0 +1,17 @@
+# TAN-597 assessment and remaining acceptance
+
+Observed 2026-10-22 UTC. Source baseline: 5064ce06cdfa26ee4784baef11779b71dd6d7e4f. Vercel deployment dpl_D8JuwXaP2KgPWYZBftrgwFb2Rv6X is READY, target production, aliases flowchartai.org / www.flowchartai.org, with that Git SHA.
+
+Reuse: Better Auth's verified email OTP sign-in/sign-up, existing credential login, Google OAuth, Resend templates and provider, user-create-only registration grant, existing canvas chat/attachment storage. OTP is six digits with a five-minute expiry. Sending does not create a user; successful verification creates a new user or reuses an existing/unverified user. The existing wallet source key is idempotent.
+
+Confirmed gaps: production register UI collects name/password while login supports email code; billing purchase links omit the selected offer and return location; OTP UI lacks explicit resend/cooldown and robust thrown-network-error recovery; callback redirects are not confined to the same origin. Better Auth 1.1.19 retains older OTP rows; after consuming the newest row an older still-live code can become the next match. The new HTTP guard serializes per-email sends/verifications, removes superseded codes, and bounds sending/guessing using existing PostgreSQL verification storage. A separate two-connection lock pool avoids starving the authentication pool. No migration is required.
+
+Production configuration check: Vercel connector environment read returned 403; the authorized CLI fallback read the exact linked project's production configuration. Using its Resend key, GET /domains and GET /api-keys returned HTTP 400 with `API key is invalid`. The value has the expected prefix and no whitespace/newline. This proves rejection of the current production-config key; the exact runtime secret embedded in the older deployment was not read independently. No production email was sent. No key was changed.
+
+Public DNS currently has a Resend DKIM selector and send-subdomain SPF/MX records; no DMARC TXT was returned by the resolver used. DNS presence is not Resend dashboard verification or delivery evidence. The dashboard requires login. Domain status, API key send permissions, actual message ID/delivery, inbox receipt and live email/Google sign-in remain unverified.
+
+Minimum implementation: unify login/register on the email-code form while retaining Google and existing password login; show that verification creates new accounts and reuses existing ones; keep typed email and complete safe path/query/hash across auth entry/method switches; restore the exact sellable offer on pricing with an explicit checkout action; retain existing canvas draft/image recovery; reject inaccurate mail success without a provider ID and record only sanitized provider/message receipts.
+
+Local verification uses an isolated PostgreSQL database at 127.0.0.1:5597/tan597. The integration suite runs the actual production Better Auth configuration, real DB, wallet hook and HTTP guard with a controlled mail transport substitute. It does not prove Resend delivery. Google testing verifies initiation and saved callback state without exchanging a Google identity. Password testing signs in a verified fixture account. Production acceptance still needs a valid production provider configuration and an explicitly authorized test mailbox/account. Merge, deployment, paid actions and messages remain outside current authority.
+
+Measurement definitions: [tan-597-measurement.md](tan-597-measurement.md). No growth success is claimed.

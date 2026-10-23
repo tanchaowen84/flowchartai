@@ -187,7 +187,7 @@
       "sendingCode": "Sending...",
       "code": "Verification code",
       "codeRequired": "Please enter the 6-digit code",
-      "codeSent": "We sent a 6-digit code to your email",
+      "codeSent": "Check your inbox for a 6-digit code. It expires in 5 minutes.",
       "codeHint": "Enter the code we sent to {email}",
       "verifyCode": "Verify code",
       "verifyingCode": "Verifying...",
@@ -200,7 +200,15 @@
       "hidePassword": "Hide password",
       "or": "Or continue with",
       "emailRequired": "Please enter your email",
-      "passwordRequired": "Please enter your password"
+      "passwordRequired": "Please enter your password",
+      "continueTitle": "Continue to FlowChart AI",
+      "createAccount": "Create an account",
+      "signInHint": "Already have an account? Sign in",
+      "emailAccountHint": "We’ll email you a code. New here? We’ll create your account after you verify.",
+      "resendCode": "Resend code",
+      "resendIn": "Resend in {seconds}s",
+      "invalidCode": "That code is incorrect. Please try again.",
+      "expiredCode": "That code has expired. Request a new code."
     },
     "register": {
       "title": "Register",

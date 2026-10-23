@@ -21,8 +21,8 @@ import {
   InputOTPSlot,
 } from '@/components/ui/input-otp';
 import { Label } from '@/components/ui/label';
-import { LocaleLink, useLocaleRouter } from '@/i18n/navigation';
-import { withAuthCallbackUrl } from '@/lib/auth-callback-url';
+import { LocaleLink } from '@/i18n/navigation';
+import { safeAuthCallback, withAuthCallbackUrl } from '@/lib/auth-callback-url';
 import { authClient } from '@/lib/auth-client';
 import { getUrlWithLocaleInCallbackUrl } from '@/lib/urls/urls';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { EyeIcon, EyeOffIcon, Loader2Icon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { SocialLoginButton } from './social-login-button';
@@ -40,6 +40,7 @@ export interface LoginFormProps {
   className?: string;
   callbackUrl?: string;
   embedded?: boolean;
+  intent?: 'login' | 'register';
 }
 
 type AuthClientErrorContext = {
@@ -47,7 +48,7 @@ type AuthClientErrorContext = {
     status?: number | string;
     message?: string;
     statusText?: string;
-  };
+  } | null;
 };
 
 function formatAuthClientError(
@@ -58,16 +59,16 @@ function formatAuthClientError(
   const message =
     ctx.error?.message || ctx.error?.statusText || fallbackMessage;
 
-  return status ? `${status}: ${message}` : message;
+  return Number(status) >= 500 ? fallbackMessage : message;
 }
 
 export const LoginForm = ({
   className,
   callbackUrl: propCallbackUrl,
   embedded = false,
+  intent = 'login',
 }: LoginFormProps) => {
   const t = useTranslations('AuthPage.login');
-  const router = useLocaleRouter();
   const searchParams = useSearchParams();
   const urlError = searchParams.get('error');
   const paramCallbackUrl = searchParams.get('callbackUrl');
@@ -77,8 +78,10 @@ export const LoginForm = ({
     DEFAULT_LOGIN_REDIRECT,
     locale
   );
-  const callbackUrl = propCallbackUrl || paramCallbackUrl || defaultCallbackUrl;
-  console.log('login form, callbackUrl', callbackUrl);
+  const callbackUrl = safeAuthCallback(
+    propCallbackUrl || paramCallbackUrl || defaultCallbackUrl,
+    typeof window === 'undefined' ? undefined : window.location.origin
+  );
 
   const [error, setError] = useState<string | undefined>('');
   const [success, setSuccess] = useState<string | undefined>('');
@@ -93,6 +96,31 @@ export const LoginForm = ({
   const [otpError, setOtpError] = useState<string | undefined>('');
   const [otpSuccess, setOtpSuccess] = useState<string | undefined>('');
   const [isOtpPending, setIsOtpPending] = useState(false);
+  const otpPendingRef = useRef(false);
+  const [cooldown, setCooldown] = useState(0);
+  const updateEmail = (email: string): void => {
+    setOtpEmail(email);
+    try {
+      sessionStorage.setItem('flowchartai:auth-email', email);
+    } catch {}
+  };
+  useEffect(() => {
+    try {
+      const email = sessionStorage.getItem('flowchartai:auth-email');
+      if (email) {
+        setOtpEmail(email);
+        form.setValue('email', email);
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    if (!cooldown) return;
+    const timer = window.setTimeout(
+      () => setCooldown((seconds) => Math.max(0, seconds - 1)),
+      1000
+    );
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
 
   const LoginSchema = z.object({
     email: z.string().email({
@@ -117,125 +145,112 @@ export const LoginForm = ({
     }),
   });
 
-  const OtpCodeSchema = z.string().length(6, {
+  const OtpCodeSchema = z.string().regex(/^\d{6}$/, {
     message: t('codeRequired'),
   });
 
-  const redirectAfterSignIn = () => {
-    if (callbackUrl.startsWith('http')) {
-      window.location.assign(callbackUrl);
-      return;
-    }
-
-    router.push(callbackUrl as any);
-    router.refresh();
+  const redirectAfterSignIn = (): void => {
+    window.location.assign(callbackUrl);
   };
 
-  const onSubmit = async (values: z.infer<typeof LoginSchema>) => {
-    // 1. if callbackUrl is provided, user will be redirected to the callbackURL after login successfully.
-    // if user email is not verified, a new verification email will be sent to the user with the callbackURL.
-    // 2. if callbackUrl is not provided, we should redirect manually in the onSuccess callback.
-    await authClient.signIn.email(
-      {
+  const onSubmit = async (
+    values: z.infer<typeof LoginSchema>
+  ): Promise<void> => {
+    if (otpPendingRef.current) return;
+    otpPendingRef.current = true;
+    setIsPending(true);
+    setError('');
+    setSuccess('');
+    updateEmail(values.email);
+    try {
+      const result = await authClient.signIn.email({
         email: values.email,
         password: values.password,
         callbackURL: callbackUrl,
-      },
-      {
-        onRequest: (ctx) => {
-          // console.log("login, request:", ctx.url);
-          setIsPending(true);
-          setError('');
-          setSuccess('');
-        },
-        onResponse: (ctx) => {
-          // console.log("login, response:", ctx.response);
-          setIsPending(false);
-        },
-        onSuccess: (ctx) => {
-          // console.log("login, success:", ctx.data);
-          // setSuccess("Login successful");
-          // router.push(callbackUrl || "/dashboard");
-        },
-        onError: (ctx) => {
-          console.error('login, error:', ctx.error);
-          setError(formatAuthClientError(ctx, t('signInFailed')));
-        },
-      }
-    );
+      });
+      if (result.error)
+        setError(formatAuthClientError(result, t('signInFailed')));
+    } catch {
+      setError(t('signInFailed'));
+    } finally {
+      otpPendingRef.current = false;
+      setIsPending(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
   };
 
-  const sendEmailOtp = async () => {
-    const parsed = EmailCodeSchema.safeParse({ email: otpEmail });
+  const sendEmailOtp = async (): Promise<void> => {
+    if (otpPendingRef.current || cooldown > 0) return;
+    const parsed = EmailCodeSchema.safeParse({
+      email: otpEmail.trim().toLowerCase(),
+    });
+    setOtpSuccess('');
     if (!parsed.success) {
       setOtpError(parsed.error.errors[0]?.message || t('emailRequired'));
-      setOtpSuccess('');
       return;
     }
-
-    await authClient.emailOtp.sendVerificationOtp(
-      {
+    otpPendingRef.current = true;
+    setIsOtpPending(true);
+    setOtpError('');
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
         email: parsed.data.email,
         type: 'sign-in',
-      },
-      {
-        onRequest: () => {
-          setIsOtpPending(true);
-          setOtpError('');
-          setOtpSuccess('');
-        },
-        onResponse: () => {
-          setIsOtpPending(false);
-        },
-        onSuccess: () => {
-          setOtpSent(true);
-          setOtpCode('');
-          setOtpSuccess(t('codeSent'));
-        },
-        onError: (ctx) => {
-          console.error('send email otp error:', ctx.error);
-          setOtpError(formatAuthClientError(ctx, t('sendCodeFailed')));
-        },
+      });
+      if (result.error || !result.data?.success) {
+        if (result.error?.status === 429) setCooldown(60);
+        setOtpError(formatAuthClientError(result, t('sendCodeFailed')));
+        return;
       }
-    );
+      updateEmail(parsed.data.email);
+      setOtpSent(true);
+      setOtpCode('');
+      setCooldown(60);
+      setOtpSuccess(t('codeSent'));
+    } catch {
+      setOtpError(t('sendCodeFailed'));
+    } finally {
+      otpPendingRef.current = false;
+      setIsOtpPending(false);
+    }
   };
 
-  const verifyEmailOtp = async () => {
+  const verifyEmailOtp = async (): Promise<void> => {
+    if (otpPendingRef.current) return;
     const parsed = OtpCodeSchema.safeParse(otpCode);
+    setOtpSuccess('');
     if (!parsed.success) {
-      setOtpError(parsed.error.errors[0]?.message || t('codeRequired'));
-      setOtpSuccess('');
+      setOtpError(t('codeRequired'));
       return;
     }
-
-    await authClient.signIn.emailOtp(
-      {
-        email: otpEmail,
+    otpPendingRef.current = true;
+    setIsOtpPending(true);
+    setOtpError('');
+    try {
+      const result = await authClient.signIn.emailOtp({
+        email: otpEmail.trim().toLowerCase(),
         otp: parsed.data,
-      },
-      {
-        onRequest: () => {
-          setIsOtpPending(true);
-          setOtpError('');
-          setOtpSuccess('');
-        },
-        onResponse: () => {
-          setIsOtpPending(false);
-        },
-        onSuccess: () => {
-          setOtpSuccess(t('signedIn'));
-          redirectAfterSignIn();
-        },
-        onError: (ctx) => {
-          console.error('verify email otp error:', ctx.error);
-          setOtpError(formatAuthClientError(ctx, t('verifyCodeFailed')));
-        },
+      });
+      if (result.error || !result.data?.user) {
+        setOtpError(
+          result.error?.message === 'otp expired'
+            ? t('expiredCode')
+            : result.error?.message === 'invalid otp'
+              ? t('invalidCode')
+              : formatAuthClientError(result, t('verifyCodeFailed'))
+        );
+        return;
       }
-    );
+      redirectAfterSignIn();
+    } catch {
+      setOtpError(t('verifyCodeFailed'));
+    } finally {
+      otpPendingRef.current = false;
+      setIsOtpPending(false);
+    }
   };
 
   const switchLoginMethod = () => {
@@ -251,7 +266,7 @@ export const LoginForm = ({
     }
 
     const passwordEmail = form.getValues('email');
-    if (passwordEmail) setOtpEmail(passwordEmail);
+    if (passwordEmail) updateEmail(passwordEmail);
     setLoginMethod('email-code');
   };
 
@@ -263,9 +278,13 @@ export const LoginForm = ({
         callbackUrl={callbackUrl}
         showDivider={false}
         action="continue"
+        disabled={isOtpPending || isPending}
       />
 
       <DividerWithText text={t('methodDivider')} />
+      {loginMethod === 'email-code' && (
+        <p className="text-sm text-muted-foreground">{t('emailAccountHint')}</p>
+      )}
 
       {loginMethod === 'email-code' ? (
         !otpSent ? (
@@ -284,19 +303,25 @@ export const LoginForm = ({
                 placeholder="name@example.com"
                 type="email"
                 value={otpEmail}
-                onChange={(event) => setOtpEmail(event.target.value)}
+                onChange={(event) => updateEmail(event.target.value)}
+                autoComplete="email"
+                required
               />
             </div>
             <FormError message={otpError} />
             <FormSuccess message={otpSuccess} />
             <Button
-              disabled={isOtpPending}
+              disabled={isOtpPending || cooldown > 0}
               type="submit"
               className="flex w-full cursor-pointer items-center justify-center gap-2"
             >
               {isOtpPending && <Loader2Icon className="size-4 animate-spin" />}
               <span>
-                {isOtpPending ? t('sendingCode') : t('continueWithEmail')}
+                {isOtpPending
+                  ? t('sendingCode')
+                  : cooldown
+                    ? t('resendIn', { seconds: cooldown })
+                    : t('continueWithEmail')}
               </span>
             </Button>
           </form>
@@ -315,6 +340,9 @@ export const LoginForm = ({
               </p>
               <InputOTP
                 maxLength={6}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={otpCode}
                 onChange={setOtpCode}
                 disabled={isOtpPending}
@@ -351,6 +379,17 @@ export const LoginForm = ({
             >
               {t('editEmail')}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isOtpPending || cooldown > 0}
+              onClick={() => void sendEmailOtp()}
+            >
+              {cooldown
+                ? t('resendIn', { seconds: cooldown })
+                : t('resendCode')}
+            </Button>
           </form>
         )
       ) : (
@@ -366,6 +405,10 @@ export const LoginForm = ({
                     <FormControl>
                       <Input
                         {...field}
+                        onChange={(event) => {
+                          field.onChange(event);
+                          updateEmail(event.target.value);
+                        }}
                         disabled={isPending}
                         placeholder="name@example.com"
                         type="email"
@@ -451,6 +494,7 @@ export const LoginForm = ({
           variant="link"
           size="sm"
           className="mx-auto flex h-auto px-2 py-0 font-normal text-muted-foreground"
+          disabled={isPending || isOtpPending}
           onClick={switchLoginMethod}
         >
           {loginMethod === 'email-code'
@@ -474,9 +518,17 @@ export const LoginForm = ({
 
   return (
     <AuthCard
-      headerLabel={t('welcomeBack')}
-      bottomButtonLabel={t('signUpHint')}
-      bottomButtonHref={signUpHref}
+      headerLabel={
+        intent === 'register' ? t('createAccount') : t('continueTitle')
+      }
+      bottomButtonLabel={
+        intent === 'register' ? t('signInHint') : t('signUpHint')
+      }
+      bottomButtonHref={
+        intent === 'register'
+          ? withAuthCallbackUrl(Routes.Login, callbackUrl)
+          : signUpHref
+      }
       className={cn('', className)}
     >
       {authContent}

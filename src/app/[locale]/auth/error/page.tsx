@@ -22,6 +22,10 @@ export async function generateMetadata({
   });
 }
 
-export default async function AuthErrorPage() {
-  return <ErrorCard />;
+export default async function AuthErrorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string }>;
+}): Promise<React.ReactElement> {
+  return <ErrorCard callbackUrl={(await searchParams).callbackUrl} />;
 }

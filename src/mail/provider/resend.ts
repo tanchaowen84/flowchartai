@@ -71,7 +71,9 @@ export class ResendProvider implements MailProvider {
         text: mailTemplate.text,
       });
     } catch (error) {
-      console.error('Error sending template email:', error);
+      process.stderr.write(
+        `${JSON.stringify({ event: 'mail.failed', provider: 'resend', stage: 'template' })}\n`
+      );
       return {
         success: false,
         error,
@@ -90,12 +92,9 @@ export class ResendProvider implements MailProvider {
     const { to, subject, html, text } = params;
 
     if (!this.from || !to || !subject || !html) {
-      console.warn('Missing required fields for email send', {
-        from: this.from,
-        to,
-        subject,
-        html,
-      });
+      process.stderr.write(
+        `${JSON.stringify({ event: 'mail.failed', provider: 'resend', stage: 'validation' })}\n`
+      );
       return {
         success: false,
         error: 'Missing required fields',
@@ -111,20 +110,29 @@ export class ResendProvider implements MailProvider {
         text,
       });
 
-      if (error) {
-        console.error('Error sending email', error);
+      if (error || !data?.id) {
+        process.stderr.write(
+          `${JSON.stringify({ event: 'mail.failed', provider: 'resend', code: error?.name || 'missing_message_id' })}\n`
+        );
         return {
           success: false,
-          error,
+          error: error || 'Missing provider message ID',
         };
       }
+
+      // Acceptance receipt only; delivery must be verified independently.
+      process.stdout.write(
+        `${JSON.stringify({ event: 'mail.accepted', provider: 'resend', messageId: data.id })}\n`
+      );
 
       return {
         success: true,
         messageId: data?.id,
       };
     } catch (error) {
-      console.error('Error sending email:', error);
+      process.stderr.write(
+        `${JSON.stringify({ event: 'mail.failed', provider: 'resend', stage: 'transport' })}\n`
+      );
       return {
         success: false,
         error,

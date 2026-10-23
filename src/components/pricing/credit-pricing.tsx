@@ -1,18 +1,34 @@
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LocaleLink } from '@/i18n/navigation';
+import { LocaleLink, useLocalePathname } from '@/i18n/navigation';
+import { withAuthCallbackUrl } from '@/lib/auth-callback-url';
 import { authClient } from '@/lib/auth-client';
+import { offerCallback, selectedAuthOffer } from '@/lib/auth-offer';
 import { BILLING_OFFERS, type OfferKey } from '@/lib/billing/policy';
 import { creditPrice } from '@/lib/billing/presentation';
 import { Routes } from '@/routes';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useCreditCheckout } from './use-credit-checkout';
 export function CreditPricing({
   compact = false,
   legacy = false,
 }: { compact?: boolean; legacy?: boolean }): React.ReactElement {
-  const [annual, setAnnual] = useState(false);
+  const query = useSearchParams();
+  const path = useLocalePathname();
+  const selectedOffer = selectedAuthOffer(query.get('offer'));
+  const [annual, setAnnual] = useState(
+    Boolean(selectedOffer?.includes('year'))
+  );
+  useEffect(() => {
+    if (selectedOffer) setAnnual(selectedOffer.includes('year'));
+  }, [selectedOffer]);
+  const loginForOffer = (key: OfferKey): string =>
+    withAuthCallbackUrl(
+      Routes.Login,
+      offerCallback(path, query.toString(), key)
+    );
   const {
     pending,
     error,
@@ -27,6 +43,17 @@ export function CreditPricing({
   ];
   return (
     <div className="space-y-5">
+      {selectedOffer && (
+        <output
+          id="selected-plan"
+          className="block scroll-mt-24 rounded-lg border border-primary p-3 text-sm"
+        >
+          Your selected plan: {creditPrice(selectedOffer).name} ·{' '}
+          {creditPrice(selectedOffer).billed ||
+            (selectedOffer.includes('month') ? 'Monthly' : 'One-time purchase')}
+          . Review the plan below and continue to checkout when ready.
+        </output>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           Same AI quality and editing tools on every plan.
@@ -63,7 +90,13 @@ export function CreditPricing({
                 Once at registration. Valid for 30 days.
               </p>
               <Button asChild variant="outline" className="w-full">
-                <LocaleLink href={session ? '/canvas' : Routes.Register}>
+                <LocaleLink
+                  href={
+                    session
+                      ? '/canvas'
+                      : withAuthCallbackUrl(Routes.Register, '/canvas')
+                  }
+                >
                   {session ? 'Open editor' : 'Start free'}
                 </LocaleLink>
               </Button>
@@ -73,7 +106,14 @@ export function CreditPricing({
         {cards.map((key) => {
           const offer = BILLING_OFFERS[key];
           return (
-            <Card key={key}>
+            <Card
+              key={key}
+              className={
+                selectedOffer === key
+                  ? 'border-primary ring-1 ring-primary'
+                  : undefined
+              }
+            >
               <CardHeader>
                 <CardTitle>
                   {offer.plan === 'pro' ? 'Pro' : 'Starter'}
@@ -119,7 +159,7 @@ export function CreditPricing({
                   </Button>
                 ) : (
                   <Button asChild className="w-full">
-                    <LocaleLink href={Routes.Login}>
+                    <LocaleLink href={loginForOffer(key)}>
                       Sign in to subscribe
                     </LocaleLink>
                   </Button>
@@ -137,7 +177,7 @@ export function CreditPricing({
             return (
               <div
                 key={key}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4"
+                className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${selectedOffer === key ? 'border-primary ring-1 ring-primary' : ''}`}
               >
                 <div>
                   <p className="font-medium">
@@ -158,7 +198,7 @@ export function CreditPricing({
                   </Button>
                 ) : (
                   <Button asChild variant="outline">
-                    <LocaleLink href={Routes.Login}>Sign in</LocaleLink>
+                    <LocaleLink href={loginForOffer(key)}>Sign in</LocaleLink>
                   </Button>
                 )}
               </div>
