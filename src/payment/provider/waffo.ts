@@ -1,4 +1,5 @@
 /** Waffo new-sale adapter; legacy Creem routing stays independent. */
+import { waffoInsightsFact } from '@/analytics/insights-payment';
 import { createHash, randomUUID } from 'node:crypto';
 import { openCheckoutContext } from '@/analytics/checkout-context';
 import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
@@ -266,6 +267,7 @@ export async function processWaffoEvent(event: WebhookEvent): Promise<void> {
         orderId: data.orderId,
         paymentId: data.paymentId,
         metadata: {
+          insights: waffoInsightsFact(event),
           periodNumber: data.periodNumber,
           periodStart: data.currentPeriodStart,
           periodEnd: data.currentPeriodEnd,

@@ -1,3 +1,4 @@
+import { creemInsightsFact } from '@/analytics/insights-payment';
 import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { openCheckoutContext } from '@/analytics/checkout-context';
 import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
@@ -536,6 +537,7 @@ export class CreemProvider implements PaymentProvider {
             id: `creem:${event.eventType}:${event.id}`,
             provider: 'creem',
             eventType: event.eventType,
+            metadata: { insights: creemInsightsFact(event) },
           })
           .onConflictDoNothing()
           .returning();
