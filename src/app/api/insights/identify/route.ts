@@ -1,3 +1,4 @@
+import { insightsQaUsers } from '@/analytics/insights-feed';
 import { getDb } from '@/db';
 import { growthEvents } from '@/db/growth-schema';
 import { user } from '@/db/schema';
@@ -16,6 +17,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!data.success) return new Response(null, { status: 400 });
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user?.id) return new Response(null, { status: 401 });
+  const qa = insightsQaUsers().has(session.user.id);
+  if (data.data.qa && !qa) return new Response(null, { status: 403 });
   const db = await getDb();
   const id = `insights-identify:${data.data.anonymous_id}`;
   const [account] = await db
@@ -34,7 +37,7 @@ export async function POST(request: Request): Promise<Response> {
       name: 'insights_identify',
       properties: {
         anonymous_id: data.data.anonymous_id,
-        qa: data.data.qa,
+        qa,
         country,
       },
     })

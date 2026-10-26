@@ -7,6 +7,8 @@ import {
 describe('verified payment receipt normalization', () => {
   const e = {
     id: 'receipt',
+    eventId: 'refund-business',
+    timestamp: '2026-10-01T23:59:00Z',
     mode: 'prod',
     eventType: 'order.completed',
     data: {
@@ -61,7 +63,7 @@ describe('verified payment receipt normalization', () => {
     ).toMatchObject({
       name: 'refund_succeeded',
       amount_micros: 18000000,
-      refund_id: 'receipt',
+      refund_id: 'refund-business',
       tax_complete: true,
     });
   });

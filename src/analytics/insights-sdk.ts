@@ -13,6 +13,7 @@ interface Stored {
   source: string;
   entry: string;
   owner?: string;
+  attemptedOwner?: string;
 }
 interface BrowserEvent {
   event_id: string;
@@ -70,6 +71,8 @@ export function start(options: Options) {
   let busy = false;
   let stopped = false;
   let lastPath = path();
+  let lastRawPath = location.pathname;
+  let generation = 0;
   let lastTick = Date.now();
   let activeUntil = Date.now() + 30000;
   let seconds = 0;
@@ -80,10 +83,11 @@ export function start(options: Options) {
     } catch {}
   };
   const session = () => {
-    if (Date.now() - state.lastActive > 1800000)
-      state.session = crypto.randomUUID();
+    const renewed = Date.now() - state.lastActive > 1800000;
+    if (renewed) state.session = crypto.randomUUID();
     state.lastActive = Date.now();
     persist();
+    return renewed;
   };
   async function flush() {
     if (busy || stopped || !queue.length) return;
@@ -111,13 +115,12 @@ export function start(options: Options) {
       busy = false;
     }
   }
-  function track(
+  function emit(
     name: 'page_view' | 'engagement' | 'interaction',
     properties: Record<string, unknown> = {},
     eventPath = path()
   ) {
     if (stopped) return;
-    session();
     queue.push({
       event_id: crypto.randomUUID(),
       name,
@@ -137,9 +140,21 @@ export function start(options: Options) {
     persist();
     void flush();
   }
+  function track(
+    name: 'page_view' | 'interaction',
+    properties: Record<string, unknown> = {}
+  ) {
+    const renewed = session();
+    if (renewed && name !== 'page_view') emit('page_view');
+    emit(name, properties);
+  }
   function activity() {
+    if (Date.now() - state.lastActive > 1800000) {
+      duration();
+      session();
+      emit('page_view');
+    } else session();
     activeUntil = Date.now() + 30000;
-    session();
   }
   function tick() {
     const now = Date.now();
@@ -152,7 +167,7 @@ export function start(options: Options) {
   function duration() {
     tick();
     if (seconds > 0) {
-      track(
+      emit(
         'engagement',
         { seconds: Math.min(60, Math.round(seconds * 100) / 100) },
         lastPath
@@ -162,9 +177,10 @@ export function start(options: Options) {
   }
   function page() {
     const next = path();
-    if (next === lastPath) return;
+    if (location.pathname === lastRawPath) return;
     duration();
     lastPath = next;
+    lastRawPath = location.pathname;
     track('page_view');
   }
   const originalPush = history.pushState;
@@ -186,7 +202,7 @@ export function start(options: Options) {
   const visibility = () => {
     duration();
     if (document.visibilityState === 'visible') {
-      activeUntil = Date.now() + 30000;
+      activity();
       void flush();
     }
   };
@@ -201,20 +217,34 @@ export function start(options: Options) {
     anonymousId: () => state.anonymous,
     track: (name: string) => track('interaction', { interaction: safe(name) }),
     async identify(owner: string) {
-      if (state.owner && state.owner !== owner) this.reset();
+      if (
+        (state.owner && state.owner !== owner) ||
+        (state.attemptedOwner && state.attemptedOwner !== owner)
+      )
+        this.reset();
       if (!options.identityEndpoint) return false;
+      const epoch = generation;
+      const anonymous = state.anonymous;
+      state.attemptedOwner = owner;
+      persist();
       try {
         const r = await fetch(options.identityEndpoint, {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            anonymous_id: state.anonymous,
+            anonymous_id: anonymous,
             qa: !!options.qa,
           }),
         });
-        if (r.ok) {
+        if (
+          r.ok &&
+          generation === epoch &&
+          state.anonymous === anonymous &&
+          !stopped
+        ) {
           state.owner = owner;
+          state.attemptedOwner = undefined;
           persist();
           return true;
         }
@@ -224,10 +254,11 @@ export function start(options: Options) {
       }
     },
     clearIdentity() {
-      if (state.owner) this.reset();
+      if (state.owner || state.attemptedOwner) this.reset();
     },
     reset() {
       duration();
+      generation++;
       state = fresh();
       persist();
       track('page_view');
@@ -236,6 +267,7 @@ export function start(options: Options) {
       duration();
       void flush();
       stopped = true;
+      generation++;
       clearInterval(interval);
       clearInterval(sender);
       for (const name of ['pointerdown', 'keydown', 'scroll'])

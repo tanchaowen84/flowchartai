@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { normalizeInsightsRecord } from '@/analytics/insights-feed';
 import { getDb } from '@/db';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -59,19 +60,16 @@ export async function GET(request: Request): Promise<Response> {
       UNION ALL
       SELECT 'billing:'||b.id,b.created_at,
         jsonb_build_object('event_id','billing:'||b.id,'name',b.metadata->'insights'->>'name',
+          'occurred_at',COALESCE(b.metadata->'insights'->>'occurred_at',b.metadata->>'paidAt'),
           'user_id',COALESCE(b.metadata->'insights'->>'user_id',c.user_id),
-          'properties',(b.metadata->'insights')-'name'-'user_id')
+          'properties',(b.metadata->'insights')-'name'-'user_id'-'occurred_at')
       FROM billing_events b LEFT JOIN billing_checkouts c ON c.order_id=b.order_id
       WHERE jsonb_typeof(b.metadata->'insights')='object'
     )
     SELECT id,at,to_char(at,'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,event FROM observations WHERE at>=${start}::timestamp AND at<now()-interval '2 minutes'
       AND (at>${cursor.at}::timestamp OR (at=${cursor.at}::timestamp AND id>${cursor.id}))
     ORDER BY at,id LIMIT 100`);
-  const events = rows.map((r: any) => {
-    const e = r.event;
-    for (const k of Object.keys(e)) if (e[k] === null) delete e[k];
-    return { ...e, occurred_at: new Date(r.at).toISOString() };
-  });
+  const events = rows.map((r: any) => normalizeInsightsRecord(r));
   const last = rows.at(-1) as any;
   const next = last
     ? { at: last.cursor_at, id: last.id }
@@ -91,6 +89,8 @@ export async function GET(request: Request): Promise<Response> {
         'Creem renewals and refunds not yet normalized',
         'Costs include provider-reported model usage only',
         '24-hour overlap; longer late transactions require reconciliation',
+        'Known QA accounts are excluded using server configuration; unclassified accounts are not proven natural traffic',
+        'Financial time_basis=receipt means provider occurrence time is unavailable',
       ],
     },
     { headers: { 'Cache-Control': 'no-store' } }

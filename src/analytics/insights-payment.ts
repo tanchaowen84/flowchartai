@@ -11,6 +11,7 @@ export interface InsightsPaymentFact {
   amount_micros: number;
   tax_micros?: number;
   tax_complete?: boolean;
+  occurred_at?: string;
 }
 export function decimalMicros(value: unknown): number | null {
   const text = String(value ?? '');
@@ -25,6 +26,8 @@ export function waffoInsightsFact(event: {
   eventType: string;
   mode: string;
   id: string;
+  eventId?: string;
+  timestamp?: string;
   data: any;
 }): InsightsPaymentFact | null {
   const d = event.data;
@@ -56,22 +59,26 @@ export function waffoInsightsFact(event: {
     refund ? d.originalPayment?.total : d.listPrice?.total
   );
   const taxKnown = tax !== null && total === amount && tax <= amount;
+  const refundId = d.refundTicketMerchantExternalId || event.eventId;
+  if (refund && (typeof refundId !== 'string' || !refundId)) return null;
   return {
     name: refund ? 'refund_succeeded' : 'payment_succeeded',
     provider: 'waffo',
     transaction_id: d.paymentId,
-    ...(refund
-      ? { refund_id: typeof d.refundId === 'string' ? d.refundId : event.id }
-      : {}),
+    ...(refund ? { refund_id: refundId } : {}),
     currency,
     amount_micros: refund && taxKnown ? amount - tax! : amount,
     ...(!refund && taxKnown ? { tax_micros: tax! } : {}),
     tax_complete: taxKnown,
+    ...(event.timestamp && Number.isFinite(Date.parse(event.timestamp))
+      ? { occurred_at: new Date(event.timestamp).toISOString() }
+      : {}),
   };
 }
 export function creemInsightsFact(event: {
   eventType: string;
   mode?: string;
+  created_at?: number;
   object: any;
 }): InsightsPaymentFact | null {
   if (event.eventType !== 'checkout.completed') return null;
@@ -110,5 +117,10 @@ export function creemInsightsFact(event: {
     currency,
     amount_micros: amount,
     tax_complete: false,
+    ...(typeof event.created_at === 'number' &&
+    event.created_at > 1e12 &&
+    Number.isFinite(+new Date(event.created_at))
+      ? { occurred_at: new Date(event.created_at).toISOString() }
+      : {}),
   };
 }
