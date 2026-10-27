@@ -22,7 +22,9 @@ import { UmamiAnalytics } from './umami-analytics';
  */
 export function Analytics() {
   if (process.env.NODE_ENV !== 'production') {
-    return null;
+    return process.env.NEXT_PUBLIC_SITE_INSIGHTS_LOCAL === 'true' ? (
+      <InsightsObserver />
+    ) : null;
   }
 
   return (

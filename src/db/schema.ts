@@ -1,4 +1,5 @@
-import { boolean, pgTable, text, timestamp, integer, jsonb, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, pgTable, text, timestamp, integer, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -196,6 +197,7 @@ export const billingCheckouts = pgTable('billing_checkouts', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   offerKey: text('offer_key').notNull(),
+  experimentQuote: jsonb('experiment_quote').$type<import('@site-insights/sdk/contracts').Quote>(),
   environment: text('environment').notNull(),
   state: text('state').notNull().default('pending'),
   orderId: text('order_id').unique(),
@@ -203,7 +205,7 @@ export const billingCheckouts = pgTable('billing_checkouts', {
   checkoutUrl: text('checkout_url'),
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (table) => [uniqueIndex('billing_checkout_quote_unique').on(sql`(${table.experimentQuote}->>'id')`).where(sql`${table.experimentQuote} IS NOT NULL`)]);
 export const billingEvents = pgTable('billing_events', {
   id: text('id').primaryKey(),
   provider: text('provider').notNull(),

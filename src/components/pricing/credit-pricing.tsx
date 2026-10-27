@@ -1,4 +1,5 @@
 'use client';
+import { getInsightsClient } from '@/analytics/insights-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LocaleLink, useLocalePathname } from '@/i18n/navigation';
@@ -8,9 +9,11 @@ import { offerCallback, selectedAuthOffer } from '@/lib/auth-offer';
 import { BILLING_OFFERS, type OfferKey } from '@/lib/billing/policy';
 import { creditPrice } from '@/lib/billing/presentation';
 import { Routes } from '@/routes';
+import { ExperimentExposure } from '@site-insights/sdk/react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useCreditCheckout } from './use-credit-checkout';
+import { useExperimentalPack } from './use-experimental-pack';
 export function CreditPricing({
   compact = false,
   legacy = false,
@@ -37,6 +40,7 @@ export function CreditPricing({
     trackHandoff,
   } = useCreditCheckout();
   const { data: session } = authClient.useSession();
+  const experiment = useExperimentalPack(session?.user.id);
   const cards: OfferKey[] = [
     annual ? 'starter_year_202610' : 'starter_month',
     annual ? 'pro_year_202610' : 'pro_month',
@@ -173,39 +177,67 @@ export function CreditPricing({
         <p className="mb-3 font-medium">Extra credits · one-time purchase</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {(['pack_small', 'pack_large'] as const).map((key) => {
-            const offer = BILLING_OFFERS[key];
+            const quote = key === 'pack_small' ? experiment.quote : null;
+            const offer = quote
+              ? {
+                  amount: quote.assignment.value.amount_minor,
+                  credits: quote.assignment.value.credits,
+                }
+              : BILLING_OFFERS[key];
             return (
-              <div
+              <ExperimentExposure
                 key={key}
-                className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${selectedOffer === key ? 'border-primary ring-1 ring-primary' : ''}`}
+                assignment={quote?.assignment || null}
+                anonymousId={quote?.anonymous_id || ''}
+                getClient={getInsightsClient}
               >
-                <div>
-                  <p className="font-medium">
-                    {offer.credits.toLocaleString()} credits · $
-                    {offer.amount / 100}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Never expire. No subscription required.
-                  </p>
+                <div
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${selectedOffer === key ? 'border-primary ring-1 ring-primary' : ''}`}
+                >
+                  <div>
+                    <p className="font-medium">
+                      {offer.credits.toLocaleString()} credits · $
+                      {offer.amount / 100}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Never expire. No subscription required.
+                    </p>
+                  </div>
+                  {session ? (
+                    <Button
+                      variant="outline"
+                      disabled={
+                        Boolean(pending) ||
+                        (key === 'pack_small' &&
+                          (experiment.loading || !!experiment.error))
+                      }
+                      onClick={() => buy(key, quote?.id)}
+                    >
+                      {pending === key ? 'Opening…' : 'Buy credits'}
+                    </Button>
+                  ) : (
+                    <Button asChild variant="outline">
+                      <LocaleLink href={loginForOffer(key)}>Sign in</LocaleLink>
+                    </Button>
+                  )}
                 </div>
-                {session ? (
-                  <Button
-                    variant="outline"
-                    disabled={Boolean(pending)}
-                    onClick={() => buy(key)}
-                  >
-                    {pending === key ? 'Opening…' : 'Buy credits'}
-                  </Button>
-                ) : (
-                  <Button asChild variant="outline">
-                    <LocaleLink href={loginForOffer(key)}>Sign in</LocaleLink>
-                  </Button>
-                )}
-              </div>
+              </ExperimentExposure>
             );
           })}
         </div>
       </div>
+      {experiment.error && (
+        <div role="alert" className="text-sm text-destructive">
+          {experiment.error}{' '}
+          <button
+            type="button"
+            className="underline"
+            onClick={experiment.refresh}
+          >
+            Refresh pricing
+          </button>
+        </div>
+      )}
       <p className="text-xs text-muted-foreground">
         AI requests use credits based on model usage and context length. Manual
         edits, save, undo and download are free. Cancel renewal anytime;

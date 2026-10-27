@@ -164,6 +164,9 @@ importers:
       '@react-email/render':
         specifier: 1.0.5
         version: 1.0.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@site-insights/sdk':
+        specifier: file:vendor/site-insights-sdk-0.2.0.tgz
+        version: file:vendor/site-insights-sdk-0.2.0.tgz(react@19.0.0)
       '@stripe/stripe-js':
         specifier: ^5.6.0
         version: 5.6.0
@@ -3310,6 +3313,15 @@ packages:
     resolution: {integrity: sha512-doH1gimEu3A46VX6aVxpHTeHrytJAG6HgdxntYnCFiIFHEM/ZGpG8KiZGBChchjQmG0XFIBL552kBTjVcMZXwQ==}
     engines: {node: '>=12'}
 
+  '@site-insights/sdk@file:vendor/site-insights-sdk-0.2.0.tgz':
+    resolution: {integrity: sha512-+VlK50CgRs1R1BpLjtRtCsMFFqHXfDGgKuz79BRRDdKVIcsOGwOmm+At5nK1S143ScfzA966DdkEN9DuNfA/XQ==, tarball: file:vendor/site-insights-sdk-0.2.0.tgz}
+    version: 0.2.0
+    peerDependencies:
+      react: '>=18'
+    peerDependenciesMeta:
+      react:
+        optional: true
+
   '@smithy/abort-controller@4.0.1':
     resolution: {integrity: sha512-fiUIYgIgRjMWznk6iLJz35K2YxSLHzLBA/RC6lBrKfQ8fHbPfvk7Pk9UvpKoHgJjI18MnbPuEju53zcVy6KF1g==}
     engines: {node: '>=18.0.0'}
@@ -5845,11 +5857,6 @@ packages:
 
   nan@2.22.0:
     resolution: {integrity: sha512-nbajikzWTMwsW+eSsNm3QwlOs7het9gGJU5dDZzRTQGk03vyBOauxgI4VakDzE0PtsGTmXPsXTbbjVhRwR5mpw==}
-
-  nanoid@3.3.11:
-    resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
 
   nanoid@3.3.16:
     resolution: {integrity: sha512-bzlKTyNJ7+LdGIIwy8ijFpIqEQIvafahV7eYykJ8Cvh42EdJeODoJ6gUJXpQJvej1BddH8OqTXZNE/KfbWAu8Q==}
@@ -10273,6 +10280,10 @@ snapshots:
     dependencies:
       escape-string-regexp: 5.0.0
 
+  '@site-insights/sdk@file:vendor/site-insights-sdk-0.2.0.tgz(react@19.0.0)':
+    optionalDependencies:
+      react: 19.0.0
+
   '@smithy/abort-controller@4.0.1':
     dependencies:
       '@smithy/types': 4.1.0
@@ -13377,8 +13388,6 @@ snapshots:
   nan@2.22.0:
     optional: true
 
-  nanoid@3.3.11: {}
-
   nanoid@3.3.16: {}
 
   nanoid@3.3.3: {}
@@ -13726,7 +13735,7 @@ snapshots:
 
   postcss@8.4.31:
     dependencies:
-      nanoid: 3.3.11
+      nanoid: 3.3.16
       picocolors: 1.1.1
       source-map-js: 1.2.1
 

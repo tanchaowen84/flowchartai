@@ -1,3 +1,10 @@
+import { FlowchartExperimentPage } from '@/analytics/experiment-page';
+import {
+  anonymousFromCookie,
+  experimentClient,
+  experimentsEnabled,
+  homeModules,
+} from '@/analytics/experiment-server';
 import CallToActionSection from '@/components/blocks/calltoaction/calltoaction';
 import FaqSection from '@/components/blocks/faqs/faqs';
 import FeaturesSection from '@/components/blocks/features/features';
@@ -16,9 +23,11 @@ import { websiteConfig } from '@/config/website';
 import { defaultMessages } from '@/i18n/messages';
 import { constructMetadata } from '@/lib/metadata';
 import { getBaseUrl, getImageUrl, getUrlWithLocale } from '@/lib/urls/urls';
+import { type Assignment, supports } from '@site-insights/sdk/contracts';
 import type { Metadata } from 'next';
 import type { Locale } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
+import { headers } from 'next/headers';
 
 /**
  * https://next-intl.dev/docs/environments/actions-metadata-route-handlers#metadata-api
@@ -174,33 +183,57 @@ export default async function HomePage(props: HomePageProps) {
     ],
   };
 
+  let assignment: Assignment | null = null;
+  let anonymousId = '';
+  if (locale === 'en' && experimentsEnabled()) {
+    const h = await headers();
+    anonymousId =
+      h.get('x-insights-anonymous') ||
+      anonymousFromCookie(h.get('cookie') || '') ||
+      '';
+    if (anonymousId)
+      try {
+        const d = await experimentClient().decide(
+          'homepage-layout',
+          anonymousId
+        );
+        if (
+          d.assignment &&
+          supports(
+            {
+              target: 'homepage-layout',
+              kind: 'page',
+              modules: homeModules,
+              required_modules: homeModules,
+            },
+            d.assignment.value
+          )
+        )
+          assignment = d.assignment;
+      } catch {
+        /* Original page remains available when experiment service is offline. */
+      }
+  }
   return (
     <>
       <JsonLd data={homePageSchema} id="home-page-schema" />
 
-      <div className="flex flex-col">
-        <HeroSection />
-
-        <LazyDemoSection />
-
-        <FeaturesSection />
-
-        <LazyAiCapabilitiesSection />
-
-        <UseCasesSection />
-
-        <TutorialsSection />
-
-        {false && <HowItWorksSection />}
-
-        {false && <LazyComparisonSection />}
-
-        <PricingSection />
-
-        <FaqSection />
-
-        <CallToActionSection />
-      </div>
+      <FlowchartExperimentPage
+        assignment={assignment}
+        anonymousId={anonymousId}
+        fallback={homeModules}
+        modules={{
+          hero: <HeroSection />,
+          demo: <LazyDemoSection />,
+          features: <FeaturesSection />,
+          'ai-capabilities': <LazyAiCapabilitiesSection />,
+          'use-cases': <UseCasesSection />,
+          tutorials: <TutorialsSection />,
+          pricing: <PricingSection />,
+          faq: <FaqSection />,
+          'call-to-action': <CallToActionSection />,
+        }}
+      />
     </>
   );
 }

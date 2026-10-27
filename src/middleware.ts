@@ -1,4 +1,5 @@
 import { betterFetch } from '@better-fetch/fetch';
+import { anonymousCookie, uuidPattern } from '@site-insights/sdk/contracts';
 import createMiddleware from 'next-intl/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
 import { LOCALES, routing } from './i18n/routing';
@@ -104,6 +105,23 @@ export default async function middleware(req: NextRequest) {
 
   // Apply intlMiddleware for all routes
   console.log('<< middleware end, applying intlMiddleware');
+  if (process.env.SITE_INSIGHTS_EXPERIMENTS_ENABLED === 'true') {
+    const site = process.env.SITE_INSIGHTS_SITE_ID || 'flowchart';
+    const cookie = anonymousCookie(site);
+    const old = req.cookies.get(cookie)?.value;
+    const anonymous = old && uuidPattern.test(old) ? old : crypto.randomUUID();
+    req.cookies.set(cookie, anonymous);
+    req.headers.set('x-insights-anonymous', anonymous);
+    const response = intlMiddleware(req);
+    response.cookies.set(cookie, anonymous, {
+      path: '/',
+      sameSite: 'lax',
+      secure: req.nextUrl.protocol === 'https:',
+      maxAge: 31536000,
+    });
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
+  }
   return intlMiddleware(req);
 }
 
