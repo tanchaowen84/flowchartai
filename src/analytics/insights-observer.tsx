@@ -1,6 +1,7 @@
 'use client';
 import { authClient } from '@/lib/auth-client';
 import { useEffect, useRef } from 'react';
+import { setInsightsClient } from './insights-client';
 import { start } from './insights-sdk';
 
 /** Optional first-party module. Existing analytics and business flows stay independent. */
@@ -26,7 +27,9 @@ export function InsightsObserver(): null {
           .replace(/^\/canvas\/[^/]+.*$/, '/canvas/:id')
           .replace(/^\/(auth|settings)\/.*$/, '/$1/:page') || '/',
     });
+    setInsightsClient(tracker.current);
     return () => {
+      setInsightsClient(null);
       tracker.current?.stop();
       tracker.current = null;
     };
@@ -37,12 +40,16 @@ export function InsightsObserver(): null {
     if (!id) {
       tracker.current.clearIdentity();
       owner.current = null;
+      setInsightsClient(tracker.current);
       return;
     }
     let cancelled = false;
     const identify = async () => {
       if (await tracker.current?.identify(id)) {
-        if (!cancelled) owner.current = id;
+        if (!cancelled) {
+          owner.current = id;
+          setInsightsClient(tracker.current);
+        }
       }
     };
     void identify();

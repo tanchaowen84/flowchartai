@@ -1,4 +1,10 @@
 /** First-party page tracking. No account IDs, page content or secrets are sent by this SDK. */
+export type ExperimentAssignment = {
+  experiment_id: string;
+  variant: 'A' | 'B';
+  value: string;
+  token: string;
+};
 interface Options {
   siteId: string;
   endpoint: string;
@@ -208,13 +214,150 @@ export function start(options: Options) {
   };
   document.addEventListener('visibilitychange', visibility);
   const interval = setInterval(tick, 1000);
+  const experimentOwners = new WeakMap<
+    ExperimentAssignment,
+    { anonymous: string; epoch: number }
+  >();
+  const exposureKey = `${key}:exposures`;
+  let pendingExposures: { anonymous: string; token: string; at: number }[] = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem(exposureKey) || '[]');
+    if (Array.isArray(saved))
+      pendingExposures = saved
+        .filter(
+          (p) =>
+            typeof p.anonymous === 'string' &&
+            /^[a-f0-9-]{36}$/.test(p.anonymous) &&
+            typeof p.token === 'string' &&
+            /^[a-f0-9-]{36}\.[a-f0-9]{64}$/.test(p.token) &&
+            Number.isFinite(p.at) &&
+            p.at <= Date.now() &&
+            Date.now() - p.at < 300000
+        )
+        .slice(-20);
+  } catch {}
+  const persistExposures = () => {
+    try {
+      localStorage.setItem(exposureKey, JSON.stringify(pendingExposures));
+    } catch {}
+  };
+  let sendingExposures = false;
+  const sendExposure = async (item: { anonymous: string; token: string }) => {
+    const r = await fetch(
+      `${options.endpoint}/api/v1/experiments/expose?site_id=${encodeURIComponent(options.siteId)}`,
+      {
+        method: 'POST',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          site_id: options.siteId,
+          anonymous_id: item.anonymous,
+          token: item.token,
+        }),
+        keepalive: true,
+        signal: AbortSignal.timeout(5000),
+      }
+    );
+    return { ok: r.ok, terminal: [400, 403, 404, 409].includes(r.status) };
+  };
+  const flushExposures = async () => {
+    if (sendingExposures || stopped) return;
+    sendingExposures = true;
+    try {
+      for (const item of [...pendingExposures]) {
+        if (Date.now() - item.at > 300000) {
+          pendingExposures.splice(pendingExposures.indexOf(item), 1);
+          continue;
+        }
+        const r = await sendExposure(item);
+        if (r.ok || r.terminal)
+          pendingExposures.splice(pendingExposures.indexOf(item), 1);
+        else break;
+      }
+    } catch {
+    } finally {
+      sendingExposures = false;
+      persistExposures();
+    }
+  };
+  void flushExposures();
   const sender = setInterval(() => {
+    void flushExposures();
     duration();
     void flush();
   }, 15000);
   track('page_view');
   return {
     anonymousId: () => state.anonymous,
+    async experiment(target: string): Promise<ExperimentAssignment | null> {
+      if (stopped || !/^([a-z][a-z0-9_-]{0,63})$/.test(target)) return null;
+      const epoch = generation;
+      const anonymous = state.anonymous;
+      try {
+        const r = await fetch(
+          `${options.endpoint}/api/v1/experiments/assign?site_id=${encodeURIComponent(options.siteId)}`,
+          {
+            method: 'POST',
+            credentials: 'omit',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              site_id: options.siteId,
+              target,
+              anonymous_id: anonymous,
+              qa: !!options.qa,
+            }),
+            signal: AbortSignal.timeout(5000),
+          }
+        );
+        if (!r.ok) return null;
+        const { assignment } = await r.json();
+        if (
+          stopped ||
+          epoch !== generation ||
+          anonymous !== state.anonymous ||
+          !assignment
+        )
+          return null;
+        if (
+          !['A', 'B'].includes(assignment.variant) ||
+          typeof assignment.value !== 'string' ||
+          assignment.value.length > 500 ||
+          typeof assignment.token !== 'string'
+        )
+          return null;
+        experimentOwners.set(assignment, { anonymous, epoch });
+        return assignment;
+      } catch {
+        return null;
+      }
+    },
+    async expose(assignment: ExperimentAssignment): Promise<boolean> {
+      const owner = experimentOwners.get(assignment);
+      if (
+        !owner ||
+        stopped ||
+        owner.epoch !== generation ||
+        owner.anonymous !== state.anonymous
+      )
+        return false;
+      const item = {
+        anonymous: owner.anonymous,
+        token: assignment.token,
+        at: Date.now(),
+      };
+      try {
+        const r = await sendExposure(item);
+        if (r.ok) return true;
+        if (r.terminal) return false;
+      } catch {}
+      if (
+        !pendingExposures.some((p) => p.token === item.token) &&
+        pendingExposures.length < 20
+      )
+        pendingExposures.push(item);
+      persistExposures();
+      return false;
+    },
     track: (name: string) => track('interaction', { interaction: safe(name) }),
     async identify(owner: string) {
       if (

@@ -25,10 +25,27 @@ export async function POST(request: Request): Promise<Response> {
     .select({ country: user.country })
     .from(user)
     .where(eq(user.id, session.user.id));
+  // Vercel overwrites this edge-provided header; never trust arbitrary browser country.
+  const edgeCountry =
+    process.env.VERCEL === '1'
+      ? request.headers.get('x-vercel-ip-country')
+      : null;
+  const observedCountry =
+    edgeCountry &&
+    /^[A-Z]{2}$/.test(edgeCountry) &&
+    !['XX', 'T1'].includes(edgeCountry)
+      ? edgeCountry
+      : null;
+  if (observedCountry && !account?.country)
+    await db
+      .update(user)
+      .set({ country: observedCountry })
+      .where(eq(user.id, session.user.id));
   const country =
-    account?.country && /^[A-Z]{2}$/.test(account.country)
+    observedCountry ||
+    (account?.country && /^[A-Z]{2}$/.test(account.country)
       ? account.country
-      : undefined;
+      : undefined);
   await db
     .insert(growthEvents)
     .values({
