@@ -1,3 +1,4 @@
+import { experimentQa } from '@/analytics/experiment-qa';
 import {
   anonymousFromCookie,
   experimentClient,
@@ -32,6 +33,7 @@ export async function POST(request: Request): Promise<Response> {
       user_id: owner.id,
       request_id: body.request_id,
       eligible: await firstBuyer(await getDb(), owner.id),
+      qa: experimentQa(request.headers.get('cookie') || '', owner.id),
     });
     if (result.quote) validateQuote(result.quote, owner.id);
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } });

@@ -7,6 +7,8 @@ export function useExperimentalPack(userId: string | undefined) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [revision, setRevision] = useState(0);
+  const requestKey = `${userId || ''}:${revision}`;
+  const [resolvedFor, setResolvedFor] = useState('');
   useEffect(() => {
     const ready = () => setRevision((v) => v + 1);
     addEventListener('insights:ready', ready);
@@ -57,7 +59,10 @@ export function useExperimentalPack(userId: string | undefined) {
         if (alive)
           setError(e instanceof Error ? e.message : 'Pricing is unavailable.');
       } finally {
-        if (alive) setLoading(false);
+        if (alive) {
+          setResolvedFor(requestKey);
+          setLoading(false);
+        }
       }
     })();
     return () => {
@@ -65,11 +70,11 @@ export function useExperimentalPack(userId: string | undefined) {
       abort.abort();
       if (expiry) clearTimeout(expiry);
     };
-  }, [userId, revision]);
+  }, [userId, requestKey]);
   return {
     quote: quote?.user_id === userId ? quote : null,
     error,
-    loading,
+    loading: Boolean(userId) && (loading || resolvedFor !== requestKey),
     refresh: () => setRevision((v) => v + 1),
   };
 }

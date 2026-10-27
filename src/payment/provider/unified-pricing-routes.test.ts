@@ -122,6 +122,7 @@ describe.skipIf(!databaseUrl)(
       suppliedQuote = null;
       anonymousId = randomUUID();
       vi.stubEnv('SITE_INSIGHTS_EXPERIMENTS_ENABLED', 'true');
+      vi.stubEnv('SITE_INSIGHTS_QA_USER_IDS', '');
     });
     afterAll(async () => {
       if (db)
@@ -205,6 +206,16 @@ describe.skipIf(!databaseUrl)(
       expect(remoteCalls[0].headers.get('authorization')).toBe(
         'Bearer isolated-unified-write-key'
       );
+    });
+
+    it('derives QA from the authenticated account even before identity export', async () => {
+      const own = await owner();
+      vi.stubEnv('SITE_INSIGHTS_QA_USER_IDS', own.id);
+      const response = await createQuote(
+        request('experiment-quote', { request_id: randomUUID() })
+      );
+      expect(response.status).toBe(200);
+      expect(remoteCalls[0].body).toMatchObject({ user_id: own.id, qa: true });
     });
 
     it('requires authentication, valid anonymous identity and a valid request identifier', async () => {

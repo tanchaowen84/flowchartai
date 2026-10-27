@@ -1,7 +1,12 @@
 import { betterFetch } from '@better-fetch/fetch';
-import { anonymousCookie, uuidPattern } from '@site-insights/sdk/contracts';
+import {
+  anonymousCookie,
+  qaCookie,
+  uuidPattern,
+} from '@site-insights/sdk/contracts';
 import createMiddleware from 'next-intl/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
+import { experimentQa } from './analytics/experiment-qa';
 import { LOCALES, routing } from './i18n/routing';
 import { safeAuthCallback } from './lib/auth-callback-url';
 import type { Session } from './lib/auth-types';
@@ -110,9 +115,22 @@ export default async function middleware(req: NextRequest) {
     const cookie = anonymousCookie(site);
     const old = req.cookies.get(cookie)?.value;
     const anonymous = old && uuidPattern.test(old) ? old : crypto.randomUUID();
+    const qa = experimentQa(
+      req.headers.get('cookie') || '',
+      session?.user?.id,
+      req.nextUrl.searchParams.get('insights_qa')
+    );
     req.cookies.set(cookie, anonymous);
+    req.cookies.set(qaCookie(site), qa ? '1' : '0');
     req.headers.set('x-insights-anonymous', anonymous);
+    req.headers.set('x-insights-qa', qa ? '1' : '0');
     const response = intlMiddleware(req);
+    response.cookies.set(qaCookie(site), qa ? '1' : '0', {
+      path: '/',
+      sameSite: 'lax',
+      secure: req.nextUrl.protocol === 'https:',
+      maxAge: 31536000,
+    });
     response.cookies.set(cookie, anonymous, {
       path: '/',
       sameSite: 'lax',

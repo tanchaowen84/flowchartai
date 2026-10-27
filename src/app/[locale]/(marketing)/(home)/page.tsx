@@ -195,7 +195,8 @@ export default async function HomePage(props: HomePageProps) {
       try {
         const d = await experimentClient().decide(
           'homepage-layout',
-          anonymousId
+          anonymousId,
+          h.get('x-insights-qa') === '1'
         );
         if (
           d.assignment &&

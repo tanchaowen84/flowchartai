@@ -18,6 +18,8 @@ Default off: `SITE_INSIGHTS_EXPERIMENTS_ENABLED` must be explicitly set to `true
 
 Quotes expire after 10 minutes before checkout initiation. The resulting provider order has its own expiry and immutable snapshot. Refresh expired pricing explicitly. Pause/stop prevents new quotes; previously issued unexpired quotes remain honored while the feature is enabled. Turn the site feature off to block experimental checkout initiation, while all already-created orders continue to fulfill from their stored snapshot.
 
+QA mode from `?insights_qa=1` persists in the site's QA cookie so SSR and later pricing requests share the classification. Trusted `SITE_INSIGHTS_QA_USER_IDS` always remain QA. `?insights_qa=0` clears ordinary browser QA mode, without reclassifying an already-QA assignment. Staging exposure uses the server-issued assignment's environment and its own registered origin; no browser environment override is accepted. The legacy general browser analytics feed remains production-only.
+
 The browser submits only `quote_id`; authentication fixes the owner. The server resolves the quote, checks eligibility under the existing wallet lock and stores the snapshot. Provider retry uses the same checkout and idempotency key. Confirmed signed payments grant snapshot credits once; price changes never alter existing orders. Real revenue/refunds continue through the existing trusted payment feed.
 
 ## Reuse boundary
