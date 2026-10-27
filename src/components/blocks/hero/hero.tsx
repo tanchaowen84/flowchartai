@@ -1,5 +1,6 @@
 'use client';
 
+import { InsightsExperiment } from '@/analytics/insights-experiment';
 import { Ripple } from '@/components/magicui/ripple';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +24,7 @@ import {
 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import { Camera, Loader2, Send, UploadCloud } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -45,6 +46,7 @@ const HeroLoginDialog = dynamic(
 
 export default function HeroSection() {
   const t = useTranslations('HomePage.hero');
+  const locale = useLocale();
   const router = useRouter();
   const currentUser = useCurrentUser();
 
@@ -389,7 +391,12 @@ export default function HeroSection() {
               <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
                 {/* title */}
                 <h1 className="mt-8 text-balance text-5xl font-bricolage-grotesque max-sm:font-[Arial,sans-serif] lg:mt-16 xl:text-[5rem]">
-                  {heroTitle}
+                  <InsightsExperiment
+                    target="homepage-headline"
+                    enabled={locale === 'en'}
+                  >
+                    {heroTitle}
+                  </InsightsExperiment>
                 </h1>
 
                 {/* description */}
