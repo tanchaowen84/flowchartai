@@ -18,6 +18,7 @@ export function useExperimentalPack(userId: string | undefined) {
     setQuote(null);
     setError('');
     if (!userId) {
+      setResolvedFor('');
       setLoading(false);
       return;
     }
