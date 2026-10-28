@@ -1,8 +1,9 @@
-/** Waffo new-sale adapter; legacy Creem routing stays independent. */
-import { waffoInsightsFact } from '@/analytics/insights-payment';
 import { createHash, randomUUID } from 'node:crypto';
 import { openCheckoutContext } from '@/analytics/checkout-context';
 import { EVENTS, isProductionAnalytics } from '@/analytics/core-goals';
+import { firstBuyer, validateQuote } from '@/analytics/experiment-server';
+/** Waffo new-sale adapter; legacy Creem routing stays independent. */
+import { waffoInsightsFact } from '@/analytics/insights-payment';
 import { getWaffoConfirmedCheckout } from '@/analytics/payment-conversion';
 import { sendServerEvent } from '@/analytics/plausible-server';
 import { getDb } from '@/db';
@@ -29,8 +30,10 @@ import {
   lockWallet,
   refreshWallet,
 } from '@/lib/billing/wallet';
+import type { Quote } from '@site-insights/sdk/contracts';
 import {
   ChangeTiming,
+  TaxCategory,
   WaffoPancake,
   type WebhookEvent,
   type WebhookEventData,
@@ -69,13 +72,28 @@ export function waffoClient(): WaffoPancake {
     environment: waffoEnvironment(),
   });
 }
+function canonicalQuote(value: unknown): string {
+  if (Array.isArray(value))
+    return '[' + value.map(canonicalQuote).join(',') + ']';
+  if (value && typeof value === 'object')
+    return (
+      '{' +
+      Object.entries(value)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => JSON.stringify(k) + ':' + canonicalQuote(v))
+        .join(',') +
+      '}'
+    );
+  return JSON.stringify(value);
+}
 export async function createWaffoCheckout(
   userId: string,
   email: string,
   key: OfferKey,
   returnUrl: string,
   client = waffoClient(),
-  plausibleContext: string | null = null
+  plausibleContext: string | null = null,
+  quote: Quote | null = null
 ): Promise<{ url: string; id: string }> {
   if (!billingEnabled())
     throw new BillingError(
@@ -84,11 +102,59 @@ export async function createWaffoCheckout(
       503
     );
   const db = await getDb();
-  const offer = OFFERS[key];
+  if (quote) {
+    validateQuote(quote, userId);
+    if (
+      key !== quote.assignment.value.offer_key ||
+      (quote.environment === 'production') !== (waffoEnvironment() === 'prod')
+    )
+      throw new BillingError(
+        'quote_invalid',
+        'This quote is not valid for this checkout.',
+        409
+      );
+  }
+  const offer = quote
+    ? {
+        ...OFFERS.pack_small,
+        amount: quote.assignment.value.amount_minor,
+        credits: quote.assignment.value.credits,
+      }
+    : OFFERS[key];
   let id: string = randomUUID();
   const productId = waffoProduct(key);
   const origin = await db.transaction(async (tx) => {
     await lockWallet(tx, userId);
+    if (quote) {
+      const [previous] = await tx
+        .select()
+        .from(billingCheckouts)
+        .where(sql`${billingCheckouts.experimentQuote}->>'id'=${quote.id}`)
+        .limit(1);
+      if (
+        previous &&
+        (previous.userId !== userId ||
+          previous.environment !== waffoEnvironment() ||
+          canonicalQuote(previous.experimentQuote) !== canonicalQuote(quote))
+      )
+        throw new BillingError(
+          'quote_invalid',
+          'Quote conflicts with its original checkout.',
+          409
+        );
+      if (previous && previous.state !== 'pending')
+        throw new BillingError(
+          'quote_used',
+          'This quote already has an order.',
+          409
+        );
+      if (!(await firstBuyer(tx, userId)))
+        throw new BillingError(
+          'quote_ineligible',
+          'This offer is for first-time buyers.',
+          409
+        );
+    }
     if (
       offer.kind === 'subscription' &&
       (await getLegacyEntitlement(tx, userId))
@@ -127,6 +193,12 @@ export async function createWaffoCheckout(
         )
       );
     if (pending) {
+      if ((pending.experimentQuote?.id || null) !== (quote?.id || null))
+        throw new BillingError(
+          'checkout_open',
+          'An existing checkout has a different price. Finish or let it expire before choosing another.',
+          409
+        );
       if (pending.offerKey !== key)
         throw new BillingError(
           'checkout_open',
@@ -145,6 +217,7 @@ export async function createWaffoCheckout(
       id,
       userId,
       offerKey: key,
+      experimentQuote: quote,
       environment: waffoEnvironment(),
       expiresAt: new Date(Date.now() + 11 * 60000),
     });
@@ -159,6 +232,14 @@ export async function createWaffoCheckout(
   const params = {
     productId,
     currency: 'USD',
+    ...(quote
+      ? {
+          priceSnapshot: {
+            amount: (offer.amount / 100).toFixed(2),
+            taxCategory: TaxCategory.SaaS,
+          },
+        }
+      : {}),
     expiresInSeconds: 600,
     buyerIdentity: userId,
     buyerEmail: email,
@@ -168,6 +249,7 @@ export async function createWaffoCheckout(
       offerKey: key,
       userId,
       checkoutId: id,
+      ...(quote ? { insights_quote_id: quote.id } : {}),
       ...(plausibleContext ? { plausible_context: plausibleContext } : {}),
       ...(subscription ? { originOrderId: subscription.id } : {}),
     },
@@ -284,7 +366,21 @@ export async function processWaffoEvent(event: WebhookEvent): Promise<void> {
       .update(billingCheckouts)
       .set({ orderId: data.orderId })
       .where(eq(billingCheckouts.id, checkout.id));
-    const offer = OFFERS[checkout.offerKey];
+    const snapshot = checkout.experimentQuote;
+    if (
+      snapshot &&
+      (snapshot.user_id !== checkout.userId ||
+        snapshot.assignment.value.offer_key !== checkout.offerKey ||
+        data.orderMetadata?.insights_quote_id !== snapshot.id)
+    )
+      throw new Error('Quote snapshot mismatch');
+    const offer = snapshot
+      ? {
+          ...OFFERS.pack_small,
+          amount: snapshot.assignment.value.amount_minor,
+          credits: snapshot.assignment.value.credits,
+        }
+      : OFFERS[checkout.offerKey];
     if (event.eventType === 'subscription.plan_change_failed') {
       await tx
         .update(billingCheckouts)
@@ -398,7 +494,14 @@ export async function processWaffoEvent(event: WebhookEvent): Promise<void> {
         data.subtotal,
         data.amount,
       ].filter((v) => v !== undefined);
-      if (!prices.some((v) => Math.round(Number(v) * 100) === offer.amount))
+      if (
+        snapshot
+          ? Math.round(
+              Number(data.listPrice?.subtotal ?? data.subtotal ?? data.amount) *
+                100
+            ) !== offer.amount
+          : !prices.some((v) => Math.round(Number(v) * 100) === offer.amount)
+      )
         throw new Error('Purchase amount mismatch');
       await grantBucket(tx, {
         userId: checkout.userId,

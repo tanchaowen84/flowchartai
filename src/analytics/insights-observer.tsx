@@ -1,5 +1,6 @@
 'use client';
 import { authClient } from '@/lib/auth-client';
+import { qaCookie } from '@site-insights/sdk/contracts';
 import { useEffect, useRef } from 'react';
 import { setInsightsClient } from './insights-client';
 import { start } from './insights-sdk';
@@ -12,13 +13,25 @@ export function InsightsObserver(): null {
   useEffect(() => {
     if (
       process.env.NEXT_PUBLIC_SITE_INSIGHTS_ENABLED !== 'true' ||
-      location.hostname !== 'flowchartai.org'
+      (location.hostname !== 'flowchartai.org' &&
+        process.env.NEXT_PUBLIC_SITE_INSIGHTS_LOCAL !== 'true')
     )
       return;
-    const qa = new URL(location.href).searchParams.get('insights_qa') === '1';
+    const qa =
+      new URL(location.href).searchParams.get('insights_qa') === '1' ||
+      document.cookie
+        .split(';')
+        .some(
+          (part) =>
+            part.trim() ===
+            `${qaCookie(process.env.NEXT_PUBLIC_SITE_INSIGHTS_SITE_ID || 'flowchart')}=1`
+        );
     tracker.current = start({
-      siteId: 'flowchart',
-      endpoint: 'https://myplausible.app/insights',
+      siteId: process.env.NEXT_PUBLIC_SITE_INSIGHTS_SITE_ID || 'flowchart',
+      sharedCookie: true,
+      endpoint:
+        process.env.NEXT_PUBLIC_SITE_INSIGHTS_ENDPOINT ||
+        'https://myplausible.app/insights',
       identityEndpoint: '/api/insights/identify',
       qa,
       normalizePath: (path) =>

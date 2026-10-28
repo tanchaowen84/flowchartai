@@ -1,0 +1,2 @@
+ALTER TABLE "billing_checkouts" ADD COLUMN "experiment_quote" jsonb;--> statement-breakpoint
+CREATE UNIQUE INDEX "billing_checkout_quote_unique" ON "billing_checkouts" USING btree (("experiment_quote"->>'id')) WHERE "billing_checkouts"."experiment_quote" IS NOT NULL;
