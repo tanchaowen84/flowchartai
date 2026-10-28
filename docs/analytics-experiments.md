@@ -1,5 +1,7 @@
 # Shared experiments
 
+Production setup completed on 2026-10-28: deployment `dpl_2HyhGZMgxspa8FA41itAPt8vowyS`, source `cdb17ec`, migration 0013, scoped server key and connected capability manifest. The production adapter flag is enabled; no experiments exist or were started. Canonical-domain authenticated quote-null/default-price checks passed without creating a checkout. Full release and rollback evidence is in the companion private Site Insights repository's `docs/UNIFIED-EXPERIMENTS-RELEASE.md`. The source default remains off for new sites.
+
 Default off: `SITE_INSIGHTS_EXPERIMENTS_ENABLED` must be explicitly set to `true` to enable server page decisions and credit-pack quote requests. Installing, registering or deploying code does not start an experiment. Do not start a production experiment in this release.
 
 ## Setup
