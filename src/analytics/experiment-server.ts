@@ -2,7 +2,6 @@ import type { getDb } from '@/db';
 import { billingCheckouts, payment } from '@/db/schema';
 import { BillingError } from '@/lib/billing/wallet';
 import {
-  type Capability,
   type Quote,
   anonymousCookie,
   uuidPattern,
@@ -11,27 +10,7 @@ import {
 import { createExperimentClient } from '@site-insights/sdk/server';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 export const EXPERIMENT_SITE = process.env.SITE_INSIGHTS_SITE_ID || 'flowchart';
-export const homeModules = [
-  'hero',
-  'demo',
-  'features',
-  'ai-capabilities',
-  'use-cases',
-  'tutorials',
-  'pricing',
-  'faq',
-  'call-to-action',
-];
-export const experimentCapabilities: Capability[] = [
-  { target: 'homepage-headline', kind: 'text' },
-  {
-    target: 'homepage-layout',
-    kind: 'page',
-    modules: homeModules,
-    required_modules: homeModules,
-  },
-  { target: 'credit-pack-price', kind: 'pricing', offer_keys: ['pack_small'] },
-];
+export { homeModules, experimentCapabilities } from './experiment-capabilities';
 export const experimentsEnabled = () =>
   process.env.SITE_INSIGHTS_EXPERIMENTS_ENABLED === 'true';
 export function experimentClient() {
