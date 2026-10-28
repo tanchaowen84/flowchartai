@@ -6,7 +6,7 @@ Default off: `SITE_INSIGHTS_EXPERIMENTS_ENABLED` must be explicitly set to `true
 
 ## Setup
 
-1. Install pinned `vendor/site-insights-sdk-0.2.0.tgz`. Its source is the private Site Insights repository `sdk/`; do not edit a separate copied browser implementation.
+1. Install pinned `vendor/site-insights-sdk-0.3.1.tgz`. Its source is the private Site Insights repository `sdk/`; do not edit a separate copied browser implementation.
 2. Apply additive `src/db/migrations/0013_experiment_quotes.sql` through the normal deployment migration process. Existing orders keep NULL quote snapshots and the original billing policy.
 3. Server configuration: `SITE_INSIGHTS_ENDPOINT` (including `/insights`), `SITE_INSIGHTS_SITE_ID=flowchart`, scoped `SITE_INSIGHTS_WRITE_KEY`, `SITE_INSIGHTS_ENVIRONMENT=production` for the production Waffo environment. Test/staging environments must use their own site credential and test provider.
 4. Browser: existing `NEXT_PUBLIC_SITE_INSIGHTS_ENABLED=true`, optional `NEXT_PUBLIC_SITE_INSIGHTS_SITE_ID` and `NEXT_PUBLIC_SITE_INSIGHTS_ENDPOINT`. `NEXT_PUBLIC_SITE_INSIGHTS_LOCAL=true` is only for isolated localhost verification. Never include write credentials in public variables.
@@ -27,3 +27,11 @@ The browser submits only `quote_id`; authentication fixes the owner. The server 
 ## Reuse boundary
 
 The package does not import Next.js, Drizzle, Supabase, D1 or Waffo. Each site supplies a component registry, cookie/SSR adapter, authenticated quote route, eligibility check, immutable order storage and provider fulfillment adapter. React bindings are optional. Existing modules and one-time offers become configurable; new interaction components or billing models require one adapter update.
+
+## Universal analytics source associations
+
+The production source feed now returns the shared manifest plus versioned entity, event-link and relation batches. SDK dependency is pinned to 0.3.1. Existing event payloads, IDs and financial normalization remain unchanged; associations are additive and source-derived. The same collection transaction stores an accepted event and its links. Flowchart/task/editor/format observations do not prove reuse or model preference.
+
+Use a new source ID `flowchart-v1` on the backend to replay existing source history and add associations to prior receipts without duplicating their events. Keep the existing source token and configured start. Do not enable both the legacy and new scheduled connector. Per-source cursor and coverage are visible in the universal catalog. No browser, checkout, credit, payment or experiment behavior is changed by this read-only source extension.
+
+Verification: associations, feed and payment tests; production build; collector replay and per-site catalog reconciliation after deployment. Registering the manifest or deploying this adapter does not start an experiment.

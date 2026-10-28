@@ -165,8 +165,8 @@ importers:
         specifier: 1.0.5
         version: 1.0.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@site-insights/sdk':
-        specifier: file:vendor/site-insights-sdk-0.2.0.tgz
-        version: file:vendor/site-insights-sdk-0.2.0.tgz(react@19.0.0)
+        specifier: file:vendor/site-insights-sdk-0.3.1.tgz
+        version: file:vendor/site-insights-sdk-0.3.1.tgz(react@19.0.0)
       '@stripe/stripe-js':
         specifier: ^5.6.0
         version: 5.6.0
@@ -3319,9 +3319,9 @@ packages:
     resolution: {integrity: sha512-doH1gimEu3A46VX6aVxpHTeHrytJAG6HgdxntYnCFiIFHEM/ZGpG8KiZGBChchjQmG0XFIBL552kBTjVcMZXwQ==}
     engines: {node: '>=12'}
 
-  '@site-insights/sdk@file:vendor/site-insights-sdk-0.2.0.tgz':
-    resolution: {integrity: sha512-pK/5XP3hf60sWRDNKOgnvo4ZPMX3WT9Wy2zlrbBva+bhHjw65WwxDj3zwEuQsrnPMdQKw9nvZCqU3JtwlU8zvg==, tarball: file:vendor/site-insights-sdk-0.2.0.tgz}
-    version: 0.2.0
+  '@site-insights/sdk@file:vendor/site-insights-sdk-0.3.1.tgz':
+    resolution: {integrity: sha512-HNZu5VFi3625C0/fFpFNKYJiAOcABVqb8bLO6ckfktbhHdSdCwhszKucZ9yi+HAhbHN1YkLoAXzUm2Dk/s+jyA==, tarball: file:vendor/site-insights-sdk-0.3.1.tgz}
+    version: 0.3.1
     peerDependencies:
       react: '>=18'
     peerDependenciesMeta:
@@ -10297,7 +10297,7 @@ snapshots:
     dependencies:
       escape-string-regexp: 5.0.0
 
-  '@site-insights/sdk@file:vendor/site-insights-sdk-0.2.0.tgz(react@19.0.0)':
+  '@site-insights/sdk@file:vendor/site-insights-sdk-0.3.1.tgz(react@19.0.0)':
     optionalDependencies:
       react: 19.0.0
 

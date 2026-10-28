@@ -84,7 +84,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@react-email/components": "0.0.33",
     "@react-email/render": "1.0.5",
-    "@site-insights/sdk": "file:vendor/site-insights-sdk-0.2.0.tgz",
+    "@site-insights/sdk": "file:vendor/site-insights-sdk-0.3.1.tgz",
     "@stripe/stripe-js": "^5.6.0",
     "@tabler/icons-react": "^3.31.0",
     "@tanstack/react-table": "^8.21.2",
