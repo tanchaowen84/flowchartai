@@ -18,9 +18,9 @@ type ServerEvent =
   | typeof EVENTS.processingStarted
   | typeof EVENTS.paymentConfirmed;
 
-export function visitorHeaders(
-  headers: Headers
-): Record<string, string> | null {
+type VisitorHeaders = { 'User-Agent': string; 'X-Forwarded-For': string };
+
+export function visitorHeaders(headers: Headers): VisitorHeaders | null {
   const agent = headers.get('user-agent');
   const forwarded =
     headers.get('x-vercel-forwarded-for') ?? headers.get('x-forwarded-for');
@@ -46,7 +46,13 @@ export async function sendServerEvent(
       new URL('/api/event', process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT),
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...visitor },
+        headers: {
+          'Content-Type': 'application/json',
+          ...visitor,
+          // The collector sits behind Cloudflare, whose CF-Connecting-IP (this
+          // server) outranks X-Forwarded-For; X-Plausible-IP outranks both.
+          'X-Plausible-IP': visitor['X-Forwarded-For'],
+        },
         body: JSON.stringify({
           name: event,
           domain: 'flowchartai.org',
