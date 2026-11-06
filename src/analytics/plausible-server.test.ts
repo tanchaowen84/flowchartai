@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { openCheckoutContext, sealCheckoutContext } from './checkout-context';
 import { EVENTS } from './core-goals';
 import { sendServerEvent } from './plausible-server';
 
@@ -43,12 +44,45 @@ describe('server delivery', () => {
       'Content-Type': 'application/json',
       'User-Agent': 'Browser QA',
       'X-Forwarded-For': '203.0.113.4',
+      'X-Plausible-IP': '203.0.113.4',
     });
     expect(JSON.parse(options.body)).toEqual({
       name: EVENTS.processingStarted,
       domain: 'flowchartai.org',
       url: 'https://flowchartai.org/canvas',
       props: { mode: 'text_to_flowchart' },
+    });
+  });
+
+  it('pins the visitor IP above the proxy address for chained and sealed checkout headers', async () => {
+    production();
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response('{}', { status: 202 }));
+    vi.stubGlobal('fetch', fetcher);
+    await sendServerEvent(
+      EVENTS.registrationCompleted,
+      {},
+      new Headers({
+        'user-agent': 'browser',
+        'x-forwarded-for': 'unknown, 198.51.100.7, 10.0.0.1',
+      })
+    );
+    expect(fetcher.mock.calls[0][1].headers).toMatchObject({
+      'X-Forwarded-For': '198.51.100.7',
+      'X-Plausible-IP': '198.51.100.7',
+    });
+    // Checkout contexts sealed before this change hold only UA + XFF.
+    const token = sealCheckoutContext(
+      new Headers({ 'user-agent': 'browser', 'x-forwarded-for': '192.0.2.9' }),
+      'secret'
+    );
+    const visitor = token && openCheckoutContext(token, 'secret');
+    expect(visitor).toBeTruthy();
+    await sendServerEvent(EVENTS.paymentConfirmed, {}, visitor as Headers);
+    expect(fetcher.mock.calls[1][1].headers).toMatchObject({
+      'X-Forwarded-For': '192.0.2.9',
+      'X-Plausible-IP': '192.0.2.9',
     });
   });
 
