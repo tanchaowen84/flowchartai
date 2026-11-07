@@ -14,6 +14,7 @@ vi.mock('@/analytics/plausible-browser', () => ({
 vi.mock('react', () => ({
   useState: (value: unknown) => [value, setState],
   useRef: (value: unknown) => ({ current: value }),
+  useCallback: (callback: unknown) => callback,
 }));
 const checkoutUrl = 'https://checkout.waffo.com/test';
 let popup: {
@@ -53,6 +54,7 @@ describe('Waffo checkout handoff', () => {
     expect(popup.location.replace).toHaveBeenCalledWith(checkoutUrl);
     expect(track).toHaveBeenCalledExactlyOnceWith(EVENTS.checkoutHandoff, {
       source: 'paywall',
+      offer: 'pack_small',
     });
     checkout.trackHandoff();
     expect(track).toHaveBeenCalledTimes(1);
@@ -61,12 +63,15 @@ describe('Waffo checkout handoff', () => {
   it('waits for a fallback click when the popup is blocked and deduplicates repeat clicks', async () => {
     window.open = vi.fn().mockReturnValue(null);
     const checkout = useCreditCheckout();
-    await checkout.buy('pack_small');
+    await checkout.buy('starter_month');
     expect(track).not.toHaveBeenCalled();
+    // The fallback must become a prominent tap target, not wait silently.
+    expect(setState).toHaveBeenCalledWith(true);
     checkout.trackHandoff();
     checkout.trackHandoff();
     expect(track).toHaveBeenCalledExactlyOnceWith(EVENTS.checkoutHandoff, {
       source: 'pricing',
+      offer: 'starter_month',
     });
   });
 
@@ -75,6 +80,16 @@ describe('Waffo checkout handoff', () => {
     await useCreditCheckout().buy('pack_small');
     expect(track).not.toHaveBeenCalled();
     expect(popup.location.replace).not.toHaveBeenCalled();
+    expect(setState).toHaveBeenCalledWith(true);
+  });
+
+  it('does not ask for a manual tap after the popup reached checkout', async () => {
+    await useCreditCheckout(undefined, 'paywall').buy('pack_large');
+    expect(setState).not.toHaveBeenCalledWith(true);
+    expect(track).toHaveBeenCalledExactlyOnceWith(EVENTS.checkoutHandoff, {
+      source: 'paywall',
+      offer: 'pack_large',
+    });
   });
 
   it('does not count navigation failure, but allows the real fallback click', async () => {
@@ -84,6 +99,10 @@ describe('Waffo checkout handoff', () => {
     const checkout = useCreditCheckout();
     await checkout.buy('pack_small');
     expect(track).not.toHaveBeenCalled();
+    // A recoverable tab failure shows the manual button, not a raw exception.
+    expect(setState).not.toHaveBeenCalledWith('closed');
+    expect(setState).toHaveBeenCalledWith(true);
+    expect(popup.close).toHaveBeenCalled();
     checkout.trackHandoff();
     expect(track).toHaveBeenCalledTimes(1);
   });
@@ -128,6 +147,7 @@ describe('Waffo checkout handoff', () => {
     checkout.trackHandoff();
     expect(track).toHaveBeenCalledExactlyOnceWith(EVENTS.checkoutHandoff, {
       source: 'paywall',
+      offer: 'pack_small',
     });
     expect(growth).toHaveBeenCalledExactlyOnceWith(
       'checkout_handoff',
