@@ -1,9 +1,15 @@
 'use client';
 import { Button } from '@/components/ui/button';
-import { OFFERS, type OfferKey } from '@/lib/billing/policy';
+import type { OfferKey } from '@/lib/billing/policy';
 import {
+  CREDITS_PER_TYPICAL_DIAGRAM,
+  CREDIT_VIEWS,
   type CreditView,
+  DEFAULT_CREDIT_OFFER,
+  DEFAULT_CREDIT_VIEW,
+  checkoutCta,
   creditPrice,
+  estimateDiagrams,
   offersForView,
 } from '@/lib/billing/presentation';
 import { useEffect, useState } from 'react';
@@ -15,21 +21,22 @@ export function CreditPlanSelector({
   packsOnly?: boolean;
   onCheckoutCreated?: (id: string) => Promise<void> | void;
 }): React.ReactElement {
-  const [view, setView] = useState<CreditView>(packsOnly ? 'once' : 'monthly');
-  const [selected, setSelected] = useState<OfferKey>(
-    packsOnly ? 'pack_small' : 'starter_month'
-  );
-  const { pending, error, url, buy, trackHandoff } = useCreditCheckout(
-    onCheckoutCreated,
-    'paywall'
-  );
+  // One-time leads for everyone; subscribers (packsOnly) can only buy packs anyway.
+  const [view, setView] = useState<CreditView>(DEFAULT_CREDIT_VIEW);
+  const [selected, setSelected] = useState<OfferKey>(DEFAULT_CREDIT_OFFER);
+  const { pending, error, url, needsManualOpen, buy, trackHandoff, clear } =
+    useCreditCheckout(onCheckoutCreated, 'paywall');
   useEffect(() => {
-    if (packsOnly) {
+    if (packsOnly && view !== 'once') {
       setView('once');
-      setSelected('pack_small');
+      setSelected(DEFAULT_CREDIT_OFFER);
+      clear();
     }
-  }, [packsOnly]);
-  const active = OFFERS[selected];
+  }, [packsOnly, view, clear]);
+  const choose = (key: OfferKey): void => {
+    if (key !== selected) clear();
+    setSelected(key);
+  };
   return (
     <div className="space-y-5">
       <div
@@ -37,7 +44,7 @@ export function CreditPlanSelector({
         aria-label="Payment type"
         className="grid grid-cols-3 rounded-xl border bg-muted/40 p-1"
       >
-        {(['monthly', 'yearly', 'once'] as const).map((v) => (
+        {CREDIT_VIEWS.map((v) => (
           <button
             key={v}
             type="button"
@@ -46,7 +53,7 @@ export function CreditPlanSelector({
             disabled={Boolean(pending) || (packsOnly && v !== 'once')}
             onClick={() => {
               setView(v);
-              setSelected(offersForView(v)[0]);
+              choose(offersForView(v)[0]);
             }}
             className={`rounded-lg px-1 py-2.5 text-sm font-medium sm:px-3 ${view === v ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
           >
@@ -90,7 +97,7 @@ export function CreditPlanSelector({
                 value={key}
                 checked={chosen}
                 disabled={Boolean(pending)}
-                onChange={() => setSelected(key)}
+                onChange={() => choose(key)}
                 className="sr-only"
               />
               <div className="flex items-center gap-2">
@@ -117,7 +124,11 @@ export function CreditPlanSelector({
                 <p className="mt-1 text-sm text-muted-foreground">{p.billed}</p>
               )}
               <p className="mt-4 text-lg">
-                <strong>{p.credits.toLocaleString()}</strong> credits
+                <strong>{p.credits.toLocaleString('en-US')}</strong> credits
+                {view !== 'once' ? ' / month' : ''}
+              </p>
+              <p className="mt-1 text-sm font-medium text-primary">
+                ≈ {estimateDiagrams(p.credits).toLocaleString('en-US')} diagrams
                 {view !== 'once' ? ' / month' : ''}
               </p>
               <p className="mt-3 min-h-6 text-xs sm:text-sm">
@@ -142,34 +153,52 @@ export function CreditPlanSelector({
         })}
       </div>
       <div className="sticky bottom-0 space-y-3 border-t bg-background pb-1 pt-4">
-        <Button
-          className="h-auto min-h-12 w-full whitespace-normal py-3 text-base"
-          disabled={Boolean(pending)}
-          onClick={() => buy(selected)}
-        >
-          {pending
-            ? 'Opening checkout…'
-            : view === 'yearly'
-              ? `Get ${creditPrice(selected).name} & continue`
-              : `Get ${active.credits.toLocaleString()} credits & continue — $${active.amount / 100}${view === 'once' ? ' once' : '/month'}`}
-        </Button>
+        {needsManualOpen && url ? (
+          <>
+            <p className="text-center text-sm">
+              Checkout didn&apos;t open automatically.
+            </p>
+            <Button
+              asChild
+              className="h-auto min-h-12 w-full whitespace-normal py-3 text-base"
+            >
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={trackHandoff}
+              >
+                Open secure checkout
+              </a>
+            </Button>
+          </>
+        ) : (
+          <Button
+            className="h-auto min-h-12 w-full whitespace-normal py-3 text-base"
+            disabled={Boolean(pending)}
+            onClick={() => buy(selected)}
+          >
+            {pending ? 'Opening checkout…' : checkoutCta(selected)}
+          </Button>
+        )}
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
           {view === 'once'
             ? 'No subscription · Credits never expire'
             : view === 'yearly'
               ? 'Billed yearly · Credits arrive and expire monthly · Auto-renews · Cancel renewal anytime'
               : 'Renews monthly · Monthly credits expire · Cancel renewal anytime'}
+          {` · A typical diagram uses ~${CREDITS_PER_TYPICAL_DIAGRAM} credits`}
         </p>
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}
           </p>
         )}
-        {url && (
+        {url && !needsManualOpen && (
           <output className="block text-center text-sm text-muted-foreground">
             Waiting for payment confirmation.{' '}
             <a
-              className="underline"
+              className="inline-block py-2 underline"
               href={url}
               target="_blank"
               rel="noopener noreferrer"

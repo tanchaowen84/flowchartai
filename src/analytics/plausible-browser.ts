@@ -65,7 +65,10 @@ export function trackFlowchartEvent(
             JSON.stringify({
               name: event,
               domain: 'flowchartai.org',
-              url: 'https://flowchartai.org/pricing',
+              // The page the handoff happened on (canvas paywall or /pricing),
+              // matching what the tracker records for other events. Path only:
+              // no query string or hash.
+              url: `https://flowchartai.org${window.location.pathname || '/'}`,
               props: sanitizeEventProperties(properties),
             }),
           ],

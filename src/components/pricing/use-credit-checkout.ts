@@ -2,15 +2,19 @@
 import { EVENTS } from '@/analytics/core-goals';
 import { trackGrowth } from '@/analytics/growth-browser';
 import { trackFlowchartEvent } from '@/analytics/plausible-browser';
-import type { OfferKey } from '@/lib/billing/policy';
-import { useRef, useState } from 'react';
+import { type OfferKey, isSellableOffer } from '@/lib/billing/policy';
+import { useCallback, useRef, useState } from 'react';
 
 interface CreditCheckout {
   pending: OfferKey | null;
   error: string;
   url: string;
+  /** Checkout exists but no tab reached it (popup blocked or closed): needs a tap. */
+  needsManualOpen: boolean;
   buy: (key: OfferKey, quoteId?: string) => Promise<void>;
   trackHandoff: () => void;
+  /** Drop a checkout link that no longer matches the selected offer. */
+  clear: () => void;
 }
 
 export function useCreditCheckout(
@@ -20,7 +24,9 @@ export function useCreditCheckout(
   const [pending, setPending] = useState<OfferKey | null>(null);
   const [error, setError] = useState('');
   const [url, setUrl] = useState('');
+  const [needsManualOpen, setNeedsManualOpen] = useState(false);
   const currentUrl = useRef('');
+  const currentOffer = useRef<OfferKey | null>(null);
   const checkoutId = useRef<string | undefined>(undefined);
   // URLs stay in component memory; they are never analytics properties.
   const handedOff = useRef(new Set<string>());
@@ -28,13 +34,23 @@ export function useCreditCheckout(
     const destination = currentUrl.current;
     if (!destination || handedOff.current.has(destination)) return;
     handedOff.current.add(destination);
+    setNeedsManualOpen(false);
     trackGrowth(
       'checkout_handoff',
       { checkoutId: checkoutId.current },
       { source }
     );
-    trackFlowchartEvent(EVENTS.checkoutHandoff, { source });
+    const offer = currentOffer.current;
+    trackFlowchartEvent(EVENTS.checkoutHandoff, {
+      source,
+      ...(isSellableOffer(offer) ? { offer } : {}),
+    });
   }
+  const clear = useCallback((): void => {
+    currentUrl.current = '';
+    setUrl('');
+    setNeedsManualOpen(false);
+  }, []);
   function saveUrl(destination: string): void {
     currentUrl.current = destination;
     setUrl(destination);
@@ -44,6 +60,8 @@ export function useCreditCheckout(
     setPending(key);
     setError('');
     saveUrl('');
+    setNeedsManualOpen(false);
+    currentOffer.current = key;
     checkoutId.current = undefined;
     const popup = window.open('about:blank', '_blank');
     if (popup) popup.opener = null;
@@ -63,6 +81,7 @@ export function useCreditCheckout(
         ) {
           checkoutId.current = result.checkoutId;
           saveUrl(result.resumeUrl);
+          setNeedsManualOpen(true);
         }
         throw new Error(result.message || 'Checkout is unavailable');
       }
@@ -71,9 +90,21 @@ export function useCreditCheckout(
       checkoutId.current = result.id;
       await onCreated?.(result.id);
       saveUrl(result.url);
+      let navigated = false;
       if (popup && !popup.closed) {
-        popup.location.replace(result.url);
-        trackHandoff();
+        try {
+          popup.location.replace(result.url);
+          navigated = true;
+        } catch {
+          // The tab went away mid-request; the manual link below recovers.
+        }
+      }
+      if (navigated) trackHandoff();
+      else {
+        // Mobile in-app browsers and popup blockers return no tab. Ask for one
+        // tap: a direct link click is a user gesture, so it does open.
+        popup?.close();
+        setNeedsManualOpen(true);
       }
     } catch (e) {
       popup?.close();
@@ -82,5 +113,5 @@ export function useCreditCheckout(
       setPending(null);
     }
   }
-  return { pending, error, url, buy, trackHandoff };
+  return { pending, error, url, needsManualOpen, buy, trackHandoff, clear };
 }
