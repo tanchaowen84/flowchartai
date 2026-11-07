@@ -63,7 +63,7 @@ export function InsightsExperiment({
   }, [assignment]);
   return (
     <span ref={ref} data-insights-slot={target}>
-      {assignment?.value || children}
+      {typeof assignment?.value === 'string' ? assignment.value : children}
     </span>
   );
 }

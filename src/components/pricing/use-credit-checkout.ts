@@ -9,7 +9,7 @@ interface CreditCheckout {
   pending: OfferKey | null;
   error: string;
   url: string;
-  buy: (key: OfferKey) => Promise<void>;
+  buy: (key: OfferKey, quoteId?: string) => Promise<void>;
   trackHandoff: () => void;
 }
 
@@ -39,7 +39,7 @@ export function useCreditCheckout(
     currentUrl.current = destination;
     setUrl(destination);
   }
-  async function buy(key: OfferKey): Promise<void> {
+  async function buy(key: OfferKey, quoteId?: string): Promise<void> {
     if (pending) return;
     setPending(key);
     setError('');
@@ -51,7 +51,9 @@ export function useCreditCheckout(
       const response = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ offerKey: key }),
+        body: JSON.stringify(
+          quoteId ? { quote_id: quoteId } : { offerKey: key }
+        ),
       });
       const result = await response.json();
       if (!response.ok) {

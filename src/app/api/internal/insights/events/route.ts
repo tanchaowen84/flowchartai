@@ -1,4 +1,8 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import {
+  associateInsightsEvents,
+  insightsManifest,
+} from '@/analytics/insights-associations';
 import { normalizeInsightsRecord } from '@/analytics/insights-feed';
 import { getDb } from '@/db';
 import { sql } from 'drizzle-orm';
@@ -70,6 +74,25 @@ export async function GET(request: Request): Promise<Response> {
       AND (at>${cursor.at}::timestamp OR (at=${cursor.at}::timestamp AND id>${cursor.id}))
     ORDER BY at,id LIMIT 100`);
   const events = rows.map((r: any) => normalizeInsightsRecord(r));
+  const growthIds = events
+    .filter((e) => String(e.event_id).startsWith('growth:'))
+    .map((e) => String(e.event_id).slice(7));
+  const references = growthIds.length
+    ? await db.execute(
+        sql`SELECT 'growth:'||id AS event_id,flowchart_id FROM growth_events WHERE id IN (${sql.join(
+          growthIds.map((id) => sql`${id}`),
+          sql`,`
+        )})`
+      )
+    : [];
+  const associations = associateInsightsEvents(
+    events as {
+      event_id: string;
+      occurred_at: string;
+      properties?: Record<string, unknown>;
+    }[],
+    references as unknown as { event_id: string; flowchart_id: string | null }[]
+  );
   const last = rows.at(-1) as any;
   const next = last
     ? { at: last.cursor_at, id: last.id }
@@ -82,9 +105,13 @@ export async function GET(request: Request): Promise<Response> {
   return Response.json(
     {
       events,
+      manifest: insightsManifest,
+      ...associations,
       cursor: Buffer.from(JSON.stringify(next)).toString('base64url'),
       coverage: [
         'Only observations since installation',
+        'Artifact/task associations use event-time observations; current document settings are never backdated',
+        'Model usage reflects execution routing and is not proof of explicit user preference',
         'Legacy receipts without amount and currency excluded',
         'Creem renewals and refunds not yet normalized',
         'Costs include provider-reported model usage only',
