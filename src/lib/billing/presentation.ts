@@ -10,11 +10,14 @@ export const DEFAULT_CREDIT_VIEW: CreditView = 'once';
 export const DEFAULT_CREDIT_OFFER: OfferKey = 'pack_small';
 /**
  * Credits a typical AI diagram request uses, for the "≈ N diagrams" estimate.
- * Placeholder from observed requests (simple ≈ 9, complex ≈ 23). Calibrate it
- * against the production median credits per AI request before trusting N.
+ * Calibrated from real runs on the production model (DeepSeek V4 Pro) at the
+ * current rates (docs/billing/research/billing-v1-2026-10-14/usage-results.json):
+ * simple 9, complex 23, complex edits 23–35; median of billed runs 23, rounded
+ * up to 25 so the estimate errs low. Recheck against production
+ * (docs/paywall/phase1-2026-11/calibration-query.sql) when rates or model change.
  */
-export const CREDITS_PER_TYPICAL_DIAGRAM = 15;
-/** Rounded down, so the promise stays conservative (1,500 credits → 100). */
+export const CREDITS_PER_TYPICAL_DIAGRAM = 25;
+/** Rounded down, so the promise stays conservative (1,500 credits → 60). */
 export function estimateDiagrams(credits: number): number {
   const diagrams = Math.floor(
     Math.max(0, credits) / CREDITS_PER_TYPICAL_DIAGRAM

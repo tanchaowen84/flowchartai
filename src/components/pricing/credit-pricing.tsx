@@ -106,8 +106,10 @@ export function CreditPricing({
               <p className="font-medium">
                 {SIGNUP_TRIAL_CREDITS} trial credits
               </p>
+              {/* The first diagram's charge is capped at the trial amount
+                  (first-diagram protection), so this is a policy, not an estimate. */}
               <p className="text-sm font-medium text-primary">
-                {approxDiagrams(SIGNUP_TRIAL_CREDITS)} to try it
+                Covers your first diagram
               </p>
               <p className="text-sm text-muted-foreground">
                 Once at registration. Valid for 30 days.

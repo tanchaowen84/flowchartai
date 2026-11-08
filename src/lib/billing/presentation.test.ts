@@ -34,13 +34,14 @@ describe('paywall default selection', () => {
 
 describe('diagram estimate', () => {
   it('uses one conservative constant and rounds down', () => {
-    expect(CREDITS_PER_TYPICAL_DIAGRAM).toBe(15);
-    expect(estimateDiagrams(1500)).toBe(100);
-    expect(estimateDiagrams(2000)).toBe(130); // 133 → 130
-    expect(estimateDiagrams(5000)).toBe(330); // 333 → 330
-    expect(estimateDiagrams(6000)).toBe(400);
-    expect(estimateDiagrams(29)).toBe(1);
-    expect(estimateDiagrams(14)).toBe(0);
+    expect(CREDITS_PER_TYPICAL_DIAGRAM).toBe(25);
+    expect(estimateDiagrams(1500)).toBe(60);
+    expect(estimateDiagrams(2000)).toBe(80);
+    expect(estimateDiagrams(5000)).toBe(200);
+    expect(estimateDiagrams(6000)).toBe(240);
+    expect(estimateDiagrams(2690)).toBe(100); // 107 → 100
+    expect(estimateDiagrams(49)).toBe(1);
+    expect(estimateDiagrams(24)).toBe(0);
     expect(estimateDiagrams(-5)).toBe(0);
   });
 
@@ -51,24 +52,24 @@ describe('diagram estimate', () => {
       );
   });
 
-  it('labels card estimates, singular for the free trial', () => {
-    expect(approxDiagrams(20)).toBe('≈ 1 diagram');
-    expect(approxDiagrams(1500)).toBe('≈ 100 diagrams');
-    expect(approxDiagrams(6000)).toBe('≈ 400 diagrams');
+  it('labels card estimates, singular for one', () => {
+    expect(approxDiagrams(25)).toBe('≈ 1 diagram');
+    expect(approxDiagrams(1500)).toBe('≈ 60 diagrams');
+    expect(approxDiagrams(6000)).toBe('≈ 240 diagrams');
   });
 
   it('puts diagrams first and the exact charge in the CTA', () => {
     expect(checkoutCta('pack_small')).toBe(
-      'Get ~100 diagrams & continue — $10 once'
+      'Get ~60 diagrams & continue — $10 once'
     );
     expect(checkoutCta('pack_large')).toBe(
-      'Get ~330 diagrams & continue — $30 once'
+      'Get ~200 diagrams & continue — $30 once'
     );
     expect(checkoutCta('starter_month')).toBe(
-      'Get ~130 diagrams/month & continue — $9/month'
+      'Get ~80 diagrams/month & continue — $9/month'
     );
     expect(checkoutCta('pro_year_202610')).toBe(
-      'Get ~400 diagrams/month & continue — $180/year'
+      'Get ~240 diagrams/month & continue — $180/year'
     );
   });
 });

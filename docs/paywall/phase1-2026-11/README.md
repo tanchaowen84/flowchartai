@@ -11,7 +11,7 @@ From Oct 16 to Nov 6 2026, 342 users saw the paywall and 7 handed off to checkou
 | Area | Before | After |
 | --- | --- | --- |
 | Default | Monthly tab, Starter $9/mo | One-time tab, Small pack $10 (1,500 credits). Tabs: One-time, Monthly, Yearly |
-| Value | Credits only | "≈ N diagrams" on each card; CTA "Get ~100 diagrams & continue — $10 once" |
+| Value | Credits only | "≈ N diagrams" on each card; CTA "Get ~60 diagrams & continue — $10 once" |
 | Header (blocked request) | "Keep creating with AI" | "Add credits to continue" + why (balance 0: "You've used all your credits"; balance > 0: "This request needs more than your N remaining credits") + prompt/diagram kept, manual editing and downloads stay free |
 | Header (manual open) | Generic | Unchanged |
 | Popup blocked (mobile in-app browsers) | Small muted "Waiting for payment confirmation. Open secure checkout" link; CTA unchanged | "Checkout didn't open automatically." + full-width "Open secure checkout" button. Changing the offer clears the stale link |
@@ -20,11 +20,22 @@ From Oct 16 to Nov 6 2026, 342 users saw the paywall and 7 handed off to checkou
 
 ### /pricing (option B, owner choice 2026-11-07)
 
-/pricing had 102 visitors from Oct 16 to Nov 7, against 344 paywall viewers. They were 28% US and 91% desktop, mostly coming from the homepage before trying the app. So the page keeps subscriptions first. It now adds "≈ N diagrams" to every card (Free ≈ 1, Starter ≈ 130/mo, Pro ≈ 400/mo, packs ≈ 100 / 330) and renames "Extra credits" to "One-time packs · no subscription" with solid buttons. It also gets the same blocked-popup button as the paywall, scrolled into view. The same cards appear on the settings billing page.
+/pricing had 102 visitors from Oct 16 to Nov 7, against 344 paywall viewers. They were 28% US and 91% desktop, mostly coming from the homepage before trying the app. So the page keeps subscriptions first. It now adds "≈ N diagrams" to every card (Free covers the first diagram, Starter ≈ 80/mo, Pro ≈ 240/mo, packs ≈ 60 / 200) and renames "Extra credits" to "One-time packs · no subscription" with solid buttons. It also gets the same blocked-popup button as the paywall, scrolled into view. The same cards appear on the settings billing page.
 
-### Diagram estimate needs calibrating
+### Diagram estimate (calibrated 2026-11-07)
 
-N = credits / `CREDITS_PER_TYPICAL_DIAGRAM` (15, in `src/lib/billing/presentation.ts`), rounded down. 15 sits between the observed simple (≈ 9) and complex (≈ 23) requests. It was not derived from production data, because reading the production DB needs the owner's approval. Replace it with the real median credits per AI request. The owner chose to publish the /pricing estimates only after calibration. The production read was blocked in the agent session; `calibration-query.sql` is the read-only query to run in the Supabase SQL editor.
+N = credits / `CREDITS_PER_TYPICAL_DIAGRAM`, rounded down (tens above 100). It lives in one place, `src/lib/billing/presentation.ts`.
+
+| Real runs on the production model (DeepSeek V4 Pro), current rates | Credits |
+| --- | --- |
+| Simple diagram | 9 |
+| Complex diagram | 23 |
+| Complex edits | 23, 26, 35 |
+| Median of billed runs → constant | 23 → **25** (rounded up so the estimate errs low) |
+
+Source: `docs/billing/research/billing-v1-2026-10-14/usage-results.json`, priced with `RATES` in `policy.ts`. Result: $10 ≈ 60, $30 ≈ 200, Starter ≈ 80/mo, Pro ≈ 240/mo. The Free card says "Covers your first diagram" because first-diagram protection caps that charge at the 20 trial credits (policy, not an estimate).
+
+The production median was not read: the agent's auto-mode classifier blocks production DB reads. To recheck, run `calibration-query.sql` (read-only) in the Supabase SQL editor, especially if the model or rates change.
 
 ### Why Checkout Handoff always showed `/pricing`
 
