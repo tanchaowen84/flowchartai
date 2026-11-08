@@ -7,9 +7,9 @@ import {
   type CreditView,
   DEFAULT_CREDIT_OFFER,
   DEFAULT_CREDIT_VIEW,
+  approxDiagrams,
   checkoutCta,
   creditPrice,
-  estimateDiagrams,
   offersForView,
 } from '@/lib/billing/presentation';
 import { useEffect, useState } from 'react';
@@ -128,7 +128,7 @@ export function CreditPlanSelector({
                 {view !== 'once' ? ' / month' : ''}
               </p>
               <p className="mt-1 text-sm font-medium text-primary">
-                ≈ {estimateDiagrams(p.credits).toLocaleString('en-US')} diagrams
+                {approxDiagrams(p.credits)}
                 {view !== 'once' ? ' / month' : ''}
               </p>
               <p className="mt-3 min-h-6 text-xs sm:text-sm">

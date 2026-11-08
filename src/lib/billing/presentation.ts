@@ -21,6 +21,11 @@ export function estimateDiagrams(credits: number): number {
   );
   return diagrams >= 100 ? Math.floor(diagrams / 10) * 10 : diagrams;
 }
+/** "≈ 100 diagrams" / "≈ 1 diagram", for cards on the paywall and /pricing. */
+export function approxDiagrams(credits: number): string {
+  const n = estimateDiagrams(credits);
+  return `≈ ${n.toLocaleString('en-US')} ${n === 1 ? 'diagram' : 'diagrams'}`;
+}
 export function offersForView(view: CreditView): OfferKey[] {
   return view === 'once'
     ? ['pack_small', 'pack_large']

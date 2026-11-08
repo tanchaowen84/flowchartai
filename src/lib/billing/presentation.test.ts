@@ -5,6 +5,7 @@ import {
   CREDIT_VIEWS,
   DEFAULT_CREDIT_OFFER,
   DEFAULT_CREDIT_VIEW,
+  approxDiagrams,
   checkoutCta,
   estimateDiagrams,
   offersForView,
@@ -48,6 +49,12 @@ describe('diagram estimate', () => {
       expect(estimateDiagrams(OFFERS[key].credits)).toBeLessThanOrEqual(
         OFFERS[key].credits / CREDITS_PER_TYPICAL_DIAGRAM
       );
+  });
+
+  it('labels card estimates, singular for the free trial', () => {
+    expect(approxDiagrams(20)).toBe('≈ 1 diagram');
+    expect(approxDiagrams(1500)).toBe('≈ 100 diagrams');
+    expect(approxDiagrams(6000)).toBe('≈ 400 diagrams');
   });
 
   it('puts diagrams first and the exact charge in the CTA', () => {
