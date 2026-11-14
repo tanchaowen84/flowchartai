@@ -5,7 +5,12 @@ import {
   uuidPattern,
 } from '@site-insights/sdk/contracts';
 import createMiddleware from 'next-intl/middleware';
-import { type NextRequest, NextResponse } from 'next/server';
+import {
+  type NextFetchEvent,
+  type NextRequest,
+  NextResponse,
+} from 'next/server';
+import { reportBotHit } from './analytics/bot-hits';
 import { experimentQa } from './analytics/experiment-qa';
 import { LOCALES, routing } from './i18n/routing';
 import { safeAuthCallback } from './lib/auth-callback-url';
@@ -30,7 +35,13 @@ const intlMiddleware = createMiddleware(routing);
  * In Next.js middleware, it's recommended to only check for the existence of a session cookie
  * to handle redirection. To avoid blocking requests by making API or database calls.
  */
-export default async function middleware(req: NextRequest) {
+export default async function middleware(
+  req: NextRequest,
+  event?: NextFetchEvent
+) {
+  // Count AI/search bot page hits in Site Insights without delaying the page.
+  const botHit = reportBotHit(req);
+  if (botHit) event?.waitUntil(botHit);
   // Even with skipMiddlewareUrlNormalize, nextUrl itself is normalized by Next.
   // next-intl reads nextUrl.search, so restore it from the original request URL.
   req.nextUrl.search = originalRequestUrl(req).search;
