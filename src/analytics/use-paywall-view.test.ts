@@ -26,8 +26,23 @@ it('counts actual open transitions, not closed renders or open rerenders', () =>
   usePaywallView(true);
   expect(track).toHaveBeenCalledExactlyOnceWith(EVENTS.paywallViewed, {
     source: 'paywall',
+    trigger: 'manual',
   });
   usePaywallView(false);
   usePaywallView(true);
   expect(track).toHaveBeenCalledTimes(2);
+});
+
+it('reports whether a blocked request or the user opened the paywall', () => {
+  usePaywallView(true, 'auto');
+  expect(track).toHaveBeenLastCalledWith(EVENTS.paywallViewed, {
+    source: 'paywall',
+    trigger: 'auto',
+  });
+  usePaywallView(false, 'auto');
+  usePaywallView(true, 'manual');
+  expect(track).toHaveBeenLastCalledWith(EVENTS.paywallViewed, {
+    source: 'paywall',
+    trigger: 'manual',
+  });
 });

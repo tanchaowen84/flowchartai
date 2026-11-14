@@ -46,6 +46,25 @@ describe('the operating goals', () => {
     expect(sanitizeEventProperties({ source: 'private-user-id' })).toEqual({});
   });
 
+  it('allows only bounded paywall trigger and sellable offer values', () => {
+    expect(
+      sanitizeEventProperties({ trigger: 'auto', offer: 'pack_small' })
+    ).toEqual({ trigger: 'auto', offer: 'pack_small' });
+    expect(
+      sanitizeEventProperties({ trigger: 'manual', offer: 'pro_year_202610' })
+    ).toEqual({ trigger: 'manual', offer: 'pro_year_202610' });
+    expect(
+      sanitizeEventProperties({
+        trigger: 'popup',
+        // Retired or unknown offers and URLs never reach Plausible.
+        offer: 'starter_year',
+      })
+    ).toEqual({});
+    expect(
+      sanitizeEventProperties({ offer: 'https://checkout.waffo.com/abc' })
+    ).toEqual({});
+  });
+
   it('keeps development and preview traffic out of production', () => {
     const env = {
       NODE_ENV: 'production',
@@ -116,18 +135,27 @@ describe('the operating goals', () => {
     const beacon = vi.fn().mockReturnValue(true);
     const plausible = vi.fn();
     vi.stubGlobal('window', {
-      location: { origin: 'https://flowchartai.org' },
+      location: {
+        origin: 'https://flowchartai.org',
+        pathname: '/canvas/private-flowchart-id',
+        search: '?secret=1',
+        href: 'https://flowchartai.org/canvas/private-flowchart-id?secret=1',
+      },
       navigator: { sendBeacon: beacon },
       plausible,
     });
-    trackFlowchartEvent(EVENTS.checkoutHandoff, { source: 'paywall' });
+    trackFlowchartEvent(EVENTS.checkoutHandoff, {
+      source: 'paywall',
+      offer: 'pack_small',
+    });
     expect(beacon).toHaveBeenCalledTimes(1);
     expect(beacon.mock.calls[0][0]).toBe('https://myplausible.app/api/event');
     expect(JSON.parse(await beacon.mock.calls[0][1].text())).toEqual({
       name: EVENTS.checkoutHandoff,
       domain: 'flowchartai.org',
-      url: 'https://flowchartai.org/pricing',
-      props: { source: 'paywall' },
+      // The real page (was hardcoded to /pricing), without query or hash.
+      url: 'https://flowchartai.org/canvas/private-flowchart-id',
+      props: { source: 'paywall', offer: 'pack_small' },
     });
     expect(plausible).not.toHaveBeenCalled();
   });

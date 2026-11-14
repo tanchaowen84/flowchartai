@@ -7,6 +7,7 @@ import {
   hasNativeExportContent,
 } from '@/analytics/export-content';
 import { trackFlowchartEvent } from '@/analytics/plausible-browser';
+import type { PaywallTrigger } from '@/analytics/use-paywall-view';
 import { LoginDialogContent } from '@/components/auth/login-dialog-content';
 import { AIUsageLimitCard } from '@/components/shared/ai-usage-limit-card';
 import { GuestUsageIndicator } from '@/components/shared/guest-usage-indicator';
@@ -240,6 +241,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
   const [showUsageLimitCard, setShowUsageLimitCard] = useState(false);
   const [dailyLimitUsageInfo, setDailyLimitUsageInfo] = useState<any>(null);
   const [showPricingModal, setShowPricingModal] = useState(false);
+  const [pricingTrigger, setPricingTrigger] =
+    useState<PaywallTrigger>('manual');
+  // auto: a blocked request opened the paywall; manual: the user asked for it.
+  const openPricingModal = (trigger: PaywallTrigger) => {
+    setPricingTrigger(trigger);
+    setShowPricingModal(true);
+  };
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginCallbackUrl, setLoginCallbackUrl] = useState<string | null>(null);
   const [aiMode, setAiMode] = useState<AiAssistantMode>(
@@ -432,7 +440,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
     const key = `flowchartai:paywall-shown:${currentUser?.id}`;
     if (!sessionStorage.getItem(key)) {
       sessionStorage.setItem(key, '1');
-      setShowPricingModal(true);
+      openPricingModal('auto');
     }
   };
 
@@ -853,7 +861,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         setAssistantResponsePhase('idle');
         // Check if it's a daily limit for free users
         if (creditBilling) {
-          setShowPricingModal(true);
+          openPricingModal('auto');
         } else if (usageData?.timeFrame === 'daily') {
           console.log(
             '🎯 Daily limit detected - showing PricingModal directly'
@@ -863,7 +871,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             timeFrame: 'daily',
             nextResetTime: usageData.nextResetTime,
           });
-          setShowPricingModal(true);
+          openPricingModal('auto');
         } else {
           setShowUsageLimitCard(true);
         }
@@ -913,7 +921,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             '✅ Showing PricingModal with daily limit context for registered user'
           );
           setDailyLimitUsageInfo((error as any).usageInfo);
-          setShowPricingModal(true);
+          openPricingModal('auto');
           return false;
         }
       }
@@ -1510,13 +1518,13 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
       const canUseAI = creditBilling ? true : await checkUsageLimit();
       if (!canUseAI) {
         if (creditBilling) {
-          setShowPricingModal(true);
+          openPricingModal('auto');
         } else if (usageData?.timeFrame === 'daily') {
           setDailyLimitUsageInfo({
             timeFrame: 'daily',
             nextResetTime: usageData.nextResetTime,
           });
-          setShowPricingModal(true);
+          openPricingModal('auto');
         } else {
           setShowUsageLimitCard(true);
         }
@@ -1538,7 +1546,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
 
       if (error instanceof Error && (error as any).isDailyLimit) {
         setDailyLimitUsageInfo((error as any).usageInfo);
-        setShowPricingModal(true);
+        openPricingModal('auto');
         return;
       }
 
@@ -1723,7 +1731,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         setAssistantResponsePhase('idle');
         // Check if it's a daily limit for free users
         if (creditBilling) {
-          setShowPricingModal(true);
+          openPricingModal('auto');
         } else if (usageData?.timeFrame === 'daily') {
           console.log(
             '🎯 Daily limit detected - showing PricingModal directly'
@@ -1733,7 +1741,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             timeFrame: 'daily',
             nextResetTime: usageData.nextResetTime,
           });
-          setShowPricingModal(true);
+          openPricingModal('auto');
         } else {
           setShowUsageLimitCard(true);
         }
@@ -1787,7 +1795,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
             '✅ Showing PricingModal with daily limit context for registered user'
           );
           setDailyLimitUsageInfo((error as any).usageInfo);
-          setShowPricingModal(true);
+          openPricingModal('auto');
           return;
         }
       }
@@ -2762,7 +2770,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                   <button
                     type="button"
                     className="underline"
-                    onClick={() => setShowPricingModal(true)}
+                    onClick={() => openPricingModal('manual')}
                     data-credit-purchase-trigger
                   >
                     Buy credits
@@ -2786,7 +2794,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
                         <button
                           type="button"
                           className="underline"
-                          onClick={() => setShowPricingModal(true)}
+                          onClick={() => openPricingModal('manual')}
                         >
                           View purchase options
                         </button>
@@ -2985,11 +2993,11 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
               currentPlan={usageData.subscriptionStatus}
               onUpgrade={() => {
                 setShowUsageLimitCard(false);
-                setShowPricingModal(true);
+                openPricingModal('manual');
               }}
               onLearnMore={() => {
                 setShowUsageLimitCard(false);
-                setShowPricingModal(true);
+                openPricingModal('manual');
               }}
             />
           </div>
@@ -3001,6 +3009,7 @@ const AiChatSidebar: React.FC<AiChatSidebarProps> = ({
         isOpen={showPricingModal}
         onCheckoutCreated={onCreditCheckoutCreated}
         hasPendingRequest={Boolean(pendingCreditRef.current)}
+        trigger={pricingTrigger}
         onClose={() => {
           setShowPricingModal(false);
           setDailyLimitUsageInfo(null); // Clear limit context

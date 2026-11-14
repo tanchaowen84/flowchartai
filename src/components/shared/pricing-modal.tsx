@@ -1,6 +1,9 @@
 'use client';
 
-import { usePaywallView } from '@/analytics/use-paywall-view';
+import {
+  type PaywallTrigger,
+  usePaywallView,
+} from '@/analytics/use-paywall-view';
 import { LoginWrapper } from '@/components/auth/login-wrapper';
 import { CheckoutButton } from '@/components/pricing/create-checkout-button';
 import { CreditPlanSelector } from '@/components/pricing/credit-plan-selector';
@@ -17,6 +20,7 @@ import { getPricePlans } from '@/config/price-config';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { usePayment } from '@/hooks/use-payment';
 import { useLocalePathname } from '@/i18n/navigation';
+import { paywallHeader } from '@/lib/billing/presentation';
 import { formatPrice } from '@/lib/formatter';
 import {
   PaymentTypes,
@@ -40,6 +44,8 @@ interface PricingModalProps {
   limitContext?: LimitContext;
   onCheckoutCreated?: (id: string) => Promise<void> | void;
   hasPendingRequest?: boolean;
+  /** auto: a blocked request opened it; manual: the user opened it. */
+  trigger?: PaywallTrigger;
 }
 
 interface PlanPriceDisplay {
@@ -102,8 +108,9 @@ export function PricingModal({
   limitContext,
   onCheckoutCreated,
   hasPendingRequest,
+  trigger = 'manual',
 }: PricingModalProps) {
-  usePaywallView(isOpen);
+  usePaywallView(isOpen, trigger);
   if (process.env.NEXT_PUBLIC_BILLING_V1_ENABLED === 'true')
     return (
       <CreditPricingModal
@@ -369,30 +376,40 @@ function CreditPricingModal({
   const purchaseOpenerRef = useRef<HTMLElement | null>(null);
   const [activeCreditSubscription, setActiveCreditSubscription] =
     useState(false);
+  // Read fresh on open: a balance cached before the blocked request may be stale,
+  // and the header must not state a wrong number. Neutral copy until it arrives.
+  const [walletBalance, setWalletBalance] = useState<number | undefined>();
   useEffect(() => {
     if (!isOpen) return;
     let active = true;
+    setWalletBalance(undefined);
     void fetch('/api/billing/wallet', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((wallet) => {
-        if (active)
-          setActiveCreditSubscription(
-            Boolean(
-              wallet?.subscriptions?.some(
-                (s: any) =>
-                  new Date(s.paidThrough) > new Date() &&
-                  ['active', 'canceling', 'canceled', 'past_due'].includes(
-                    s.status
-                  )
-              )
+        if (!active) return;
+        if (typeof wallet?.balance === 'number')
+          setWalletBalance(wallet.balance);
+        setActiveCreditSubscription(
+          Boolean(
+            wallet?.subscriptions?.some(
+              (s: any) =>
+                new Date(s.paidThrough) > new Date() &&
+                ['active', 'canceling', 'canceled', 'past_due'].includes(
+                  s.status
+                )
             )
-          );
+          )
+        );
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
   }, [isOpen]);
+  const header = paywallHeader({
+    hasPendingRequest,
+    balance: walletBalance,
+  });
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -417,12 +434,15 @@ function CreditPricingModal({
       >
         <DialogHeader className="text-center sm:text-center">
           <DialogTitle className="text-2xl font-semibold sm:text-3xl">
-            Keep creating with AI
+            {header.title}
           </DialogTitle>
-          <DialogDescription>
-            {hasPendingRequest
-              ? 'Your current request continues automatically after payment.'
-              : 'Choose credits for your next flowchart.'}
+          <DialogDescription className="space-y-1">
+            <span className="block font-medium text-foreground">
+              {header.reason}
+            </span>
+            {header.reassurance && (
+              <span className="block">{header.reassurance}</span>
+            )}
           </DialogDescription>
         </DialogHeader>
         <CreditPlanSelector
